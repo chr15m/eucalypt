@@ -83,6 +83,9 @@
 
              ;; to pipe all the output to the repl
              ;; :server-logfile false
+             :nrepl-middleware  ["cemerick.piggieback/wrap-cljs-repl"
+                                 "cider.nrepl/cider-middleware"
+                                 "refactor-nrepl.middleware/wrap-refactor"]
              }
 
 

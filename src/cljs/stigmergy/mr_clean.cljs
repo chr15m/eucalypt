@@ -1,4 +1,5 @@
 (ns stigmergy.mr-clean
+  (:refer-clojure :exclude [atom])
   (:require [stigmergy.ikota :as ik]
             [clojure.core.async :as async :refer [chan <! >!]]
             [goog.dom :as gdom]
@@ -35,8 +36,7 @@
         (= hiccup-a hiccup-b))))
 
 (defn normalized-component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
-  (let [render-fn reagent-render
-        hiccup (apply reagent-render params)
+  (let [hiccup (apply reagent-render params)
         hiccup (w/prewalk (fn [node]
                             (if (vector? node)
                               (let [first-element (first node)]
@@ -246,7 +246,7 @@
                           {:normalized-component normalized-component})]
       (apply reagent-render params))))
 
-(defn ratom [state]
+(defn atom [state]
   (let [watchers (clojure.core/atom #{})
         cursors (clojure.core/atom #{})]
     (RAtom. state watchers cursors)))
@@ -265,7 +265,7 @@
       found-cursor)))
 
 (defn reaction [f & params]
-  (let [ra (ratom nil)
+  (let [ra (atom nil)
         watcher #(reset! ra (apply f params))]
     (binding [*watcher* watcher]
       (watcher)
@@ -348,7 +348,7 @@
 
 
 (comment
-  (def app-state (ratom {:name "Sonny"
+  (def app-state (atom {:name "Sonny"
                          :age 10}))
   
   (def age (cursor app-state [:age]))
@@ -374,8 +374,8 @@
     )
   
   (defn hello [state greeting]
-    (let [counter (ratom 0)
-          value (ratom "1")
+    (let [counter (atom 0)
+          value (atom "1")
           age (cursor app-state [:age])]
       (prn "staet0=" @state) 
       (prn "value0=" @value)
@@ -455,7 +455,7 @@
         ]
     r
     )
-  (def s (ratom 2))
+  (def s (atom 2))
   @s
   (def r (reaction (fn [] (+ 2 @s))))
   @r
