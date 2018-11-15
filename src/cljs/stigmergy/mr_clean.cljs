@@ -5,8 +5,6 @@
             [clojure.walk :as w])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
-(enable-console-print!)
-(prn "mr clean")
 (defonce ^:dynamic *watcher* nil)
 (defonce render-queue (chan 10))
 
