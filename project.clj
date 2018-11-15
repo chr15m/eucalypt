@@ -13,6 +13,7 @@
   :plugins [[lein-figwheel "0.5.17"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
 
+  :source-paths ["src/cljs"]
   :cljsbuild {:builds
               [{:id "dev"
                 :source-paths ["src/cljs"]
@@ -39,7 +40,7 @@
                ;; production. You can build this with:
                ;; lein cljsbuild once min
                {:id "min"
-                :source-paths ["src"]
+                :source-paths ["src/cljs"]
                 :compiler {:output-to "resources/public/js/compiled/mr_clean.js"
                            :main stigmergy.mr-clean
                            :optimizations :advanced
