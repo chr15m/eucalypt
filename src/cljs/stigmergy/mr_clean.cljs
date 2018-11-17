@@ -346,14 +346,17 @@
   (let [normalized-component (normalize-component component)]
     (go (>! render-queue [normalized-component container]))))
 
+(defn init []
+  (prn "mr-clean init"))
 
 (comment
   (def app-state (atom {:name "Sonny"
-                         :age 10}))
+                        :age 10}))
   
   (def age (cursor app-state [:age]))
   
   (defn your-age [age height]
+    (prn "your-age " @age height)
     (let [hiccup (if (even? @age)
                    [:h1 {:style {:color :red}} "even age="@age " height=" height]
                    [:h1 {:style {:color :blue}} "odd age="@age ])]
@@ -395,7 +398,7 @@
 
   (render [hello app-state "wassup2"] (js/document.getElementById "app"))
   
-  (swap! age inc)
+  (swap! age inc) 
   (swap! age2 inc)
 
   (def age (cursor app-state [:age]))

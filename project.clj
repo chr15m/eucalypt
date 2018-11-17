@@ -21,14 +21,14 @@
                 ;; The presence of a :figwheel configuration here
                 ;; will cause figwheel to inject the figwheel client
                 ;; into your build
-                :figwheel {:on-jsload "stigmergy.mr-clean/on-js-reload"
+                :figwheel {:on-jsload "stigmergy.mr-clean/init"
                            ;; :open-urls will pop open your application
                            ;; in the default browser once Figwheel has
                            ;; started and compiled your application.
                            ;; Comment this out once it no longer serves you.
                            :open-urls ["http://localhost:3449/index.html"]}
 
-                :compiler {:main stigmergy.mr-clean
+                :compiler {:main stigmergy.dev
                            :asset-path "js/compiled/out"
                            :output-to "resources/public/js/compiled/mr_clean.js"
                            :output-dir "resources/public/js/compiled/out"
@@ -83,8 +83,7 @@
 
              ;; to pipe all the output to the repl
              ;; :server-logfile false
-             :nrepl-middleware  ["cemerick.piggieback/wrap-cljs-repl"
-                                 "cider.nrepl/cider-middleware"
+             :nrepl-middleware  ["cider.nrepl/cider-middleware"
                                  "refactor-nrepl.middleware/wrap-refactor"]
              }
 
@@ -94,7 +93,9 @@
   ;; https://github.com/bhauman/lein-figwheel/wiki/Using-the-Figwheel-REPL-within-NRepl
   :profiles {:dev {:dependencies [[binaryage/devtools "0.9.9"]
                                   [figwheel-sidecar "0.5.17"]
-                                  [cider/piggieback "0.3.1"]]
+                                  [com.cemerick/piggieback "0.2.2"]
+                                  ;;[cider/piggieback "0.3.1"]
+                                  ]
                    ;; need to add dev source path here to get user.clj loaded
                    :source-paths ["src/dev" "src/cljs"]
                    ;; for CIDER
@@ -102,7 +103,7 @@
                    :plugins [[cider/cider-nrepl "0.18.0"]
                              [refactor-nrepl "2.4.0"
                               :exclusions [org.clojure/clojure]]]
-                   :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
+                   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                    ;; need to add the compliled assets to the :clean-targets
                    :clean-targets ^{:protect false} ["resources/public/js/compiled"
                                                      :target-path]}})
