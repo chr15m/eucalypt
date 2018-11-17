@@ -470,8 +470,6 @@
   (def age2 (reaction (fn [] (* 2 @age))))
   (render [your-age age2 200] (js/document.getElementById "app"))
 
-  (swap! age2 inc)
-  (swap! age inc)
   (defn remove-at-index [a i]
     (let [length (count a)]
       (cond
@@ -479,5 +477,27 @@
         (= i (dec length)) (subvec a 0 i)
         :else (vec (concat (subvec a 0 i)
                            (subvec a (inc i) length))))))
+
+  (defn window [app-state]
+    [:div {:style {:border-style :solid
+                   :position :absolute
+                   :left (:x @app-state)
+                   :top (:y @app-state)}}
+     [:div {:style {:background-color :yellow}
+            :draggable true
+            :on-drag (fn [evt]
+                       (swap! app-state (fn [app-state]
+                                          (let [x (.. evt -clientX)
+                                                y (.. evt -clientY)]
+                                            (assoc app-state :x x :y y))
+                                          
+                                          )))}
+      "Title"]
+     [:div {:style {:width 500
+                    :height 200
+                    :background-color :blue}} "body"]])
+  
+  (def app-state (atom {:x 0 :y 0}))
+  (render [window app-state] (js/document.getElementById "app"))
   )
 
