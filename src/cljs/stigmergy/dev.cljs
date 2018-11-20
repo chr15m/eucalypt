@@ -17,20 +17,6 @@
                    [:h1 {:style {:color :blue}} "odd age="@age ])]
       hiccup))
 
-  (comment
-    (r/render [your-age age 200] (js/document.getElementById "app"))
-    (render [hello app-state "wassup2"] (js/document.getElementById "app"))
-    (swap! age inc)
-    (swap! app-state assoc :name "Sonny To")
-    (.-watchers app-state)
-    (.-watchers age)
-    (satisfies? IAtom age)
-    (satisfies? IAtom app-state)
-    (= @(.-watchers app-state) @(.-watchers age))
-    
-    (ik/hiccup->str [:h1 "foo"])
-    )
-  
   (defn hello [state greeting]
     (let [counter (r/atom 0)
           value (r/atom "1")
@@ -54,11 +40,6 @@
   (r/render [hello app-state "wassup2"] (js/document.getElementById "app"))
 
   (swap! age inc) 
-  (swap! age2 inc)
-
-  (def age (cursor app-state [:age]))
-  (render [hello app-state "wassup2"] (js/document.getElementById "app"))
-
   (swap! app-state assoc :name "vlad")
   (swap! app-state assoc :age 13)
 
