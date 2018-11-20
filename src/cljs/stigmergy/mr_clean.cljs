@@ -161,7 +161,7 @@
                                                 (contains? @watchers *watcher*))))
                                     first)]
 
-        (if (nil? cursor-watcher)
+        (when (nil? cursor-watcher)
           (swap! watchers conj *watcher*))))
     value)
 
@@ -194,7 +194,7 @@
                                    (filter (fn [watcher]
                                              (= watcher *watcher*)))
                                    first)]
-        (if (nil? ratom-watcher)
+        (when (nil? ratom-watcher)
           (swap! watchers conj *watcher*))))
 
     (let [state @the-atom
