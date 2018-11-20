@@ -35,7 +35,7 @@
             hiccup-b (rm-fn hiccup-b)]
         (= hiccup-a hiccup-b))))
 
-(defn normalized-component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
+(defn component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
   (let [hiccup (apply reagent-render params)
         hiccup (w/prewalk (fn [node]
                             (if (vector? node)
@@ -136,7 +136,7 @@
 (defn modify-dom [normalized-component]
   (let [[{:keys [reagent-render]} & params] normalized-component
         {:keys [hiccup dom container]} (@mounted-components normalized-component)
-        new-hiccup (normalized-component->hiccup normalized-component)
+        new-hiccup (component->hiccup normalized-component)
         new-dom (patch hiccup new-hiccup dom)] 
     (swap! mounted-components assoc normalized-component {:hiccup new-hiccup
                                                           :dom new-dom
