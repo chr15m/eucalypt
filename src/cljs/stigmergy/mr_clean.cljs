@@ -489,15 +489,14 @@
                        (swap! app-state (fn [app-state]
                                           (let [x (.. evt -clientX)
                                                 y (.. evt -clientY)]
-                                            (assoc app-state :x x :y y))
-                                          
-                                          )))}
+                                            (assoc app-state :x x :y y)))))}
       "Title"]
      [:div {:style {:width 500
                     :height 200
                     :background-color :blue}} "body"]])
   
   (def app-state (atom {:x 0 :y 0}))
+  (swap! app-state assoc :x 300 :y 50)
   (render [window app-state] (js/document.getElementById "app"))
   )
 
