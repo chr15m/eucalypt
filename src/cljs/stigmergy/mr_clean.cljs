@@ -35,16 +35,17 @@
             hiccup-b (rm-fn hiccup-b)]
         (= hiccup-a hiccup-b))))
 
+(defn component? [c]
+  (and (sequential? c)
+       (some-> c first fn?)))
+
 (defn transform-component [node]
-  (if (vector? node)
-    (let [first-element (first node)]
-      (if (fn? first-element)
-        (let [render-fn first-element
-              params (rest node)
-              hiccup (apply render-fn params) ;;TODO: should check mounted-components first
-              ]
-          hiccup)
-        node))
+  (if (component? node)
+    (let [render-fn (first node)
+          params (rest node)
+          hiccup (apply render-fn params) ;;TODO: should check mounted-components first
+          ]
+      hiccup)
     node))
 
 (defn component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
