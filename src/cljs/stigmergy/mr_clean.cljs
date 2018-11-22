@@ -35,19 +35,21 @@
             hiccup-b (rm-fn hiccup-b)]
         (= hiccup-a hiccup-b))))
 
+(defn transform-component [node]
+  (if (vector? node)
+    (let [first-element (first node)]
+      (if (fn? first-element)
+        (let [render-fn first-element
+              params (rest node)
+              hiccup (apply render-fn params) ;;TODO: should check mounted-components first
+              ]
+          hiccup)
+        node))
+    node))
+
 (defn component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
   (let [hiccup (apply reagent-render params)
-        hiccup (w/prewalk (fn [node]
-                            (if (vector? node)
-                              (let [first-element (first node)]
-                                (if (fn? first-element)
-                                  (let [render-fn first-element
-                                        params (rest node)
-                                        hiccup (apply render-fn params) ;;TODO: should check mounted-components first
-                                        ]
-                                    hiccup)
-                                  node))
-                              node))
+        hiccup (w/prewalk transform-component
                           hiccup)]
     hiccup))
 
@@ -167,6 +169,7 @@
 
   IReset
   (-reset! [this new-value]
+    (prn "ratom reset " (not= value new-value))
     (when (not= value new-value)
       (set! value new-value)
       (notify-watchers watchers))
@@ -240,11 +243,17 @@
   This is achieved by setting the dnymaic var *watcher* then evaluating reagent-render
   which causes the deref of the ratom to trigger adding the watcher to (.-watchers ratom)"
   [normalized-component]
-  (let [reagent-render (-> normalized-component first :reagent-render)
-        params (rest normalized-component)]
-    (binding [*watcher* (with-meta #(modify-dom normalized-component)
-                          {:normalized-component normalized-component})]
-      (apply reagent-render params))))
+  (binding [*watcher* (with-meta #(modify-dom normalized-component)
+                        {:normalized-component normalized-component})]
+    (let [reagent-render (-> normalized-component first :reagent-render)
+          params (rest normalized-component)
+          hiccup (apply reagent-render params)
+          hiccup (w/prewalk transform-component
+                            hiccup)
+          ]
+      (prn "add watcher hiccup=" hiccup)
+      hiccup
+      )))
 
 (defn atom [state]
   (let [watchers (clojure.core/atom #{})
