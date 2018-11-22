@@ -37,11 +37,16 @@
 
 (defn component? [c]
   (and (sequential? c)
-       (some-> c first fn?)))
+       (let [first-element (first c)]
+         (or (fn? first-element)
+             (map? first-element)))))
 
 (defn transform-component [node]
   (if (component? node)
-    (let [render-fn (first node)
+    (let [render-fn (let [first-element (first node)]
+                      (cond
+                        (fn? first-element) first-element
+                        (map? first-element) (:reagent-render first-element)))
           params (rest node)
           hiccup (apply render-fn params) ;;TODO: should check mounted-components first
           ]
