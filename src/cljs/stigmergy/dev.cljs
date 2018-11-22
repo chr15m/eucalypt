@@ -4,14 +4,15 @@
 (enable-console-print!)
 (r/init)
 
+(def app-state (r/atom {:name "Sonny"
+                        :age 10}))
+(def age (r/cursor app-state [:age]))
+
+
 (comment
-  (def app-state (r/atom {:name "Sonny"
-                          :age 10}))
-  
-  (def age (r/cursor app-state [:age]))
-  
+
   (defn your-age [age height]
-    (prn "your-age " @age height)
+    ;;(prn "your-age " @age height)
     (let [hiccup (if (even? @age)
                    [:h1 {:style {:color :red}} "even age="@age " height=" height]
                    [:h1 {:style {:color :blue}} "odd age="@age ])]
@@ -51,60 +52,50 @@
   @(.-watchers age)
 
   (def age (cursor app-state [:age]))
-  (def hello2 (create-class {:component-will-mount (fn [renderable]
-                                                     (prn "hello2 component-will-mount=" )
-                                                     )
-                             :component-did-mount (fn [renderable]
-                                                    (prn "hello2 component-did-mount ")
-                                                    )
-                             :component-will-unmount (fn [renderable]
-                                                       (prn "hello2 component-will-unmount ")
+  (def hello2 (r/create-class {:component-will-mount (fn [renderable]
+                                                       (prn "hello2 component-will-mount=" )
                                                        )
-                             :component-will-receive-props (fn [renderable]
-                                                             ;;(prn "component-will-receive-props " renderable)
-                                                             )
-                             :reagent-render (fn [app-state]
-                                               (prn "hello2 render")
-                                               (let [age (cursor app-state [:age])
-                                                     height 300]
-                                                 [:div
-                                                  [:h1 "i'm a reagent component. I am " (:name @app-state)]
-                                                  [your-age age height]
-                                                  ]))}))
-  (render [hello2 app-state]
-          (js/document.getElementById "app"))
+                               :component-did-mount (fn [renderable]
+                                                      (prn "hello2 component-did-mount ")
+                                                      )
+                               :component-will-unmount (fn [renderable]
+                                                         (prn "hello2 component-will-unmount ")
+                                                         )
+                               :component-will-receive-props (fn [renderable]
+                                                               ;;(prn "component-will-receive-props " renderable)
+                                                               )
+                               :reagent-render (fn [app-state]
+                                                 (prn "hello2 render")
+                                                 (let [age (r/cursor app-state [:age])
+                                                       height 300]
+                                                   [:div
+                                                    [:h1 "i'm a reagent component. I am " (:name @app-state)]
+                                                    [your-age age height]
+                                                    ]))}))
+  (r/render [hello2 app-state]
+            (js/document.getElementById "app"))
 
-  
   (swap! age inc)
 
-  (render [:h1 "wassup " @age] (js/document.getElementById "app"))
+  (defn my-name [app-state]
+    (prn "my-name " app-state)
+    [:h1 "my name is " (:name @app-state)])
   
+  (defn hello3 [app-state]
+    ;;(prn "hello3 " app-state)
+    [:div
+     ;;[:h1 "hello " (:name @app-state)]
+     [my-name app-state]
+     ]
+    )
   
-  (def foo (normalize-component [:h1 "hello " @age])) 
+  (r/render [hello3 app-state]
+            (js/document.getElementById "app"))
 
+  (swap! app-state assoc :name "foo6")
+  
   (setq projectile-project-search-path '("~/workspace/stigmergy-webtop/src"
                                          ))
-
-  (go (>! render-queue 2))
-
-  (let [f (fn [a] (inc a))
-        g (fn [a]  (+ a 2))
-        j (comp f g)
-        r (j 1)
-        ]
-    r
-    )
-  (def s (atom 2))
-  @s
-  (def r (reaction (fn [] (+ 2 @s))))
-  @r
-  (reset! s 6)
-  (reset! r 2)
-  (swap! r inc)
-
-  (def age (cursor app-state [:age]))
-  (def age2 (reaction (fn [] (* 2 @age))))
-  (render [your-age age2 200] (js/document.getElementById "app"))
 
   (defn remove-at-index [a i]
     (let [length (count a)]
