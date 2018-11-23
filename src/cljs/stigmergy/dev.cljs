@@ -1,13 +1,19 @@
 (ns stigmergy.dev
-  (:require [stigmergy.mr-clean :as r]))
+  ;;(:require-macros [reagent.ratom :as re])
+  (:require
+   [stigmergy.mr-clean :as r]
+   ;;[reagent.core :as r]
+   ))
 
 (enable-console-print!)
-(r/init)
 
 (def app-state (r/atom {:name "Sonny"
-                        :age 10}))
+                        :age 10
+                        :x 10
+                        :y 10}))
 (def age (r/cursor app-state [:age]))
 
+;;(r/init)
 
 (comment
   (defn your-age [age height]
@@ -22,13 +28,13 @@
     (let [counter (r/atom 0)
           value (r/atom "1")
           age (r/cursor app-state [:age])
+          ;;double-age (re/reaction (* 2 @age))
           double-age (r/reaction (fn []
                                    (let [d (* 2 @age)]
                                      (prn "double-age=" d)
-                                     d)))]
+                                     d)))
+          ]
       (fn [state greeting]
-        ;; (prn "value=" @value)
-        ;; (prn "counter=" @counter)
         [:div
          [:h1 "I'm " (:name @state) " age="@age]
          [:input {:id "foo" :on-input #(reset! value (.. % -target -value))
@@ -43,7 +49,7 @@
   (swap! age inc) 
   
   (swap! app-state assoc :name "vlad3")
-  (swap! app-state assoc :age 13)
+  (swap! app-state assoc :age 1)
 
   (count  @(.-watchers app-state))
   (count  @(.-watchers age))
@@ -123,9 +129,8 @@
                     :height 200
                     :background-color :blue}} "body"]])
   
-  (def app-state (atom {:x 0 :y 0}))
   (swap! app-state assoc :x 300 :y 50)
-  (render [window app-state] (js/document.getElementById "app"))
+  (r/render [window app-state] (js/document.getElementById "app"))
 
   (require '[clojure.walk :as w])
   (def h [:div
