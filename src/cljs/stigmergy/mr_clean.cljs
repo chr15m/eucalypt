@@ -87,7 +87,7 @@
       (.. dom-a (setAttribute (name b-attr-kw) b-attr-value)))))
 
 (defn patch
-  "patch dom-a with the diff of hiccup-a and hiccup-b transforming dom-a the dom representation of hiccup-b.
+  "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a hiccup-b dom-a]
   (let [tag-a (first hiccup-a)
