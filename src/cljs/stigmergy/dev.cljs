@@ -10,9 +10,9 @@
 
 
 (comment
-
   (defn your-age [age height]
     ;;(prn "your-age " @age height)
+    (prn "your age=" @age)
     (let [hiccup (if (even? @age)
                    [:h1 {:style {:color :red}} "even age="@age " height=" height]
                    [:h1 {:style {:color :blue}} "odd age="@age ])]
@@ -22,13 +22,13 @@
     (let [counter (r/atom 0)
           value (r/atom "1")
           age (r/cursor app-state [:age])
-          double-age (r/reaction (fn [] (* 2 @age)))]
-      (prn "staet0=" @state) 
-      (prn "value0=" @value)
-      (prn "counter0=" @counter)
+          double-age (r/reaction (fn []
+                                   (let [d (* 2 @age)]
+                                     (prn "double-age=" d)
+                                     d)))]
       (fn [state greeting]
-        (prn "value=" @value)
-        (prn "counter=" @counter)
+        ;; (prn "value=" @value)
+        ;; (prn "counter=" @counter)
         [:div
          [:h1 "I'm " (:name @state) " age="@age]
          [:input {:id "foo" :on-input #(reset! value (.. % -target -value))
@@ -36,12 +36,13 @@
          [:button {:on-click #(do
                                 (swap! counter inc))} @counter]
          [your-age age @counter]
+         nil
          [your-age double-age (inc @counter)]])))
 
   (r/render [hello app-state "wassup2"] (js/document.getElementById "app"))
-
   (swap! age inc) 
-  (swap! app-state assoc :name "vlad")
+  
+  (swap! app-state assoc :name "vlad3")
   (swap! app-state assoc :age 13)
 
   (count  @(.-watchers app-state))
@@ -125,4 +126,22 @@
   (def app-state (atom {:x 0 :y 0}))
   (swap! app-state assoc :x 300 :y 50)
   (render [window app-state] (js/document.getElementById "app"))
+
+  (require '[clojure.walk :as w])
+  (def h [:div
+          [:h1 "I'm " "Sonny" " age=" 10]
+          [:input {:id "foo", :value "1"}]
+          [:button 0]
+          nil
+          [:h1 {:style {:color :red}} "even age=" 10 " height=" 0]
+          [:h1 {:style {:color :red}} "even age=" 20 " height=" 1]])
+
+  (def h [:div [:h1 "I'm " "Sonny" " age=" 10] [:input {:id "foo", :on-input nil, :value "1"}] [:button {} 0] [:h1 {:style {:color :red}} "even age=" 10 " height=" 0] nil [:h1 {:style {:color :red}} "even age=" 20 " height=" 1]])
+  (def j (w/postwalk (fn [x]
+                       (if (nil? x)
+                         ""
+                         x)
+                       )
+                     h))
+  
   )

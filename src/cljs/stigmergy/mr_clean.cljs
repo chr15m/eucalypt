@@ -213,9 +213,7 @@
                         {:normalized-component normalized-component})]
     (let [reagent-render (-> normalized-component first :reagent-render)
           params (rest normalized-component)
-          hiccup (ik/fn->hiccup reagent-render params)
-          hiccup (w/prewalk ik/component-node->hiccup
-                            hiccup)]
+          hiccup (ik/fn->hiccup reagent-render params)]
       hiccup)))
 
 (defn atom [state]
