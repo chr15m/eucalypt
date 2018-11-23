@@ -94,8 +94,8 @@
         tag-b (first hiccup-b)
         different-tags? (not= tag-a tag-b)]
     (cond
-      (hiccup-eq? hiccup-a hiccup-b) dom-a
       different-tags? (ik/hiccup->dom hiccup-b)
+      (hiccup-eq? hiccup-a hiccup-b) dom-a
       :else (do
               (patch-children hiccup-a hiccup-b dom-a)
               (patch-attributes hiccup-a hiccup-b dom-a)
