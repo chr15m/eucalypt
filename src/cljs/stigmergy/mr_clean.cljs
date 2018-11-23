@@ -48,16 +48,15 @@
                         (fn? first-element) first-element
                         (map? first-element) (:reagent-render first-element)))
           params (rest node)
-          hiccup (apply render-fn params) ;;TODO: should check mounted-components first
-          ]
+          ;;TODO: should check mounted-components first
+          hiccup (ik/fn->hiccup render-fn params)]
       hiccup)
     node))
 
 (defn component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
-  (let [hiccup (apply reagent-render params)
+  (let [hiccup (ik/fn->hiccup reagent-render params) ;;(apply reagent-render params)
         hiccup (w/prewalk component-node->hiccup
-                          hiccup)
-        hiccup (ik/normalize-hiccup hiccup)]
+                          hiccup)]
     hiccup))
 
 (defn- patch-children [hiccup-a hiccup-b dom-a]
@@ -238,10 +237,9 @@
                         {:normalized-component normalized-component})]
     (let [reagent-render (-> normalized-component first :reagent-render)
           params (rest normalized-component)
-          hiccup (apply reagent-render params)
+          hiccup (ik/fn->hiccup reagent-render params)
           hiccup (w/prewalk component-node->hiccup
-                            hiccup)
-          hiccup (ik/normalize-hiccup hiccup)]
+                            hiccup)]
       hiccup)))
 
 (defn atom [state]
