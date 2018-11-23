@@ -35,30 +35,6 @@
             hiccup-b (rm-fn hiccup-b)]
         (= hiccup-a hiccup-b))))
 
-(defn component? [c]
-  (and (sequential? c)
-       (let [first-element (first c)]
-         (or (fn? first-element)
-             (map? first-element)))))
-
-(defn- component-node->hiccup [node]
-  (if (component? node)
-    (let [render-fn (let [first-element (first node)]
-                      (cond
-                        (fn? first-element) first-element
-                        (map? first-element) (:reagent-render first-element)))
-          params (rest node)
-          ;;TODO: should check mounted-components first
-          hiccup (ik/fn->hiccup render-fn params)]
-      hiccup)
-    node))
-
-(defn component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
-  (let [hiccup (ik/fn->hiccup reagent-render params) ;;(apply reagent-render params)
-        hiccup (w/prewalk component-node->hiccup
-                          hiccup)]
-    hiccup))
-
 (defn- patch-children [hiccup-a hiccup-b dom-a]
   (let [index-hiccup-a (->> hiccup-a
                             (map-indexed (fn [index item] [index item]))
@@ -128,7 +104,7 @@
 (defn modify-dom [normalized-component]
   (let [[{:keys [reagent-render]} & params] normalized-component
         {:keys [hiccup dom container]} (@mounted-components normalized-component)
-        new-hiccup (component->hiccup normalized-component)
+        new-hiccup (ik/component->hiccup normalized-component)
         new-dom (patch hiccup new-hiccup dom)] 
     (swap! mounted-components assoc normalized-component {:hiccup new-hiccup
                                                           :dom new-dom
@@ -238,7 +214,7 @@
     (let [reagent-render (-> normalized-component first :reagent-render)
           params (rest normalized-component)
           hiccup (ik/fn->hiccup reagent-render params)
-          hiccup (w/prewalk component-node->hiccup
+          hiccup (w/prewalk ik/component-node->hiccup
                             hiccup)]
       hiccup)))
 
@@ -277,7 +253,6 @@
                        normalized-component)]
         (swap! watchers (fn [watchers]
                           (set (remove #(= w %) watchers))))))))
-
 
 (defonce life-cycle-methods {:get-initial-state (fn [this])
                              :component-will-receive-props identity
