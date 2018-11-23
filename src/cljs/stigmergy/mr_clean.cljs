@@ -41,7 +41,7 @@
          (or (fn? first-element)
              (map? first-element)))))
 
-(defn transform-component [node]
+(defn- component-node->hiccup [node]
   (if (component? node)
     (let [render-fn (let [first-element (first node)]
                       (cond
@@ -55,23 +55,10 @@
 
 (defn component->hiccup [[{:keys [reagent-render]} & params :as normalized-component]]
   (let [hiccup (apply reagent-render params)
-        hiccup (w/prewalk transform-component
-                          hiccup)]
+        hiccup (w/prewalk component-node->hiccup
+                          hiccup)
+        hiccup (ik/normalize-hiccup hiccup)]
     hiccup))
-
-(defn normalize-hiccup
-  "hiccup should be in form of [:tag {} body]"
-  [hiccup]
-  (let [[tag maybe-attr-map & body] hiccup]
-    (cond
-      (= 1 (count hiccup))              (conj hiccup {})
-      (and (not (map? maybe-attr-map))
-           (nil? body))                 (let [element maybe-attr-map]
-                                          [tag {} element])
-      
-      (and (not (map? maybe-attr-map))) (let [element maybe-attr-map]
-                                          (into [tag {} element] body)) 
-      :else hiccup)))
 
 (defn- patch-children [hiccup-a hiccup-b dom-a]
   (let [index-hiccup-a (->> hiccup-a
@@ -128,9 +115,7 @@
   "patch dom-a with the diff of hiccup-a and hiccup-b transforming dom-a the dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a hiccup-b dom-a]
-  (let [hiccup-a (normalize-hiccup hiccup-a)
-        hiccup-b (normalize-hiccup hiccup-b)
-        tag-a (first hiccup-a)
+  (let [tag-a (first hiccup-a)
         tag-b (first hiccup-b)
         different-tags? (not= tag-a tag-b)]
     (cond
@@ -254,12 +239,10 @@
     (let [reagent-render (-> normalized-component first :reagent-render)
           params (rest normalized-component)
           hiccup (apply reagent-render params)
-          hiccup (w/prewalk transform-component
+          hiccup (w/prewalk component-node->hiccup
                             hiccup)
-          ]
-      (prn "add watcher hiccup=" hiccup)
-      hiccup
-      )))
+          hiccup (ik/normalize-hiccup hiccup)]
+      hiccup)))
 
 (defn atom [state]
   (let [watchers (clojure.core/atom #{})
