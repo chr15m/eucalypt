@@ -135,7 +135,6 @@
 
   IReset
   (-reset! [this new-value]
-    (prn "ratom reset " (not= value new-value))
     (when (not= value new-value)
       (set! value new-value)
       (notify-watchers watchers))
