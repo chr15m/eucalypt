@@ -46,11 +46,12 @@
          [your-age double-age (inc @counter)]])))
 
   (r/render [hello app-state "wassup2"] (js/document.getElementById "app"))
-  (swap! age inc) 
+  
+  (swap! age inc)
   
   (swap! app-state assoc :name "vlad3")
-  (swap! app-state assoc :age 1)
-
+  (swap! app-state assoc :age 140)
+  
   (count  @(.-watchers app-state))
   (count  @(.-watchers age))
   ((first @(.-watchers age)))
@@ -148,5 +149,9 @@
                          x)
                        )
                      h))
-  
+
+  (require '[clojure.data :as d])
+  (let [ [a-only b-only ab] (d/diff {:a 1 :b 2} {:a 1 :b 3})]
+    (prn "b-only=" b-only)
+    )
   )

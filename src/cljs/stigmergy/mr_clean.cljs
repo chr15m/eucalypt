@@ -137,7 +137,12 @@
   (-reset! [this new-value]
     (when (not= value new-value)
       (set! value new-value)
-      (notify-watchers watchers))
+      (notify-watchers watchers)
+
+      ;;TODO: should only notify cursor which needs to be notified
+      (doseq [c @cursors
+              :let [cursor-watchers (.-watchers c)]]
+        (notify-watchers cursor-watchers)))
     this)
 
   ISwap
