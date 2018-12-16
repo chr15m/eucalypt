@@ -18,7 +18,7 @@
 (comment
   (defn your-age [age height]
     ;;(prn "your-age " @age height)
-    (prn "your age=" @age)
+    ;;(prn "your age=" @age)
     (let [hiccup (if (even? @age)
                    [:h1 {:style {:color :red}} "even age="@age " height=" height]
                    [:h1 {:style {:color :blue}} "odd age="@age ])]
@@ -50,7 +50,7 @@
   (swap! age inc)
   
   (swap! app-state assoc :name "vlad3")
-  (swap! app-state assoc :age 140)
+  (swap! app-state assoc :age 1)
   
   (count  @(.-watchers app-state))
   (count  @(.-watchers age))
@@ -154,4 +154,24 @@
   (let [ [a-only b-only ab] (d/diff {:a 1 :b 2} {:a 1 :b 3})]
     (prn "b-only=" b-only)
     )
+
+  (def click-count (r/atom 0))
+
+  (defn counting-component []
+    [:div
+     "The atom " [:code "click-count"] " has value: "
+     @click-count ". "
+     [:input {:type "button" :value "Click me!"
+              :on-click #(swap! click-count inc)}]])
+
+  (r/render [counting-component] (js/document.getElementById "app"))
+
+  (defn timer-component []
+    (let [seconds-elapsed (r/atom 0)]
+      (fn []
+        (js/setTimeout #(swap! seconds-elapsed inc) 1000)
+        [:div
+         "Seconds Elapsed: " @seconds-elapsed])))
+
+  (r/render [timer-component] (js/document.getElementById "app"))
   )
