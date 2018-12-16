@@ -33,4 +33,4 @@ r/reaction is not a macro but a function that returns an atom holding the result
 (r/render [timer-component] (js/document.getElementById "app"))
 ```
 
-See comments in [dev.cljs](https://bitbucket.org/sonwh98/mr-clean/src/master/src/cljs/stigmergy/dev.cljs)
+See comments in [dev.cljs](https://bitbucket.org/sonwh98/mr-clean/src/master/src/cljs/stigmergy/dev.cljs) for more examples.
