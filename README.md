@@ -17,4 +17,8 @@ Ractive atoms and cursors work as expected.
 
 ### What doesn't work?
 
-r/reaction is not a macro but a function that returns an atom holding the result of evaluating of a function.
+r/reaction is not a macro but a function that returns an atom holding the result of evaluating a function.
+
+### Examples
+
+See comment section of [dev.cljs](https://bitbucket.org/sonwh98/mr-clean/src/master/src/cljs/stigmergy/dev.cljs)
