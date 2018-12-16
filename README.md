@@ -17,4 +17,4 @@ Ractive atoms and cursors work as expected.
 
 ### What doesn't work?
 
-r/reaction is not a macro but a function
+r/reaction is not a macro but a function that returns an atom holding the result of evaluating of a function.
