@@ -166,12 +166,14 @@
 
   (r/render [counting-component] (js/document.getElementById "app"))
 
-  (defn timer-component []
-    (let [seconds-elapsed (r/atom 0)]
-      (fn []
-        (js/setTimeout #(swap! seconds-elapsed inc) 1000)
-        [:div
-         "Seconds Elapsed: " @seconds-elapsed])))
-
-  (r/render [timer-component] (js/document.getElementById "app"))
+  
   )
+
+(defn timer-component []
+  (let [seconds-elapsed (r/atom 0)]
+    (fn []
+      (js/setTimeout #(swap! seconds-elapsed inc) 1000)
+      [:div
+       "Seconds Elapsed: " @seconds-elapsed])))
+
+(r/render [timer-component] (js/document.getElementById "app"))

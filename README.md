@@ -20,5 +20,17 @@ Ractive atoms and cursors work as expected.
 r/reaction is not a macro but a function that returns an atom holding the result of evaluating a function.
 
 ### Examples
+```Clojure
+(require '[stigmergy.mr-clean :as r])
 
-See comment section of [dev.cljs](https://bitbucket.org/sonwh98/mr-clean/src/master/src/cljs/stigmergy/dev.cljs)
+(defn timer-component []
+  (let [seconds-elapsed (r/atom 0)]
+    (fn []
+      (js/setTimeout #(swap! seconds-elapsed inc) 1000)
+      [:div
+       "Seconds Elapsed: " @seconds-elapsed])))
+
+(r/render [timer-component] (js/document.getElementById "app"))
+```
+
+See comments in [dev.cljs](https://bitbucket.org/sonwh98/mr-clean/src/master/src/cljs/stigmergy/dev.cljs)
