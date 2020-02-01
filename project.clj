@@ -6,11 +6,11 @@
   
   :min-lein-version "2.7.1"
 
-  :dependencies [[org.clojure/clojure "1.10.0"]
-                 [org.clojure/clojurescript "1.10.439"]
+  :dependencies [[org.clojure/clojure "1.10.1"]
+                 [org.clojure/clojurescript "1.10.597"]
                  [stigmergy/ikota "0.1.0-SNAPSHOT"]]
 
-  :plugins [[lein-figwheel "0.5.17"]
+  :plugins [[lein-figwheel "0.5.19"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
 
   :source-paths ["src/cljs"]
@@ -91,20 +91,20 @@
   ;; Setting up nREPL for Figwheel and ClojureScript dev
   ;; Please see:
   ;; https://github.com/bhauman/lein-figwheel/wiki/Using-the-Figwheel-REPL-within-NRepl
-  :profiles {:dev {:dependencies [[binaryage/devtools "0.9.9"]
-                                  [figwheel-sidecar "0.5.17"]
-                                  [com.cemerick/piggieback "0.2.2"]
+  :profiles {:dev {:dependencies [[binaryage/devtools "0.9.11"]
+                                  [figwheel-sidecar "0.5.19"]
                                   [reagent "0.7.0" :scope "provided"]
-                                  ;;[cider/piggieback "0.3.1"]
+                                  [cider/piggieback "0.4.2"]
                                   ]
                    ;; need to add dev source path here to get user.clj loaded
                    :source-paths ["src/dev" "src/cljs"]
                    ;; for CIDER
                    ;; :plugins [[cider/cider-nrepl "0.12.0"]]
-                   :plugins [[cider/cider-nrepl "0.18.0"]
+                   :plugins [[cider/cider-nrepl "0.22.0"]
                              [refactor-nrepl "2.4.0"
                               :exclusions [org.clojure/clojure]]]
-                   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
+                   
+                   :repl-options {:nrepl-middleware [cider.piggieback/wrap-cljs-repl]}
                    ;; need to add the compliled assets to the :clean-targets
                    :clean-targets ^{:protect false} ["resources/public/js/compiled"
                                                      :target-path]}})
