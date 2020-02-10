@@ -8,8 +8,7 @@
 
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [org.clojure/clojurescript "1.10.597"]
-                 [stigmergy/ikota "0.1.0-SNAPSHOT"]
-                 [org.clojure/core.async "0.4.474"]]
+                 [stigmergy/ikota "0.1.0-SNAPSHOT"]]
 
   :plugins [[lein-figwheel "0.5.19"]
             [lein-cljsbuild "1.1.7" :exclusions [[org.clojure/clojure]]]]
