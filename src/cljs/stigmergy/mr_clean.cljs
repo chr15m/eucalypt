@@ -1,14 +1,10 @@
 (ns stigmergy.mr-clean
   (:refer-clojure :exclude [atom])
-  (:require [clojure.core.async :as a :include-macros true]
-            [clojure.walk :as w]            
+  (:require [clojure.walk :as w]            
             [goog.dom :as gdom]
-            [stigmergy.ikota :as ik])
-  #_(:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+            [stigmergy.ikota :as ik]))
 
 (defonce ^:dynamic *watcher* nil)
-(defonce render-queue (a/chan 10))  
-
 (defonce create-class identity)
 (defonce dom-node identity)
 
@@ -310,14 +306,12 @@
                                                           :container container})
     (swap! container->mounted-component assoc container normalized-component)))
 
-(a/go-loop []
-  (let [ [normalized-component container] (a/<! render-queue)]
-    (do-render normalized-component container))
-  (recur))
 
 (defn render [component container]
   (let [normalized-component (normalize-component component)]
-    (a/go (a/>! render-queue [normalized-component container]))))
+    (do-render normalized-component container)))
+
+(def render-component render)
 
 (defn init []
   (prn "mr-clean init"))
