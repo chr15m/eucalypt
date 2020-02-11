@@ -1,9 +1,11 @@
 ### Mr Clean
 
 Mr Clean is a Reagent compatible ClojureScript library without dependency on React.js. At the heart of React.js
-is a very simple idea GUI = function(data). Reagent takes this idea even further hiccup = function(data)
+is a very simple idea GUI = function(data). Reagent takes this idea even further hiccup = function(data).  The
+advantage of using Mr Clean over Reagent is that the generated javascript is of a hello-world app is half
+the size of that of reagent.
 
-There is no diffing of virtual DOM. The state of components is flushed to the DOM when data changes.
+There is no diffing of virtual DOM. The state of components is flushed to the DOM when data changes. 
 
 ### Install
 
