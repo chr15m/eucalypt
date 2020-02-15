@@ -11,13 +11,13 @@
 (defonce mounted-components (clojure.core/atom {}))
 (defonce container->mounted-component (clojure.core/atom {}))
 
-(extend-type js/NodeList
-  ISeqable
-  (-seq [nodeList] (vec (array-seq nodeList))))
+;; (extend-type js/NodeList
+;;   ISeqable
+;;   (-seq [nodeList] (vec (array-seq nodeList))))
 
-(extend-type js/NamedNodeMap
-  ISeqable
-  (-seq [named-node-map] (vec (array-seq named-node-map))))
+;; (extend-type js/NamedNodeMap
+;;   ISeqable
+;;   (-seq [named-node-map] (vec (array-seq named-node-map))))
 
 (defn- rm-fn [hiccup]
   (w/postwalk #(if (fn? %)
@@ -38,7 +38,7 @@
         index-hiccup-b (->> hiccup-b
                             (map-indexed (fn [index item] [index item]))
                             rest rest)
-        dom-a-child-nodes (seq (.. dom-a -childNodes))]
+        dom-a-child-nodes (vec (array-seq (.. dom-a -childNodes)))]
     (doseq [[index b] index-hiccup-b]
       (if (< index (count hiccup-a))
         (let [a (hiccup-a index)]
@@ -48,14 +48,14 @@
                            (= :input (first a))
                            (= :input (first b)))
               (let [child-index (- index 2)
-                    a-dom-node (dom-a-child-nodes child-index)
+                    a-dom-node (nth dom-a-child-nodes child-index)
                     b-dom-node (ik/hiccup->dom b)]
                 (gdom/replaceNode b-dom-node a-dom-node)))))
         (let [b-dom-node (ik/hiccup->dom b)]
           (gdom/appendChild dom-a b-dom-node))))
     (doseq [[index a] index-hiccup-a
             :let [child-index (- index 2)
-                  a-dom-node (dom-a-child-nodes child-index)]]
+                  a-dom-node (nth dom-a-child-nodes child-index)]]
       (if (< index (count hiccup-b))
         (let [b (hiccup-b index)]
           (when (not= a b)
