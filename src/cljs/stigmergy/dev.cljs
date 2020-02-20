@@ -173,7 +173,7 @@
   (let [seconds-elapsed (r/atom 0)]
     (fn []
       (js/setTimeout #(swap! seconds-elapsed inc) 1000)
-      [:div
-       "Seconds Elapsed: " @seconds-elapsed])))
+      [:div.foo {:class [:fee :fi :fo "fum" :bum]}
+       "Seconds Elapsed2: " @seconds-elapsed])))
 
 (r/render [timer-component] (js/document.getElementById "app"))
