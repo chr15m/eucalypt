@@ -178,10 +178,16 @@
                          rendered-hiccup))
 
                      (let [attrs (when (map? (second hiccup)) (second hiccup))
-                           children (if attrs (drop 2 hiccup) (rest hiccup))]
-                       (if attrs
-                         (into [(first hiccup) attrs] (map fully-render-hiccup children))
-                         (into [(first hiccup)] (map fully-render-hiccup children))))))
+                           children (if attrs (drop 2 hiccup) (rest hiccup))
+                           head (if attrs [(first hiccup) attrs] [(first hiccup)])]
+                       (into head
+                             (mapcat
+                              (fn [child]
+                                (let [processed (fully-render-hiccup child)]
+                                  (if (and (seq? processed) (not (vector? processed)) (not (string? processed)))
+                                    processed
+                                    [processed])))
+                              children)))))
                  (map? hiccup)
                  ;; This is a map component directly in the hiccup tree
                  (fully-render-hiccup ((:reagent-render hiccup)))
