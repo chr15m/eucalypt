@@ -10,6 +10,8 @@ Goal: create ClojureScript frontend UIs with a Reagent-like API that compile dow
 
 Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that has been slop-coded into compiling with Squint.
 
+*What's with the name? Eucalyptus (used in cleaning) looks like a reagent if you squint hard enough.*
+
 ## Dev
 
 ```
