@@ -33,19 +33,29 @@
    [:input {:type "text"
             :value (:text-input @app-state)
             :on-input (fn [e]
-                        (swap! app-state assoc :text-input (aget (aget e "target") "value")))}]
+                        (swap! app-state assoc
+                               :text-input (aget (aget e "target") "value")))}]
    [:p "This is some text after the input to test rendering."]])
 
 (defn skateboarding-icon []
-  [:svg {:stroke "currentColor", :fill "none", :stroke-linejoin "round", :width "24", :viewBox "0 0 24 24", :xmlns "http://www.w3.org/2000/svg", :stroke-linecap "round", :stroke-width "2", :class "icon icon-tabler icons-tabler-outline icon-tabler-skateboarding", :height "24"}
-   [:path {:stroke "none", :d "M0 0h24v24H0z", :fill "none"}]
+  [:svg {:xmlns "http://www.w3.org/2000/svg"
+         :width "24"
+         :height "24"
+         :viewBox "0 0 24 24"
+         :stroke "currentColor"
+         :fill "none"
+         :stroke-linejoin "round"
+         :stroke-linecap "round"
+         :stroke-width "2"
+         :class "icon"}
+   [:path {:stroke "none" :d "M0 0h24v24H0z" :fill "none"}]
    [:path {:d "M16 4a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"}]
    [:path {:d "M5.5 15h3.5l.75 -1.5"}]
    [:path {:d "M14 19v-5l-2.5 -3l2.5 -4"}]
    [:path {:d "M8 8l3 -1h4l1 3h3"}]
-   [:path {:d "M17.5 21a.5 .5 0 1 0 0 -1a.5 .5 0 0 0 0 1z", :fill "currentColor"}]
+   [:path {:d "M17.5 21a.5 .5 0 1 0 0 -1a.5 .5 0 0 0 0 1z" :fill "currentColor"}]
    [:path {:d "M3 18c0 .552 .895 1 2 1h14c1.105 0 2 -.448 2 -1"}]
-   [:path {:d "M6.5 21a.5 .5 0 1 0 0 -1a.5 .5 0 0 0 0 1z", :fill "currentColor"}]])
+   [:path {:d "M6.5 21a.5 .5 0 1 0 0 -1a.5 .5 0 0 0 0 1z" :fill "currentColor"}]])
 
 (defn svg-page []
   [:div
@@ -65,7 +75,8 @@
            :style {:width "100%"}
            :on-input (fn [e]
                        (js/console.log "slider on-input fired" e)
-                       (let [new-value (js/parseFloat (aget (aget e "target") "value"))]
+                       (let [new-value (js/parseFloat
+                                         (aget (aget e "target") "value"))]
                          (swap! the-atom
                                 (fn [data]
                                   (-> data
@@ -165,13 +176,15 @@
    [:p {:ref (fn [el]
                (when el
                  (aset el "style" "background-color" "pink")))}
-    "Pink background added in ref."]
+    "Original text that gets replaced."]
    [:p "Check the console to see the :ref function getting called."]])
 
 (def timer-page
   (let [interval-id (atom nil)
         ref-fn (fn [el]
-                 (js/console.log "timer-page :ref fn called with el:" el "and interval-id:" @interval-id)
+                 (js/console.log
+                   "timer-page :ref fn called with el:" el
+                   "and interval-id:" @interval-id)
                  (if el
                    (when (nil? @interval-id)
                      (js/console.log "Timer :ref mount, starting timer.")
@@ -183,7 +196,8 @@
                      (js/console.log "Timer :ref unmount, clearing timer.")
                      (js/clearInterval @interval-id)
                      (reset! interval-id nil))))]
-    (js/console.log "timer-page component defined, interval-id atom created:" interval-id)
+    (js/console.log "timer-page component defined, interval-id atom created:"
+                    interval-id)
     (fn []
       (js/console.log "timer-page render fn called, interval-id is:" @interval-id)
       [:div {:ref ref-fn}
