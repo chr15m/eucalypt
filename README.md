@@ -3,7 +3,7 @@
 
 [Reagent](https://reagent-project.github.io/) compatible-ish [Squint](https://github.com/squint-cljs/squint)-ClojureScript library without React.
 
-* **[Try the demo (9kb compiled HTML artifact)](https://chr15m.github.io/eucalypt/)**.
+* **[Try the demo (10kb gzipped HTML artifact)](https://chr15m.github.io/eucalypt/)**.
 * [Demo source code](./demo).
 
 Goal: create ClojureScript frontend UIs with a Reagent-like API that compile down to sub-10k JS artifacts using [squint-cljs](https://github.com/squint-cljs/squint).
