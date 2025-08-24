@@ -204,6 +204,26 @@
        [:h1 "Timer Page"]
        [:p "The current time is: " (-> (:timer @app-state) .getSeconds str)]])))
 
+(def list-data (r/ratom []))
+
+(defn list-demo-page []
+  [:div
+   [:h1 "List Demo"]
+   [:button {:on-click (fn [_]
+                         (swap! list-data conj (js/Math.random)))}
+    "+ Add"]
+   [:ul
+    (for [item @list-data]
+      ^{:key item}
+      [:li
+       item
+       " "
+       [:button {:on-click (fn [_]
+                             (swap! list-data
+                                    (fn [items]
+                                      (vec (remove #(= % item) items)))))}
+        "x"]])]])
+
 (defn app []
   (let [page (:page @app-state)]
     [:div
@@ -214,6 +234,7 @@
       [nav-link :timer "Timer"]
       [nav-link :ref-test "Ref Test"]
       [nav-link :svg "SVG"]
+      [nav-link :list-demo "List Demo"]
       #_ [nav-link :bmi "BMI Calc"]
       #_ [nav-link :ohms "Ohm's Law"]]
      [:hr {:class "separator"}]
@@ -224,6 +245,7 @@
        :timer [timer-page]
        :ref-test [ref-test-page]
        :svg [svg-page]
+       :list-demo [list-demo-page]
        :bmi [bmi-page]
        :ohms [ohms-law-page]
        [:div "Page not found"])
