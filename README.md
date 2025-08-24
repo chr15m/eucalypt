@@ -1,4 +1,12 @@
-### Mr Clean
+# Eucalypt [WIP, slop, not for prod]
+
+[Reagent](https://reagent-project.github.io/) compatible-ish [Squint](https://github.com/squint-cljs/squint)-ClojureScript library without React.
+
+Goal: create ClojureScript frontend UIs with a Reagent-like API that compile down to sub-10k JS artifacts using [squint-cljs](https://github.com/squint-cljs/squint).
+
+Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that has been slop-coded into working with Squint.
+
+### Mr Clean (original README)
 
 Mr Clean is a Reagent compatible ClojureScript library without dependency on React.js. At the heart of React.js
 is a very simple idea GUI = function(data). Reagent takes this idea even further hiccup = function(data).  The
@@ -6,12 +14,6 @@ advantage of using Mr Clean over Reagent is that the generated javascript of a h
 the size of that of reagent.
 
 There is no diffing of virtual DOM. The state of components is flushed to the DOM when data changes. 
-
-### Install
-
-Add the following dependency to your `project.clj` file:
-
-    [stigmergy/mr-clean "0.1.0-SNAPSHOT"]
 
 ### What works?
 
@@ -24,19 +26,3 @@ None of the reagent macros are implemented. r/reaction is not a macro but a func
 
 form 3 components are not fully supported because not all lifecycle methods are implemented.
 
-
-### Examples
-```Clojure
-(require '[stigmergy.mr-clean :as r])
-
-(defn timer-component []
-  (let [seconds-elapsed (r/atom 0)]
-    (fn []
-      (js/setTimeout #(swap! seconds-elapsed inc) 1000)
-      [:div
-       "Seconds Elapsed: " @seconds-elapsed])))
-
-(r/render [timer-component] (js/document.getElementById "app"))
-```
-
-See comments in [dev.cljs](https://bitbucket.org/sonwh98/mr-clean/src/master/src/cljs/stigmergy/dev.cljs) for more examples.
