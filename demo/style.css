@@ -1,0 +1,7 @@
+body { font-family: sans-serif; background-color: #f0f0f0; color: #333; }
+div#app { max-width: 800px; margin: 2rem auto; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+h1 { color: #111; }
+a { color: #007bff; text-decoration: none; }
+a:hover { text-decoration: underline; }
+button { padding: 10px 15px; font-size: 1rem; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; background-color: #eee; }
+button:hover { background-color: #ddd; }
