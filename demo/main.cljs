@@ -211,7 +211,8 @@
        :svg [svg-page]
        :bmi [bmi-page]
        :ohms [ohms-law-page]
-       [:div "Page not found"])]))
+       [:div "Page not found"])
+     [:p [:a {:href "https://github.com/chr15m/eucalypt"} "Source code"]]]))
 
 (js/console.log "main.cljs: about to call render!")
 (r/render [app]
