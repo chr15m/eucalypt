@@ -12,7 +12,7 @@
 
 (defn nav-link [page-kw text]
   [:a {:href "#"
-       :style {:margin-right "10px"}
+       :class "nav-link"
        :on-click (fn [e]
                    (.preventDefault e)
                    (swap! app-state assoc :page page-kw))}
@@ -72,7 +72,7 @@
 
 (defn slider [the-atom calc-fn param value min max step invalidates]
   [:input {:type "range" :value value :min min :max max :step step
-           :style {:width "100%"}
+           :class "slider"
            :on-input (fn [e]
                        (js/console.log "slider on-input fired" e)
                        (let [new-value (js/parseFloat
@@ -86,11 +86,11 @@
 
 (defn bmi-page []
   (let [{:keys [weight height bmi]} @bmi-data
-        [color diagnose] (cond
-                          (< bmi 18.5) ["orange" "underweight"]
-                          (< bmi 25) ["inherit" "normal"]
-                          (< bmi 30) ["orange" "overweight"]
-                          :else ["red" "obese"])]
+        [color-class diagnose] (cond
+                                 (< bmi 18.5) ["color-orange" "underweight"]
+                                 (< bmi 25) [nil "normal"]
+                                 (< bmi 30) ["color-orange" "overweight"]
+                                 :else ["color-red" "obese"])]
     [:div
      [:h3 "BMI calculator"]
      [:div
@@ -101,7 +101,7 @@
       [slider bmi-data calc-bmi :weight weight 30 150 1 :bmi]]
      [:div
       "BMI: " (int bmi) " "
-      [:span {:style {:color color}} diagnose]
+      [:span {:class color-class} diagnose]
       [slider bmi-data calc-bmi :bmi bmi 10 50 1 :weight]]]))
 
 (defn calc-ohms [{:keys [voltage current resistance] :as data}]
@@ -130,7 +130,7 @@
    [:p "I am a component!"]
    [:p {:class "someclass"}
     "I have " [:strong "bold"]
-    [:span {:style {:color "red"}} " and red "] "text."]])
+    [:span {:class "text-red"} " and red "] "text."]])
 
 (defn simple-parent []
   [:div
@@ -216,7 +216,7 @@
       [nav-link :svg "SVG"]
       #_ [nav-link :bmi "BMI Calc"]
       #_ [nav-link :ohms "Ohm's Law"]]
-     [:hr {:style {:margin "1rem 0"}}]
+     [:hr {:class "separator"}]
      (case page
        :home [home-page]
        :basic-tests [basic-tests-page]

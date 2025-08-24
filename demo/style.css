@@ -5,3 +5,27 @@ a { color: #007bff; text-decoration: none; }
 a:hover { text-decoration: underline; }
 button { padding: 10px 15px; font-size: 1rem; border-radius: 5px; border: 1px solid #ccc; cursor: pointer; background-color: #eee; }
 button:hover { background-color: #ddd; }
+
+.nav-link {
+  margin-right: 10px;
+}
+
+.slider {
+  width: 100%;
+}
+
+.text-red {
+  color: red;
+}
+
+.separator {
+  margin: 1rem 0;
+}
+
+.color-orange {
+  color: orange;
+}
+
+.color-red {
+  color: red;
+}
