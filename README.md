@@ -1,12 +1,29 @@
-# Eucalypt [WIP, slop, not for prod]
+# Eucalypt [WIP, slop-code, not-for-prod]
 
 [Reagent](https://reagent-project.github.io/) compatible-ish [Squint](https://github.com/squint-cljs/squint)-ClojureScript library without React.
 
+* [Try the demo (9kb compiled HTML artifact)](https://chr15m.github.io/eucalypt/).
+* [Demo source code](./demo).
+
 Goal: create ClojureScript frontend UIs with a Reagent-like API that compile down to sub-10k JS artifacts using [squint-cljs](https://github.com/squint-cljs/squint).
 
-Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that has been slop-coded into working with Squint.
+Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that has been slop-coded into compiling with Squint.
 
-### Mr Clean (original README)
+## Dev
+
+```
+cd demo
+pnpm i
+npm run dev
+```
+
+## Build
+
+```
+npm run build
+```
+
+## Mr Clean (original README)
 
 Mr Clean is a Reagent compatible ClojureScript library without dependency on React.js. At the heart of React.js
 is a very simple idea GUI = function(data). Reagent takes this idea even further hiccup = function(data).  The
