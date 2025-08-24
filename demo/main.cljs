@@ -163,7 +163,8 @@
                 (js/console.log "ref-test-page :ref fn called with el:" el))}
    [:h1 "Ref Test Page"]
    [:p {:ref (fn [el]
-               (aset el "style" "background-color" "pink"))}
+               (when el
+                 (aset el "style" "background-color" "pink")))}
     "Pink background added in ref."]
    [:p "Check the console to see the :ref function getting called."]])
 
