@@ -7,7 +7,12 @@ button { padding: 10px 15px; font-size: 1rem; border-radius: 5px; border: 1px so
 button:hover { background-color: #ddd; }
 
 .nav-link {
-  margin-right: 10px;
+  margin-right: 0.5em;
+}
+
+.nav-link + .nav-link {
+  border-left: 2px solid #ccc;
+  padding-left: 0.5em;
 }
 
 .slider {
