@@ -26,11 +26,6 @@
    [:button {:on-click (fn [_] (swap! app-state update :counter inc))}
     "Increment counter"]])
 
-(defn about-page []
-  [:div
-   [:h1 "About Page"]
-   [:p "This is a demonstration of a simple routing-like mechanism using mr-clean."]])
-
 (defn text-input-page []
   [:div
    [:h1 "Text Input Page"]
@@ -65,18 +60,18 @@
 
 (def bmi-data (r/ratom (calc-bmi {:height 180 :weight 80})))
 
-(defn slider [param value min max invalidates]
-  [:input {:type "range" :value value :min min :max max
+(defn slider [the-atom calc-fn param value min max step invalidates]
+  [:input {:type "range" :value value :min min :max max :step step
            :style {:width "100%"}
            :on-input (fn [e]
                        (js/console.log "slider on-input fired" e)
-                       (let [new-value (js/parseInt (aget (aget e "target") "value"))]
-                         (swap! bmi-data
+                       (let [new-value (js/parseFloat (aget (aget e "target") "value"))]
+                         (swap! the-atom
                                 (fn [data]
                                   (-> data
                                     (assoc param new-value)
                                     (dissoc invalidates)
-                                    calc-bmi)))))}])
+                                    calc-fn)))))}])
 
 (defn bmi-page []
   (let [{:keys [weight height bmi]} @bmi-data
@@ -89,14 +84,35 @@
      [:h3 "BMI calculator"]
      [:div
       "Height: " (int height) "cm"
-      [slider :height height 100 220 :bmi]]
+      [slider bmi-data calc-bmi :height height 100 220 1 :bmi]]
      [:div
       "Weight: " (int weight) "kg"
-      [slider :weight weight 30 150 :bmi]]
+      [slider bmi-data calc-bmi :weight weight 30 150 1 :bmi]]
      [:div
       "BMI: " (int bmi) " "
       [:span {:style {:color color}} diagnose]
-      [slider :bmi bmi 10 50 :weight]]]))
+      [slider bmi-data calc-bmi :bmi bmi 10 50 1 :weight]]]))
+
+(defn calc-ohms [{:keys [voltage current resistance] :as data}]
+  (if (nil? voltage)
+    (assoc data :voltage (* current resistance))
+    (assoc data :current (/ voltage resistance))))
+
+(def ohms-data (r/ratom {:voltage 12 :current 0.5 :resistance 24}))
+
+(defn ohms-law-page []
+  (let [{:keys [voltage current resistance]} @ohms-data]
+    [:div
+     [:h3 "Ohm's Law Calculator"]
+     [:div
+      "Voltage: " (.toFixed voltage 2) "V"
+      [slider ohms-data calc-ohms :voltage voltage 0 30 0.1 :current]]
+     [:div
+      "Current: " (.toFixed current 2) "A"
+      [slider ohms-data calc-ohms :current current 0 3 0.01 :voltage]]
+     [:div
+      "Resistance: " (.toFixed resistance 2) "Ω"
+      [slider ohms-data calc-ohms :resistance resistance 0 100 1 :voltage]]]))
 
 (defn simple-component []
   [:div
@@ -146,7 +162,10 @@
   [:div {:ref (fn [el]
                 (js/console.log "ref-test-page :ref fn called with el:" el))}
    [:h1 "Ref Test Page"]
-   [:p "Check the console to see when the :ref function is called."]])
+   [:p {:ref (fn [el]
+               (aset el "style" "background-color" "pink"))}
+    "Pink background added in ref."]
+   [:p "Check the console to see the :ref function getting called."]])
 
 (def timer-page
   (let [interval-id (atom nil)
@@ -175,23 +194,23 @@
     [:div
      [:nav
       [nav-link :home "Home"]
-      [nav-link :about "About"]
+      [nav-link :basic-tests "Basic Tests"]
       [nav-link :text-input "Text Input"]
       [nav-link :timer "Timer"]
       [nav-link :ref-test "Ref Test"]
-      [nav-link :basic-tests "Basic Tests"]
       [nav-link :svg "SVG"]
-      [nav-link :bmi "BMI Calc"]]
+      #_ [nav-link :bmi "BMI Calc"]
+      #_ [nav-link :ohms "Ohm's Law"]]
      [:hr {:style {:margin "1rem 0"}}]
      (case page
        :home [home-page]
-       :about [about-page]
+       :basic-tests [basic-tests-page]
        :text-input [text-input-page]
        :timer [timer-page]
        :ref-test [ref-test-page]
-       :basic-tests [basic-tests-page]
        :svg [svg-page]
        :bmi [bmi-page]
+       :ohms [ohms-law-page]
        [:div "Page not found"])]))
 
 (js/console.log "main.cljs: about to call render!")
