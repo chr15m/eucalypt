@@ -1,0 +1,15 @@
+{
+  "name": "eucalypt-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "squint compile",
+    "test": "npm run compile && vitest run",
+    "test:watch": "npm run compile && vitest"
+  },
+  "devDependencies": {
+    "happy-dom": "^14.12.3",
+    "squint-cljs": "latest",
+    "vitest": "^1.6.0"
+  }
+}
