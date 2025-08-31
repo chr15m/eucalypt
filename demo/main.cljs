@@ -7,7 +7,7 @@
   (r/ratom
    {:page :home
     :counter 0
-    :timer (js/Date.)
+    :timer 0
     :text-input ""}))
 
 (defn nav-link [page-kw text]
@@ -190,7 +190,7 @@
                      (js/console.log "Timer :ref mount, starting timer.")
                      (reset! interval-id
                              (js/setInterval
-                               #(swap! app-state assoc :timer (js/Date.))
+                               #(swap! app-state update :timer inc)
                                1000)))
                    (when @interval-id
                      (js/console.log "Timer :ref unmount, clearing timer.")
@@ -202,7 +202,8 @@
       (js/console.log "timer-page render fn called, interval-id is:" @interval-id)
       [:div {:ref ref-fn}
        [:h1 "Timer Page"]
-       [:p "The current time is: " (-> (:timer @app-state) .getSeconds str)]])))
+       [:p "The timer increments every second only while on this tab."]
+       [:p "The current timer is: " (:timer @app-state)]])))
 
 (def list-data (r/ratom []))
 
