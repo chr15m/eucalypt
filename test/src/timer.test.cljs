@@ -12,18 +12,20 @@
 
 (def timer-state (r/ratom {:seconds 0}))
 
-(defn timer-component []
-  (let [timer-id (atom nil)]
-    [:div
-     [:p "Seconds: " (:seconds @timer-state)]
-     [:div {:ref (fn [el]
-                   (if el
-                     (do
-                       (js/console.log "Setting up timer")
-                       (reset! timer-id (js/setInterval #(swap! timer-state update :seconds inc) 100)))
-                     (do
-                       (js/console.log "Tearing down timer")
-                       (js/clearInterval @timer-id))))}]]))
+(def timer-component
+  (let [timer-id (atom nil)
+        ref-fn (fn [el]
+                 (if el
+                   (do
+                     (js/console.log "Setting up timer")
+                     (reset! timer-id (js/setInterval #(swap! timer-state update :seconds inc) 100)))
+                   (do
+                     (js/console.log "Tearing down timer")
+                     (js/clearInterval @timer-id))))]
+    (fn []
+      [:div
+       [:p "Seconds: " (:seconds @timer-state)]
+       [:div {:ref ref-fn}]])))
 
 (def show-timer (r/ratom true))
 

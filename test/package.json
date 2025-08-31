@@ -8,6 +8,7 @@
     "test:watch": "npm run compile && vitest"
   },
   "devDependencies": {
+    "es-toolkit": "^1.39.10",
     "happy-dom": "^14.12.3",
     "squint-cljs": "latest",
     "vitest": "^1.6.0"

@@ -1,5 +1,6 @@
 (ns eucalypt
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            ["es-toolkit" :refer [isEqual]]))
 
 (defn- log [& args]
   (try
@@ -142,14 +143,8 @@
 ;;   (-seq [named-node-map] (vec (array-seq named-node-map))))
 
 (defn hiccup-eq? [hiccup-a hiccup-b]
-  (let [replacer (fn [_key value]
-                   (if (fn? value)
-                     (str "---fn---" value)
-                     value))
-        a-str (.stringify js/JSON hiccup-a replacer)
-        b-str (.stringify js/JSON hiccup-b replacer)
-        result (= a-str b-str)]
-    (log "hiccup-eq?:" result "a-str:" a-str "b-str:" b-str)
+  (let [result (isEqual hiccup-a hiccup-b)]
+    (log "hiccup-eq?:" result)
     (when (not result)
       (log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))
     result))
