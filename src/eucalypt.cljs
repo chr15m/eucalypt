@@ -1,9 +1,13 @@
 (ns eucalypt
   (:require [clojure.string :as str]))
 
-(defn- log [& args]                                     
-  (when (= (aget js/window "DEBUG") "eucalypt")
-    (.apply (.-log js/console) js/console args)))
+(defn- log [& args]
+  (try
+    (when (= (.getItem js/localStorage "debug") "eucalypt:*")
+      (.apply (.-log js/console) js/console args))
+    (catch :default _
+      ;; ignore if localStorage is not available
+      )))
 
 (log "eucalypt.cljs loading...")
 
