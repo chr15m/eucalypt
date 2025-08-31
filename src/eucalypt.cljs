@@ -1,7 +1,11 @@
 (ns eucalypt
   (:require [clojure.string :as str]))
 
-(js/console.log "eucalypt.cljs loading...")
+(defn- log [& args]                                     
+  (when (= (aget js/window "DEBUG") "eucalypt")
+    (.apply (.-log js/console) js/console args)))
+
+(log "eucalypt.cljs loading...")
 
 (defn- with-meta* [obj m]
   (aset obj "---meta" m)
@@ -93,7 +97,7 @@
         (set! *xml-ns* old-ns)))))
 
 (defn hiccup->dom [hiccup]
-  (js/console.log "hiccup->dom called with:" hiccup)
+  (log "hiccup->dom called with:" hiccup)
   (let [result (cond
                  (or (string? hiccup) (number? hiccup)) (.createTextNode js/document (str hiccup))
                  (vector? hiccup) (let [[tag & content] hiccup]
@@ -114,7 +118,7 @@
                  (map? hiccup) (hiccup->dom ((:reagent-render hiccup)))
                  (nil? hiccup) nil
                  :else (.createTextNode js/document (str hiccup)))]
-    (js/console.log "hiccup->dom returning:" result)
+    (log "hiccup->dom returning:" result)
     result))
 
 ;; Component support
@@ -141,9 +145,9 @@
         a-str (.stringify js/JSON hiccup-a replacer)
         b-str (.stringify js/JSON hiccup-b replacer)
         result (= a-str b-str)]
-    (js/console.log "hiccup-eq?:" result "a-str:" a-str "b-str:" b-str)
+    (log "hiccup-eq?:" result "a-str:" a-str "b-str:" b-str)
     (when (not result)
-      (js/console.log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))
+      (log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))
     result))
 
 (declare fully-render-hiccup)
@@ -156,7 +160,7 @@
       content)))
 
 (defn- fully-render-hiccup [hiccup]
-  (js/console.log "fully-render-hiccup called with:" hiccup)
+  (log "fully-render-hiccup called with:" hiccup)
   (let [result (cond
                  (fn? hiccup)
                  (fully-render-hiccup (hiccup))
@@ -193,12 +197,12 @@
                  (fully-render-hiccup ((:reagent-render hiccup)))
                  :else
                  hiccup)]
-    (js/console.log "fully-render-hiccup returning:" result)
+    (log "fully-render-hiccup returning:" result)
     result))
 
 (defn- unmount-node-and-children [node]
   (when-let [ref-fn (aget node "---ref-fn")]
-    (js/console.log "unmount-node-and-children: calling ref-fn for node" node)
+    (log "unmount-node-and-children: calling ref-fn for node" node)
     (ref-fn nil)
     (aset node "---ref-fn" nil))
   (doseq [child (vec (aget node "childNodes"))]
@@ -209,58 +213,58 @@
   (.remove node))
 
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (js/console.log "--- patch-children start ---")
-  (js/console.log "patch-children: hiccup-a-rendered" hiccup-a-rendered)
-  (js/console.log "patch-children: hiccup-b-rendered" hiccup-b-rendered)
+  (log "--- patch-children start ---")
+  (log "patch-children: hiccup-a-rendered" hiccup-a-rendered)
+  (log "patch-children: hiccup-b-rendered" hiccup-b-rendered)
   (let [children-a (vec (get-hiccup-children hiccup-a-rendered))
         children-b (vec (get-hiccup-children hiccup-b-rendered))
         dom-nodes (atom (vec (aget dom-a "childNodes")))
         len-a (count children-a)
         len-b (count children-b)]
-    (js/console.log "patch-children: children-a" children-a)
-    (js/console.log "patch-children: children-b" children-b)
-    (js/console.log "patch-children: dom-nodes" @dom-nodes)
+    (log "patch-children: children-a" children-a)
+    (log "patch-children: children-b" children-b)
+    (log "patch-children: dom-nodes" @dom-nodes)
     ;; Patch or replace existing nodes
     (loop [i 0]
       (when (< i (min len-a len-b))
         (let [child-a (nth children-a i)
               child-b (nth children-b i)
               dom-node (nth @dom-nodes i)]
-          (js/console.log "patch-children: about to patch child" i "child-a:" child-a "child-b:" child-b "dom-node:" dom-node)
+          (log "patch-children: about to patch child" i "child-a:" child-a "child-b:" child-b "dom-node:" dom-node)
           (let [new-dom-node (patch child-a child-b dom-node)]
-            (js/console.log "patch-children: comparing child" i child-a child-b)
+            (log "patch-children: comparing child" i child-a child-b)
             (when (not= dom-node new-dom-node)
               (swap! dom-nodes assoc i new-dom-node))))
         (recur (inc i))))
     ;; Add new nodes
     (when (> len-b len-a)
-      (js/console.log "patch-children: adding new nodes")
+      (log "patch-children: adding new nodes")
       (doseq [i (range len-a len-b)]
         (.appendChild dom-a (hiccup->dom (nth children-b i)))))
     ;; Remove surplus nodes
     (when (> len-a len-b)
-      (js/console.log "patch-children: removing surplus nodes")
+      (log "patch-children: removing surplus nodes")
       (doseq [i (range (dec len-a) (dec len-b) -1)]
         (remove-node-and-unmount! (nth @dom-nodes i))))))
 
 (defn- get-attrs [hiccup]
-  (js/console.log "get-attrs called on hiccup:" hiccup)
+  (log "get-attrs called on hiccup:" hiccup)
   (let [s (second hiccup)]
     (if (map? s) s {})))
 
 (defn- patch-attributes [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (js/console.log "patch-attributes called with hiccup-a:" hiccup-a-rendered "hiccup-b:" hiccup-b-rendered)
+  (log "patch-attributes called with hiccup-a:" hiccup-a-rendered "hiccup-b:" hiccup-b-rendered)
   (let [a-attrs (get-attrs hiccup-a-rendered)
         b-attrs (get-attrs hiccup-b-rendered)
         a-ref (get a-attrs :ref)
         b-ref (get b-attrs :ref)]
-    (js/console.log "patch-attributes: a-attrs:" a-attrs "b-attrs:" b-attrs)
-    (js/console.log "patch-attributes: a-ref:" a-ref "b-ref:" b-ref)
+    (log "patch-attributes: a-attrs:" a-attrs "b-attrs:" b-attrs)
+    (log "patch-attributes: a-ref:" a-ref "b-ref:" b-ref)
 
     ;; Handle :ref lifecycle
-    (js/console.log "patch-attributes: about to compare refs. are they equal?" (= a-ref b-ref) "a-ref:" a-ref "b-ref:" b-ref)
+    (log "patch-attributes: about to compare refs. are they equal?" (= a-ref b-ref) "a-ref:" a-ref "b-ref:" b-ref)
     (when (not (= a-ref b-ref))
-      (js/console.log "patch-attributes: refs are different, handling lifecycle")
+      (log "patch-attributes: refs are different, handling lifecycle")
       (when a-ref (a-ref nil))
       (when b-ref (b-ref dom-a))
       (aset dom-a "---ref-fn" b-ref))
@@ -291,49 +295,49 @@
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (js/console.log "patch: hiccup-a-rendered" hiccup-a-rendered "hiccup-b-rendered" hiccup-b-rendered "dom-a" dom-a)
+  (log "patch: hiccup-a-rendered" hiccup-a-rendered "hiccup-b-rendered" hiccup-b-rendered "dom-a" dom-a)
   (let [are-equal (hiccup-eq? hiccup-a-rendered hiccup-b-rendered)]
-    (js/console.log "patch: are-equal is" are-equal "(type" (js/typeof are-equal) ")")
+    (log "patch: are-equal is" are-equal "(type" (js/typeof are-equal) ")")
     (cond
       are-equal
-      (do (js/console.log "patch: hiccup is equal, doing nothing")
+      (do (log "patch: hiccup is equal, doing nothing")
           dom-a)
 
       (or (not (vector? hiccup-a-rendered)) (not (vector? hiccup-b-rendered)) (not= (first hiccup-a-rendered) (first hiccup-b-rendered)))
       (let [new-node (hiccup->dom hiccup-b-rendered)]
-        (js/console.log "patch: replacing node" dom-a "with" new-node)
+        (log "patch: replacing node" dom-a "with" new-node)
         (unmount-node-and-children dom-a)
         (.replaceWith dom-a new-node)
         new-node)
 
       :else
-      (do (js/console.log "patch: hiccup not equal, patching children and attributes")
+      (do (log "patch: hiccup not equal, patching children and attributes")
           (patch-attributes hiccup-a-rendered hiccup-b-rendered dom-a)
           (patch-children hiccup-a-rendered hiccup-b-rendered dom-a)
           dom-a))))
 
 (defn modify-dom [normalized-component]
-  (js/console.log "modify-dom called for component:" normalized-component)
+  (log "modify-dom called for component:" normalized-component)
   (let [[{:keys [_reagent-render]} & _params] normalized-component
         mounted-info (get @mounted-components normalized-component)
-        _ (js/console.log "modify-dom: mounted-info from cache:" mounted-info)
+        _ (log "modify-dom: mounted-info from cache:" mounted-info)
         {:keys [hiccup dom container]} mounted-info
         new-hiccup-unrendered (component->hiccup normalized-component)
         new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)
         new-dom (patch hiccup new-hiccup-rendered dom)]
-    (js/console.log "modify-dom: new DOM" new-dom)
+    (log "modify-dom: new DOM" new-dom)
     (swap! mounted-components assoc normalized-component {:hiccup new-hiccup-rendered
                                                           :dom new-dom
                                                           :container container})
     (when (not= dom new-dom)
-      (js/console.log "modify-dom: DOM changed, replacing in container")
+      (log "modify-dom: DOM changed, replacing in container")
       (aset container "innerHTML" "")
       (.appendChild container new-dom))))
 
 (defn notify-watchers [watchers]
-  (js/console.log "notify-watchers called with" (count @watchers) "watchers")
+  (log "notify-watchers called with" (count @watchers) "watchers")
   (doseq [watcher @watchers]
-    (js/console.log "calling watcher")
+    (log "calling watcher")
     (let [old-watcher *watcher*]
       (try
         (set! *watcher* watcher)
@@ -366,11 +370,11 @@
     (aset a "cursors" (atom #{}))
     (aset a "_deref" (fn []
                       (when *watcher*
-                        (js/console.log "ratom deref: watcher found, adding to set.")
+                        (log "ratom deref: watcher found, adding to set.")
                         (swap! (aget a "watchers") conj *watcher*))
                       (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
-                             (js/console.log "ratom _reset_BANG_ called with" new-val)
+                             (log "ratom _reset_BANG_ called with" new-val)
                              (let [res (.call orig-reset_BANG_ a new-val)]
                                (notify-watchers (aget a "watchers"))
                                (doseq [c @(aget a "cursors")]
@@ -439,7 +443,7 @@
                              :component-will-unmount rm-watchers})
 
 (defn normalize-component [component]
-  (js/console.log "normalize-component called with:" component)
+  (log "normalize-component called with:" component)
   (when (sequential? component)
     (let [first-element (first component)
           params (rest component)]
@@ -486,9 +490,9 @@
 
 
 (defn render [component container]
-  (js/console.log "render called with component:" component "and container:" container)
+  (log "render called with component:" component "and container:" container)
   (let [normalized-component (normalize-component component)]
-    (js/console.log "render: normalized-component is" normalized-component)
+    (log "render: normalized-component is" normalized-component)
     (do-render normalized-component container)))
 
 (def render-component render)
