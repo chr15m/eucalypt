@@ -17,14 +17,16 @@
     "Increment counter"]])
 
 (describe "Stateful Component"
-  (it "should update when ratom changes"
-    (let [container (.createElement js/document "div")]
-      (.appendChild js/document.body container)
-      (r/render [counter-component] container)
+  (fn []
+    (it "should update when ratom changes"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [counter-component] container)
 
-      (th/assert-equal (.-textContent (.querySelector container "p")) "The current count is: 0")
+          (th/assert-equal (.-textContent (.querySelector container "p")) "The current count is: 0")
 
-      (let [button (.querySelector container "#increment")]
-        (.click button))
+          (let [button (.querySelector container "#increment")]
+            (.click button))
 
-      (th/assert-equal (.-textContent (.querySelector container "p")) "The current count is: 1"))))
+          (th/assert-equal (.-textContent (.querySelector container "p")) "The current count is: 1"))))))
