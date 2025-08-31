@@ -1,7 +1,7 @@
-(ns mr-clean
+(ns eucalypt
   (:require [clojure.string :as str]))
 
-(js/console.log "mr-clean.cljs loading...")
+(js/console.log "eucalypt.cljs loading...")
 
 (defn- with-meta* [obj m]
   (aset obj "---meta" m)
@@ -494,4 +494,4 @@
 (def render-component render)
 
 (defn init []
-  (prn "mr-clean init"))
+  (prn "eucalypt init"))
