@@ -20,6 +20,12 @@ pnpm i
 npm run dev
 ```
 
+## Tests
+
+```
+cd test && npm run test
+```
+
 ## Build
 
 ```
