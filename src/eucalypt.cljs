@@ -108,6 +108,11 @@
                  (vector? hiccup) (let [[tag & content] hiccup]
                                     (cond
                                       (fn? tag) (hiccup->dom (apply tag content))
+                                      (vector? tag) (let [fragment (.createDocumentFragment js/document)]
+                                                      (doseq [item hiccup]
+                                                        (when-let [child-node (hiccup->dom item)]
+                                                          (.appendChild fragment child-node)))
+                                                      fragment)
                                       (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
                                                     (doseq [child (rest hiccup)]
                                                       (when-let [child-node (hiccup->dom child)]
