@@ -8,6 +8,8 @@
    {:page :home
     :counter 0
     :timer 0
+    :coins 99
+    :showfrag false
     :text-input ""}))
 
 (defn nav-link [page-kw text]
@@ -225,6 +227,34 @@
                                       (vec (remove #(= % item) items)))))}
         "x"]])]])
 
+(defn coins []
+  [:div {:class "hud"} "🪙 " 99])
+
+(defn fragments []
+  [:<>
+   [coins]
+   (if (:showfrag @app-state)
+     [:div "Hello"]
+     (for [_ [1 2 3]]
+       [:section
+        [:div
+         (let [slots-vec [1 2 3 4 5]
+               slots-per-row 5
+               rows (partition-all slots-per-row slots-vec)]
+           (map-indexed
+             (fn [row-idx row]
+               [:div {:class "slot-row" :key row-idx}
+                (let [row-vec (vec row)]
+                  (map
+                    (fn [slot]
+                      (if slot
+                        [:span
+                         "🪙"]
+                        [:span
+                         "⚪"]))
+                    row-vec))])
+             rows))]]))]) 
+
 (defn app []
   (let [page (:page @app-state)]
     [:div
@@ -236,6 +266,7 @@
       [nav-link :ref-test "Ref Test"]
       [nav-link :svg "SVG"]
       [nav-link :list-demo "List Demo"]
+      [nav-link :fragments "Fragments"]
       #_ [nav-link :bmi "BMI Calc"]
       #_ [nav-link :ohms "Ohm's Law"]]
      [:hr {:class "separator"}]
@@ -249,6 +280,7 @@
        :list-demo [list-demo-page]
        :bmi [bmi-page]
        :ohms [ohms-law-page]
+       :fragments [fragments]
        [:div "Page not found"])
      [:p [:a {:href "https://github.com/chr15m/eucalypt"} "Source code"]]]))
 
