@@ -298,7 +298,7 @@
       [nav-link :fragments "Fragments"]
       [nav-link :clock "Clock Demo"]
       #_ [nav-link :bmi "BMI Calc"]
-      #_ [nav-link :ohms "Ohm's Law"]]
+      [nav-link :ohms "Ohm's Law"]]
      [:hr {:class "separator"}]
      (case page
        :home [home-page]

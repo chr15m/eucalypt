@@ -50,4 +50,31 @@
             (.click button)
             (th/assert-equal (.-value slider-el) "75")
             (th/assert-equal (.-textContent output) "Value: 75")
-            (th/assert-equal (:value @slider-state) 75))))))) 
+            (th/assert-equal (:value @slider-state) 75)))))
+
+    (it "should be controllable and then update on input"
+      (fn []
+        (reset! slider-state {:value 10})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [range-slider-page] container)
+
+          (let [slider-el (.querySelector container "#range-slider")
+                output (.querySelector container "#output")]
+
+            (th/assert-equal (.-value slider-el) "10")
+            (th/assert-equal (.-textContent output) "Value: 10")
+
+            ;; Control component by swapping atom directly
+            (swap! slider-state assoc :value 90)
+            (th/assert-equal (.-value slider-el) "90")
+            (th/assert-equal (.-textContent output) "Value: 90")
+            (th/assert-equal (:value @slider-state) 90)
+
+            ;; Simulate user changing slider
+            (set! (.-value slider-el) "45")
+            (.dispatchEvent slider-el (new js/Event "input" #js {:bubbles true}))
+
+            (th/assert-equal (.-value slider-el) "45")
+            (th/assert-equal (.-textContent output) "Value: 45")
+            (th/assert-equal (:value @slider-state) 45)))))))
