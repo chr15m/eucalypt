@@ -87,16 +87,20 @@
 (defn- create-element [hiccup]
   (let [[tag & content] hiccup
         attrs (if (map? (first content)) (first content) {})
+        value (:value attrs)
+        attrs-without-value (dissoc attrs :value)
         content (if (map? (first content)) (rest content) content)
         old-ns *xml-ns*
         new-ns (if (= :svg tag) "http://www.w3.org/2000/svg" old-ns)
         element (.createElementNS js/document new-ns tag)]
     (try
       (set! *xml-ns* new-ns)
-      (set-attributes! element attrs)
+      (set-attributes! element attrs-without-value)
       (doseq [child content]
         (when-let [child-node (hiccup->dom child)]
           (.appendChild element child-node)))
+      (when (some? value)
+        (aset element "value" value))
       element
       (finally
         (set! *xml-ns* old-ns)))))
@@ -288,10 +292,12 @@
           (if (str/starts-with? k "on-")
             (aset dom-a (str/replace k #"-" "") v)
             (when (not= v old-v)
-              (let [val-str (if (= k :style)
-                                (style-map->css-str v)
-                                v)]
-                (.setAttributeNS dom-a nil k val-str)))))))))
+              (if (= :value k)
+                (aset dom-a "value" v)
+                (let [val-str (if (= k :style)
+                                  (style-map->css-str v)
+                                  v)]
+                  (.setAttributeNS dom-a nil k val-str))))))))))
 
 (defn- component->hiccup [normalized-component]
   (let [[config & params] normalized-component]
