@@ -69,14 +69,6 @@
    [:h1 "SVG Test Page"]
    [skateboarding-icon]])
 
-(defn calc-bmi [{:keys [height weight bmi] :as data}]
-  (let [h (/ height 100)]
-    (if (nil? bmi)
-      (assoc data :bmi (/ weight (* h h)))
-      (assoc data :weight (* bmi h h)))))
-
-(def bmi-data (r/ratom (calc-bmi {:height 180 :weight 80})))
-
 (defn slider [the-atom calc-fn param value min max step invalidates]
   [:input {:type "range" :value value :min min :max max :step step
            :class "slider"
@@ -90,26 +82,6 @@
                                     (assoc param new-value)
                                     (dissoc invalidates)
                                     calc-fn)))))}])
-
-(defn bmi-page []
-  (let [{:keys [weight height bmi]} @bmi-data
-        [color-class diagnose] (cond
-                                 (< bmi 18.5) ["color-orange" "underweight"]
-                                 (< bmi 25) [nil "normal"]
-                                 (< bmi 30) ["color-orange" "overweight"]
-                                 :else ["color-red" "obese"])]
-    [:div
-     [:h3 "BMI calculator"]
-     [:div
-      "Height: " (int height) "cm"
-      [slider bmi-data calc-bmi :height height 100 220 1 :bmi]]
-     [:div
-      "Weight: " (int weight) "kg"
-      [slider bmi-data calc-bmi :weight weight 30 150 1 :bmi]]
-     [:div
-      "BMI: " (int bmi) " "
-      [:span {:class color-class} diagnose]
-      [slider bmi-data calc-bmi :bmi bmi 10 50 1 :weight]]]))
 
 (defn calc-ohms [{:keys [voltage current resistance] :as data}]
   (if (nil? voltage)
@@ -297,7 +269,6 @@
       [nav-link :list-demo "List Demo"]
       [nav-link :fragments "Fragments"]
       [nav-link :clock "Clock Demo"]
-      #_ [nav-link :bmi "BMI Calc"]
       [nav-link :ohms "Ohm's Law"]]
      [:hr {:class "separator"}]
      (case page
@@ -308,7 +279,6 @@
        :ref-test [ref-test-page]
        :svg [svg-page]
        :list-demo [list-demo-page]
-       :bmi [bmi-page]
        :ohms [ohms-law-page]
        :fragments [fragments]
        :clock [clock-page]
