@@ -326,6 +326,15 @@
       (do (log "patch: hiccup not equal, patching children and attributes")
           (patch-attributes hiccup-a-rendered hiccup-b-rendered dom-a)
           (patch-children hiccup-a-rendered hiccup-b-rendered dom-a)
+          (let [a-attrs (get-attrs hiccup-a-rendered)
+                b-attrs (get-attrs hiccup-b-rendered)
+                b-value (:value b-attrs)]
+            (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
+              (if (and (= (.-tagName dom-a) "SELECT") (.-multiple dom-a))
+                (let [value-set (set b-value)]
+                  (doseq [opt (.-options dom-a)]
+                    (aset opt "selected" (contains? value-set (.-value opt)))))
+                (aset dom-a "value" b-value))))
           dom-a))))
 
 (defn modify-dom [normalized-component]
