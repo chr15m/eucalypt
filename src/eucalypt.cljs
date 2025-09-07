@@ -64,6 +64,9 @@
 (defn- style-map->css-str [style-map]
   (apply str (map (fn [[k v]] (str k ":" v ";")) style-map)))
 
+(def ^:private event-name-map
+  {:on-double-click "ondblclick"})
+
 (defn- set-attributes! [element attrs]
   (doseq [[k v] attrs]
     (cond
@@ -76,7 +79,8 @@
         (v element))
 
       (str/starts-with? k "on-")
-      (aset element (str/replace k #"-" "") v)
+      (let [event-name (get event-name-map k (str/replace k #"-" ""))]
+        (aset element event-name v))
 
       (= :style k)
       (aset element "style" (style-map->css-str v))
@@ -184,8 +188,7 @@
                  (let [tag (first hiccup)]
                    (if (fn? tag)
                      (let [call-site-attrs (when (map? (second hiccup)) (second hiccup))
-                           params (if call-site-attrs (drop 2 hiccup) (rest hiccup))
-                           res (apply tag params)
+                           res (apply tag (rest hiccup))
                            rendered-hiccup (fully-render-hiccup res)]
                        (if (and call-site-attrs (vector? rendered-hiccup))
                          (let [res-tag (first rendered-hiccup)
