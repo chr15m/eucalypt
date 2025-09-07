@@ -11,11 +11,29 @@
     :timer 0
     :coins 99
     :showfrag false
-    :text-input ""}))
+    :text-input ""
+    :page-size "loading..."}))
 
 (def clock-time (r/ratom (js/Date.)))
 (def time-color (r/ratom "#f34"))
 (js/setInterval #(reset! clock-time (js/Date.)) 1000)
+
+(defn get-page-size []
+  (-> (js/fetch (.-href js/location))
+      (.then (fn [response]
+               (let [headers (.-headers response)
+                     is-gzipped (= (.get headers "content-encoding") "gzip")
+                     content-length (.get headers "content-length")]
+                 (if (and is-gzipped content-length)
+                   (let [size-kb (/ (js/parseInt content-length) 1024)]
+                     (swap! app-state assoc :page-size (str (.toFixed size-kb 1) "kb gzipped")))
+                   (-> (.text response)
+                       (.then (fn [text]
+                                (let [size-kb (/ (.-length text) 1024)]
+                                  (swap! app-state assoc :page-size (str (.toFixed size-kb 1) "kb"))))))))))
+      (.catch (fn [error]
+                (js/console.error "Error fetching page size:" error)
+                (swap! app-state assoc :page-size "Error")))))
 
 (defn nav-link [page-kw text]
   [:a {:href "#"
@@ -29,6 +47,8 @@
   [:div
    [:h1 "Home Page"]
    [:p "Welcome to the mr-clean demo app!"]
+   [:p "The size of this index.html file is: " [:strong (:page-size @app-state)]]
+   [:hr]
    [:p "The current count is: " (:counter @app-state)]
    [:button {:on-click (fn [_] (swap! app-state update :counter inc))}
     "Increment counter"]])
@@ -288,4 +308,5 @@
 (js/console.log "main.cljs: about to call render!")
 (r/render [app]
           (.getElementById js/document "app"))
+(get-page-size)
 (js/console.log "main.cljs: render! finished")
