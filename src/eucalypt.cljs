@@ -329,16 +329,22 @@
         _ (log "modify-dom: mounted-info from cache:" mounted-info)
         {:keys [hiccup dom container]} mounted-info
         new-hiccup-unrendered (component->hiccup normalized-component)
-        new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)
-        new-dom (patch hiccup new-hiccup-rendered dom)]
-    (log "modify-dom: new DOM" new-dom)
-    (swap! mounted-components assoc normalized-component {:hiccup new-hiccup-rendered
-                                                          :dom new-dom
-                                                          :container container})
-    (when (not= dom new-dom)
-      (log "modify-dom: DOM changed, replacing in container")
-      (aset container "innerHTML" "")
-      (.appendChild container new-dom))))
+        new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)]
+    (if (and (vector? hiccup) (= :<> (first hiccup)))
+      (do
+        (patch-children hiccup new-hiccup-rendered container)
+        (swap! mounted-components assoc normalized-component {:hiccup new-hiccup-rendered
+                                                              :dom dom
+                                                              :container container}))
+      (let [new-dom (patch hiccup new-hiccup-rendered dom)]
+        (log "modify-dom: new DOM" new-dom)
+        (swap! mounted-components assoc normalized-component {:hiccup new-hiccup-rendered
+                                                              :dom new-dom
+                                                              :container container})
+        (when (not= dom new-dom)
+          (log "modify-dom: DOM changed, replacing in container")
+          (aset container "innerHTML" "")
+          (.appendChild container new-dom))))))
 
 (defn notify-watchers [watchers]
   (log "notify-watchers called with" (count @watchers) "watchers")
