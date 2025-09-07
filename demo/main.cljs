@@ -46,8 +46,14 @@
 (defn home-page []
   [:div
    [:h1 "Home Page"]
-   [:p "Welcome to the mr-clean demo app!"]
+   [:p "Welcome to the eucalypt demo app."]
+   [:p "The ClojureScript code for these examples is compiled into this single index.html
+       file."]
    [:p "The size of this index.html file is: " [:strong (:page-size @app-state)]]
+   [:p "The compiler is "
+    [:a {:href "https://github.com/squint-cljs/squint"} "squint-cljs"]
+    " and the build tool is "
+    [:a {:href "https://vitejs.dev"} "vite"] "."]
    [:hr]
    [:p "The current count is: " (:counter @app-state)]
    [:button {:on-click (fn [_] (swap! app-state update :counter inc))}
