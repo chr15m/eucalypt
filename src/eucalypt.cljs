@@ -81,6 +81,9 @@
       (= :style k)
       (aset element "style" (style-map->css-str v))
 
+      (or (= :checked k) (= :selected k))
+      (aset element k v) 
+
       :else
       (.setAttributeNS element nil k v))))
 
@@ -100,7 +103,11 @@
         (when-let [child-node (hiccup->dom child)]
           (.appendChild element child-node)))
       (when (some? value)
-        (aset element "value" value))
+        (if (and (= (.-tagName element) "SELECT") (.-multiple element))
+          (let [value-set (set value)]
+            (doseq [opt (.-options element)]
+              (aset opt "selected" (contains? value-set (.-value opt)))))
+          (aset element "value" value)))
       element
       (finally
         (set! *xml-ns* old-ns)))))
@@ -292,8 +299,13 @@
           (if (str/starts-with? k "on-")
             (aset dom-a (str/replace k #"-" "") v)
             (when (not= v old-v)
-              (if (= :value k)
-                (aset dom-a "value" v)
+              (log "patch-attributes: updating attribute" k "from" old-v "to" v "on" dom-a)
+              (cond
+                (= :value k) nil ;; handled in patch
+                (or (= :checked k) (= :selected k))
+                (aset dom-a k v) 
+                
+                :else
                 (let [val-str (if (= k :style)
                                   (style-map->css-str v)
                                   v)]
@@ -330,6 +342,7 @@
                 b-attrs (get-attrs hiccup-b-rendered)
                 b-value (:value b-attrs)]
             (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
+              (log "patch: value changed from" (:value a-attrs) "to" b-value "on" dom-a)
               (if (and (= (.-tagName dom-a) "SELECT") (.-multiple dom-a))
                 (let [value-set (set b-value)]
                   (doseq [opt (.-options dom-a)]
