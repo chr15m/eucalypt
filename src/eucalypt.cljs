@@ -205,23 +205,25 @@
     result))
 
 (defn- unmount-node-and-children [node]
-  (when-let [ref-fn (aget node "---ref-fn")]
-    (log "unmount-node-and-children: calling ref-fn for node" node)
-    (ref-fn nil)
-    (aset node "---ref-fn" nil))
-  (doseq [child (vec (aget node "childNodes"))]
-    (unmount-node-and-children child)))
+  (when node
+    (when-let [ref-fn (aget node "---ref-fn")]
+      (log "unmount-node-and-children: calling ref-fn for node" node)
+      (ref-fn nil)
+      (aset node "---ref-fn" nil))
+    (doseq [child (vec (aget node "childNodes"))]
+      (unmount-node-and-children child))))
 
 (defn- remove-node-and-unmount! [node]
-  (unmount-node-and-children node)
-  (.remove node))
+  (when node
+    (unmount-node-and-children node)
+    (.remove node)))
 
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a]
   (log "--- patch-children start ---")
   (log "patch-children: hiccup-a-rendered" hiccup-a-rendered)
   (log "patch-children: hiccup-b-rendered" hiccup-b-rendered)
-  (let [children-a (vec (get-hiccup-children hiccup-a-rendered))
-        children-b (vec (get-hiccup-children hiccup-b-rendered))
+  (let [children-a (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
+        children-b (vec (remove nil? (get-hiccup-children hiccup-b-rendered)))
         dom-nodes (atom (vec (aget dom-a "childNodes")))
         len-a (count children-a)
         len-b (count children-b)]
