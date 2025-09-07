@@ -203,8 +203,14 @@
                              (mapcat
                               (fn [child]
                                 (let [processed (fully-render-hiccup child)]
-                                  (if (and (seq? processed) (not (vector? processed)) (not (string? processed)))
+                                  (cond
+                                    (and (vector? processed) (= :<> (first processed)))
+                                    (get-hiccup-children processed)
+
+                                    (and (seq? processed) (not (vector? processed)) (not (string? processed)))
                                     processed
+
+                                    :else
                                     [processed])))
                               children)))))
                  (map? hiccup)
