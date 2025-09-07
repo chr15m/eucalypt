@@ -1,5 +1,6 @@
 (ns main
-  (:require [eucalypt :as r]))
+  (:require [eucalypt :as r]
+            [clojure.string :as str]))
 
 (js/console.log "main.cljs loading...")
 
@@ -11,6 +12,10 @@
     :coins 99
     :showfrag false
     :text-input ""}))
+
+(def clock-time (r/ratom (js/Date.)))
+(def time-color (r/ratom "#f34"))
+(js/setInterval #(reset! clock-time (js/Date.)) 1000)
 
 (defn nav-link [page-kw text]
   [:a {:href "#"
@@ -227,6 +232,30 @@
                                       (vec (remove #(= % item) items)))))}
         "x"]])]])
 
+(defn greeting [message]
+  [:h1 message])
+
+(defn clock []
+  (let [time-str (-> @clock-time .toTimeString (str/split " ") first)]
+    [:div {:style {:color @time-color
+                   :font-size "2em"
+                   :font-family "monospace"}}
+     time-str]))
+
+(defn color-input []
+  [:div
+   "Time color: "
+   [:input {:type "text"
+            :value @time-color
+            :on-input (fn [e]
+                        (reset! time-color (.. e -target -value)))}]])
+
+(defn clock-page []
+  [:div
+   [greeting "Hello world, it is now"]
+   [clock]
+   [color-input]])
+
 (defn coins []
   [:div {:class "hud"} "🪙 " 99])
 
@@ -267,6 +296,7 @@
       [nav-link :svg "SVG"]
       [nav-link :list-demo "List Demo"]
       [nav-link :fragments "Fragments"]
+      [nav-link :clock "Clock Demo"]
       #_ [nav-link :bmi "BMI Calc"]
       #_ [nav-link :ohms "Ohm's Law"]]
      [:hr {:class "separator"}]
@@ -281,6 +311,7 @@
        :bmi [bmi-page]
        :ohms [ohms-law-page]
        :fragments [fragments]
+       :clock [clock-page]
        [:div "Page not found"])
      [:p [:a {:href "https://github.com/chr15m/eucalypt"} "Source code"]]]))
 
