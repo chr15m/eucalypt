@@ -55,7 +55,7 @@
   [:input {:type "text"
            :id "key-down-input"
            :on-key-down (fn [e]
-                          (when (= (.-keyCode e) 13)
+                          (when (= (.-code e) "Enter")
                             (swap! key-down-state assoc :key-pressed "Enter")))}])
 
 (describe "on-key-down event"
@@ -67,5 +67,5 @@
           (.appendChild js/document.body container)
           (r/render [key-down-component] container)
           (let [input (.querySelector container "#key-down-input")]
-            (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:keyCode 13 :bubbles true}))
+            (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:code "Enter" :bubbles true}))
             (th/assert-equal (:key-pressed @key-down-state) "Enter")))))))
