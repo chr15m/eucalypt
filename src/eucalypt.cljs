@@ -60,6 +60,7 @@
 ;; *** hiccup-to-dom implementation ***
 
 (declare hiccup->dom)
+(declare normalize-component)
 
 (defn- style-map->css-str [style-map]
   (apply str (map (fn [[k v]] (str k ":" v ";")) style-map)))
@@ -130,7 +131,7 @@
   (log "hiccup->dom called with:" hiccup)
   (let [result (cond
                  (or (string? hiccup) (number? hiccup)) (.createTextNode js/document (str hiccup))
-                 (vector? hiccup) (let [[tag & content] hiccup]
+                 (vector? hiccup) (let [[tag & _content] hiccup]
                                     (cond
                                       (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)))
                                       (vector? tag) (let [fragment (.createDocumentFragment js/document)]
