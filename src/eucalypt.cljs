@@ -67,6 +67,12 @@
 (def ^:private event-name-map
   {:on-double-click "ondblclick"})
 
+(defn- get-event-name [k tag-name]
+  (if (and (= k :on-change)
+           (#{"INPUT" "TEXTAREA"} tag-name))
+    "oninput"
+    (get event-name-map k (str/replace k #"-" ""))))
+
 (defn- set-attributes! [element attrs]
   (doseq [[k v] attrs]
     (cond
@@ -79,11 +85,7 @@
         (v element))
 
       (str/starts-with? k "on-")
-      (let [tag-name (.-tagName element)
-            event-name (if (and (= k :on-change)
-                                (#{"INPUT" "TEXTAREA"} tag-name))
-                         "oninput"
-                         (get event-name-map k (str/replace k #"-" "")))]
+      (let [event-name (get-event-name k (.-tagName element))]
         (aset element event-name v))
 
       (= :style k)
@@ -120,16 +122,17 @@
       (finally
         (set! *xml-ns* old-ns)))))
 
+(defn- component->hiccup [normalized-component]
+  (let [[config & params] normalized-component]
+    (apply (:reagent-render config) params)))
+
 (defn hiccup->dom [hiccup]
   (log "hiccup->dom called with:" hiccup)
   (let [result (cond
                  (or (string? hiccup) (number? hiccup)) (.createTextNode js/document (str hiccup))
                  (vector? hiccup) (let [[tag & content] hiccup]
                                     (cond
-                                      (fn? tag) (let [res (apply tag content)]
-                                                  (if (fn? res)
-                                                    (hiccup->dom (apply res content))
-                                                    (hiccup->dom res)))
+                                      (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)))
                                       (vector? tag) (let [fragment (.createDocumentFragment js/document)]
                                                       (doseq [item hiccup]
                                                         (when-let [child-node (hiccup->dom item)]
@@ -194,11 +197,7 @@
                  (vector? hiccup)
                  (let [tag (first hiccup)]
                    (if (fn? tag)
-                     (let [res (let [comp-res (apply tag (rest hiccup))]
-                                 (if (fn? comp-res)
-                                   (apply comp-res (rest hiccup))
-                                   comp-res))]
-                       (fully-render-hiccup res))
+                     (fully-render-hiccup (component->hiccup (normalize-component hiccup)))
 
                      (let [attrs (when (map? (second hiccup)) (second hiccup))
                            children (if attrs (drop 2 hiccup) (rest hiccup))
@@ -284,7 +283,8 @@
   (let [a-attrs (get-attrs hiccup-a-rendered)
         b-attrs (get-attrs hiccup-b-rendered)
         a-ref (get a-attrs :ref)
-        b-ref (get b-attrs :ref)]
+        b-ref (get b-attrs :ref)
+        tag-name (.-tagName dom-a)]
     (log "patch-attributes: a-attrs:" a-attrs "b-attrs:" b-attrs)
     (log "patch-attributes: a-ref:" a-ref "b-ref:" b-ref)
 
@@ -300,30 +300,26 @@
     (doseq [[k _] a-attrs]
       (when (and (not (contains? b-attrs k)) (not= k :ref) (not= k :xmlns))
         (if (str/starts-with? k "on-")
-          (aset dom-a (str/replace k #"-" "") nil)
+          (aset dom-a (get-event-name k tag-name) nil)
           (.removeAttribute dom-a k))))
     ;; Add/update attributes from b
     (doseq [[k v] b-attrs]
       (when (and (not= k :ref) (not= k :xmlns))
         (let [old-v (get a-attrs k)]
           (if (str/starts-with? k "on-")
-            (aset dom-a (str/replace k #"-" "") v)
+            (aset dom-a (get-event-name k tag-name) v)
             (when (not= v old-v)
               (log "patch-attributes: updating attribute" k "from" old-v "to" v "on" dom-a)
               (cond
                 (= :value k) nil ;; handled in patch
                 (or (= :checked k) (= :selected k))
-                (aset dom-a k v) 
-                
+                (aset dom-a k v)
+
                 :else
                 (let [val-str (if (= k :style)
                                   (style-map->css-str v)
                                   v)]
                   (.setAttributeNS dom-a nil k val-str))))))))))
-
-(defn- component->hiccup [normalized-component]
-  (let [[config & params] normalized-component]
-    (apply (:reagent-render config) params)))
 
 (defn patch
   "transform dom-a to dom representation of hiccup-b.
@@ -386,8 +382,10 @@
 
 (defn notify-watchers [watchers]
   (log "notify-watchers called with" (count @watchers) "watchers")
+  ;(js/console.log "notify-watchers called with" (count @watchers) "watchers")
   (doseq [watcher @watchers]
     (log "calling watcher")
+    ;(js/console.log "calling watcher")
     (let [old-watcher *watcher*]
       (try
         (set! *watcher* watcher)
@@ -425,6 +423,7 @@
                       (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
                              (log "ratom _reset_BANG_ called with" new-val)
+                             ;(js/console.log "ratom _reset_BANG_ called with" new-val)
                              (let [res (.call orig-reset_BANG_ a new-val)]
                                (notify-watchers (aget a "watchers"))
                                (doseq [c @(aget a "cursors")]
@@ -498,13 +497,15 @@
     (let [first-element (first component)
           params (rest component)]
       (cond (fn? first-element) (let [a-fn first-element
-                                      func-or-hiccup (apply a-fn params)
-                                      render-fn (if (fn? func-or-hiccup)
-                                                  func-or-hiccup
+                                      render-fn (if-let [cached (.-_cached_render_fn a-fn)]
+                                                  cached
                                                   a-fn)
-                                      comp-with-lifecycle (merge life-cycle-methods
-                                                                 {:reagent-render render-fn})]
-                                  (into [comp-with-lifecycle] params))
+                                      func-or-hiccup (apply render-fn params)]
+                                  (if (fn? func-or-hiccup)
+                                    (do
+                                      (aset a-fn "_cached_render_fn" func-or-hiccup)
+                                      (into [(merge life-cycle-methods {:reagent-render func-or-hiccup})] params))
+                                    (into [(merge life-cycle-methods {:reagent-render render-fn})] params)))
             (keyword? first-element) (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
                                            params)
             (map? first-element) (let [component-as-map first-element
