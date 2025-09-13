@@ -79,7 +79,11 @@
         (v element))
 
       (str/starts-with? k "on-")
-      (let [event-name (get event-name-map k (str/replace k #"-" ""))]
+      (let [tag-name (.-tagName element)
+            event-name (if (and (= k :on-change)
+                                (#{"INPUT" "TEXTAREA"} tag-name))
+                         "oninput"
+                         (get event-name-map k (str/replace k #"-" "")))]
         (aset element event-name v))
 
       (= :style k)

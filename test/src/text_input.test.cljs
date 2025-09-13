@@ -15,8 +15,8 @@
    [:input {:type "text"
             :id "text-input"
             :value (:text @text-state)
-            :on-input (fn [e]
-                        (swap! text-state assoc :text (.. e -target -value)))}]
+            :on-change (fn [e]
+                         (swap! text-state assoc :text (.. e -target -value)))}]
    [:p {:id "output"} "You typed: " (:text @text-state)]])
 
 (describe "Text Input Component"
