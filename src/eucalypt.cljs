@@ -49,10 +49,27 @@
 #_ (defn- postwalk [f form]
   (walk (partial postwalk f) f form))
 
+(defn- rm-watchers [normalized-component]
+  (let [params (rest normalized-component)]
+    (doseq [p params
+            :when (and (object? p) (aget p "watchers"))]
+      (let [watchers (aget p "watchers")]
+        (doseq [w @watchers
+                :when (= (-> w meta* :normalized-component)
+                         normalized-component)]
+          (swap! watchers (fn [watchers]
+                                         (set (remove #(= w %) watchers)))))))))
+
 (defonce ^:dynamic *watcher* nil)
 (defonce ^:dynamic *xml-ns* "http://www.w3.org/1999/xhtml")
 (defonce create-class identity)
 (defonce dom-node identity)
+(defonce life-cycle-methods {:get-initial-state (fn [_this])
+                             :component-will-receive-props identity
+                             :should-component-update identity
+                             :component-will-update identity
+                             :component-did-update identity
+                             :component-will-unmount rm-watchers})
 
 (defonce mounted-components (atom {}))
 (defonce container->mounted-component (atom {}))
@@ -60,7 +77,6 @@
 ;; *** hiccup-to-dom implementation ***
 
 (declare hiccup->dom)
-(declare normalize-component)
 
 (defn- style-map->css-str [style-map]
   (apply str (map (fn [[k v]] (str k ":" v ";")) style-map)))
@@ -123,6 +139,33 @@
       (finally
         (set! *xml-ns* old-ns)))))
 
+(defn normalize-component [component]
+  (log "normalize-component called with:" component)
+  (when (sequential? component)
+    (let [first-element (first component)
+          params (rest component)]
+      (cond (fn? first-element) (let [a-fn first-element
+                                      render-fn (if-let [cached (.-_cached_render_fn a-fn)]
+                                                  cached
+                                                  a-fn)
+                                      func-or-hiccup (apply render-fn params)]
+                                  (if (fn? func-or-hiccup)
+                                    (do
+                                      (aset a-fn "_cached_render_fn" func-or-hiccup)
+                                      (into [(merge life-cycle-methods {:reagent-render func-or-hiccup})] params))
+                                    (into [(merge life-cycle-methods {:reagent-render render-fn})] params)))
+            (keyword? first-element) (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
+                                           params)
+            (map? first-element) (let [component-as-map first-element
+                                       render-fn (:reagent-render component-as-map)
+                                       comp-with-lifecycle (into {:reagent-render render-fn}
+                                                                 (map (fn [[k func]]
+                                                                        (let [func2 (get component-as-map k)
+                                                                              func-func2 (if func2 (comp func2 func) func)]
+                                                                          [k func-func2]))
+                                                                      life-cycle-methods))]
+                                   (into [comp-with-lifecycle] params))))))
+
 (defn- component->hiccup [normalized-component]
   (let [[config & params] normalized-component]
     (apply (:reagent-render config) params)))
@@ -163,7 +206,6 @@
 
 
 ;; *** mr clean implementation continues ***
-
 
 ;; (extend-type js/NodeList
 ;;   ISeqable
@@ -473,51 +515,6 @@
         reaction-obj)
       (finally
         (set! *watcher* old-watcher)))))
-
-(defn- rm-watchers [normalized-component]
-  (let [params (rest normalized-component)]
-    (doseq [p params
-            :when (and (object? p) (aget p "watchers"))]
-      (let [watchers (aget p "watchers")]
-        (doseq [w @watchers
-                :when (= (-> w meta* :normalized-component)
-                         normalized-component)]
-          (swap! watchers (fn [watchers]
-                                         (set (remove #(= w %) watchers)))))))))
-
-(defonce life-cycle-methods {:get-initial-state (fn [_this])
-                             :component-will-receive-props identity
-                             :should-component-update identity
-                             :component-will-update identity
-                             :component-did-update identity
-                             :component-will-unmount rm-watchers})
-
-(defn normalize-component [component]
-  (log "normalize-component called with:" component)
-  (when (sequential? component)
-    (let [first-element (first component)
-          params (rest component)]
-      (cond (fn? first-element) (let [a-fn first-element
-                                      render-fn (if-let [cached (.-_cached_render_fn a-fn)]
-                                                  cached
-                                                  a-fn)
-                                      func-or-hiccup (apply render-fn params)]
-                                  (if (fn? func-or-hiccup)
-                                    (do
-                                      (aset a-fn "_cached_render_fn" func-or-hiccup)
-                                      (into [(merge life-cycle-methods {:reagent-render func-or-hiccup})] params))
-                                    (into [(merge life-cycle-methods {:reagent-render render-fn})] params)))
-            (keyword? first-element) (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
-                                           params)
-            (map? first-element) (let [component-as-map first-element
-                                       render-fn (:reagent-render component-as-map)
-                                       comp-with-lifecycle (into {:reagent-render render-fn}
-                                                                 (map (fn [[k func]]
-                                                                        (let [func2 (get component-as-map k)
-                                                                              func-func2 (if func2 (comp func2 func) func)]
-                                                                          [k func-func2]))
-                                                                      life-cycle-methods))]
-                                   (into [comp-with-lifecycle] params))))))
 
 (defn unmount-components [container]
   (when-let [mounted-component (get @container->mounted-component container)]
