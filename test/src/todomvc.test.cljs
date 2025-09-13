@@ -14,10 +14,17 @@
 (defonce counter (r/ratom 0))
 
 (defn add-todo [text]
+  (js/console.log "add-todo called with:" text)
+  (js/console.log "todos count before:" (count @todos))
   (let [id (swap! counter inc)]
-    (swap! todos assoc id {:id id :title text :done false})))
+    (swap! todos assoc id {:id id :title text :done false}))
+  (js/console.log "todos count after:" (count @todos)))
 
-(defn toggle [id] (swap! todos update-in [id :done] not))
+(defn toggle [id]
+  (js/console.log "toggle called for id:" id)
+  (js/console.log "todo" id "done state before:" (get-in @todos [id :done]))
+  (swap! todos update-in [id :done] not)
+  (js/console.log "todo" id "done state after:" (get-in @todos [id :done])))
 (defn save [id title] (swap! todos assoc-in [id :title] title))
 (defn delete-todo [id] (swap! todos dissoc id))
 
@@ -25,10 +32,10 @@
 (defn complete-all [v] (swap! todos mmap map #(assoc-in % [1 :done] v)))
 (defn clear-done [] (swap! todos mmap remove #(get-in % [1 :done])))
 
-(defn todo-input [{:keys [title on-save on-stop] :as props}]
+(defn todo-input [{:keys [title on-save on-stop] :as _props}]
   (let [val (r/ratom (or title ""))]
     (fn [props]
-      (letfn [(stop [e]
+      (letfn [(stop [_e]
                 (reset! val "")
                 (when on-stop (on-stop)))
               (save [e]
@@ -37,16 +44,16 @@
                     (on-save v)))
                 (stop e))]
         [:input (merge
-                 {:type "text"
-                  :value @val
-                  :on-blur save
-                  :on-change (fn [e] (reset! val (.. e -target -value)))
-                  :on-key-down (fn [e]
-                                 (case (.-which e)
-                                   13 (save e)
-                                   27 (stop e)
-                                   nil))}
-                 (select-keys props [:id :class :placeholder :ref]))]))))
+                  {:type "text"
+                   :value @val
+                   :on-blur save
+                   :on-change (fn [e] (reset! val (.. e -target -value)))
+                   :on-key-down (fn [e]
+                                  (case (.-code e)
+                                    "Enter" (save e)
+                                    "Escape" (stop e)
+                                    nil))}
+                  (select-keys props [:id :class :placeholder :ref]))]))))
 
 (defn todo-edit [props]
   [todo-input (assoc props :ref (fn [el] (when el (.focus el))))])
@@ -163,7 +170,7 @@
           (let [input (.querySelector container "#new-todo")]
             (set! (.-value input) "four")
             (.dispatchEvent input (new js/Event "input" #js {:bubbles true}))
-            (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:keyCode 13, :which 13}))
+            (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:code "Enter", :bubbles true}))
 
             (let [todo-items (.querySelectorAll container "#todo-list li")]
               (th/assert-equal (.-length todo-items) 4)
@@ -191,7 +198,67 @@
             (.click delete-btn)
             (let [todo-items (.querySelectorAll container "#todo-list li")]
               (th/assert-equal (.-length todo-items) 2)
-              (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "1")))))) 
+              (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "1"))))))
+
+    (it "should edit a todo"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [todomvc-page] container)
+
+          (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)
+                item1-label (.querySelector item1-li "label")]
+
+            (.dispatchEvent item1-label (new js/Event "dblclick" #js {:bubbles true}))
+
+            (let [edit-input (.querySelector item1-li ".edit")]
+              (th/assert-not-nil edit-input)
+              (th/assert-equal (.-value edit-input) "one")
+
+              (set! (.-value edit-input) "one (edited)")
+              (.dispatchEvent edit-input (new js/Event "input" #js {:bubbles true}))
+              (.dispatchEvent edit-input (new js/KeyboardEvent "keydown" #js {:code "Enter", :bubbles true}))
+
+              (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
+              (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one (edited)"))))))
+
+    (it "should cancel editing on Escape"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [todomvc-page] container)
+
+          (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)
+                item1-label (.querySelector item1-li "label")]
+
+            (.dispatchEvent item1-label (new js/Event "dblclick" #js {:bubbles true}))
+
+            (let [edit-input (.querySelector item1-li ".edit")]
+              (set! (.-value edit-input) "one (edited)")
+              (.dispatchEvent edit-input (new js/Event "input" #js {:bubbles true}))
+              (.dispatchEvent edit-input (new js/KeyboardEvent "keydown" #js {:code "Escape", :bubbles true}))
+
+              (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
+              (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one"))))))
+
+    (it "should save on blur"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [todomvc-page] container)
+
+          (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)
+                item1-label (.querySelector item1-li "label")]
+
+            (.dispatchEvent item1-label (new js/Event "dblclick" #js {:bubbles true}))
+
+            (let [edit-input (.querySelector item1-li ".edit")]
+              (set! (.-value edit-input) "one (blurred)")
+              (.dispatchEvent edit-input (new js/Event "input" #js {:bubbles true}))
+              (.dispatchEvent edit-input (new js/Event "blur" #js {:bubbles true}))
+
+              (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
+              (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one (blurred)"))))))
 
     (it "should clear completed todos"
       (fn []
@@ -204,6 +271,21 @@
             (let [todo-items (.querySelectorAll container "#todo-list li")]
               (th/assert-equal (.-length todo-items) 2)
               (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "2")))))
+
+    (it "should complete all todos"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [todomvc-page] container)
+
+          (let [toggle-all-checkbox (.querySelector container "#toggle-all")]
+            (.click toggle-all-checkbox)
+            (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "0")
+            (th/assert-equal (.-length (.querySelectorAll container "#todo-list li.completed")) 3)
+
+            (.click toggle-all-checkbox)
+            (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "3")
+            (th/assert-equal (.-length (.querySelectorAll container "#todo-list li.completed")) 0)))))
 
     (it "should filter todos"
       (fn []
