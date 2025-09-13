@@ -122,7 +122,10 @@
                  (or (string? hiccup) (number? hiccup)) (.createTextNode js/document (str hiccup))
                  (vector? hiccup) (let [[tag & content] hiccup]
                                     (cond
-                                      (fn? tag) (hiccup->dom (apply tag content))
+                                      (fn? tag) (let [res (apply tag content)]
+                                                  (if (fn? res)
+                                                    (hiccup->dom (apply res content))
+                                                    (hiccup->dom res)))
                                       (vector? tag) (let [fragment (.createDocumentFragment js/document)]
                                                       (doseq [item hiccup]
                                                         (when-let [child-node (hiccup->dom item)]
@@ -188,7 +191,10 @@
                  (let [tag (first hiccup)]
                    (if (fn? tag)
                      (let [call-site-attrs (when (map? (second hiccup)) (second hiccup))
-                           res (apply tag (rest hiccup))
+                           res (let [comp-res (apply tag (rest hiccup))]
+                                 (if (fn? comp-res)
+                                   (apply comp-res (rest hiccup))
+                                   comp-res))
                            rendered-hiccup (fully-render-hiccup res)]
                        (if (and call-site-attrs (vector? rendered-hiccup))
                          (let [res-tag (first rendered-hiccup)
