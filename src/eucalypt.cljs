@@ -190,20 +190,11 @@
                  (vector? hiccup)
                  (let [tag (first hiccup)]
                    (if (fn? tag)
-                     (let [call-site-attrs (when (map? (second hiccup)) (second hiccup))
-                           res (let [comp-res (apply tag (rest hiccup))]
+                     (let [res (let [comp-res (apply tag (rest hiccup))]
                                  (if (fn? comp-res)
                                    (apply comp-res (rest hiccup))
-                                   comp-res))
-                           rendered-hiccup (fully-render-hiccup res)]
-                       (if (and call-site-attrs (vector? rendered-hiccup))
-                         (let [res-tag (first rendered-hiccup)
-                               res-attrs (when (map? (second rendered-hiccup)) (second rendered-hiccup))
-                               res-children (if res-attrs (drop 2 rendered-hiccup) (rest rendered-hiccup))]
-                           (if res-attrs
-                             (into [res-tag (merge res-attrs call-site-attrs)] res-children)
-                             (into [res-tag call-site-attrs] res-children)))
-                         rendered-hiccup))
+                                   comp-res))]
+                       (fully-render-hiccup res))
 
                      (let [attrs (when (map? (second hiccup)) (second hiccup))
                            children (if attrs (drop 2 hiccup) (rest hiccup))
