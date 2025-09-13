@@ -14,7 +14,7 @@
    [:h2 "Textarea Test"]
    [:textarea {:id "textarea-input"
                :value (:text @textarea-state)
-               :on-input (fn [e]
+               :on-change (fn [e]
                            (swap! textarea-state assoc :text (.. e -target -value)))}]
    [:p {:id "output"} "Content: " (:text @textarea-state)]])
 
