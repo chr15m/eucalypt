@@ -12,18 +12,12 @@
     (set! (.-innerHTML js/document.body) "")))
 
 (defn counter-component [_id]
-  (js/console.log "counter-component outer function called with id:" _id)
   (let [counter (r/ratom 0)]
-    (js/console.log "counter-component created new ratom for id:" _id "ratom:" counter)
     (fn [id]
-      (js/console.log "counter-component inner function called with id:" id "counter value:" @counter)
       [:div
        [:p "Counter " id ": " @counter]
        [:button {:id (str "btn-" id)
-                 :on-click #(do
-                              (js/console.log "Button clicked for id:" id "current counter:" @counter)
-                              (swap! counter inc)
-                              (js/console.log "After increment, counter:" @counter))} "Increment"]])))
+                 :on-click #(swap! counter inc)} "Increment"]])))
 
 (defn main-page []
   [:div

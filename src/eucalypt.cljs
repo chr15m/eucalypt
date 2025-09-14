@@ -166,18 +166,13 @@
 
 (defn normalize-component [component]
   (log "normalize-component called with:" component)
-  (js/console.log "normalize-component called with:" component)
-  (js/console.log "normalize-component: component metadata:" (meta component))
+  (log "normalize-component: component metadata:" (meta component))
   (when (sequential? component)
     (let [first-element (first component)
           params (rest component)]
       (cond (fn? first-element) (let [a-fn first-element
                                       params-vec (vec params)
                                       component-meta (meta component)
-                                      _ (js/console.log "normalize-component: a-fn:" a-fn)
-                                      _ (js/console.log "normalize-component: params-vec:" params-vec)
-                                      _ (js/console.log "normalize-component: component meta:" component-meta)
-                                      _ (js/console.log "normalize-component: component has :key meta?" (contains? component-meta :key))
                                       fn-id (get-or-create-fn-id a-fn)
                                       ;; Form-2 components are stateful and need a unique key per instance.
                                       ;; Form-1 components are stateless and can be shared, using just the fn-id as a key.
@@ -191,28 +186,28 @@
                                       cached-shared (get @component-instances shared-key)]
                                   (cond
                                     cached-instance
-                                    (do (js/console.log "normalize-component: using cached instance for key:" instance-key)
+                                    (do (log "normalize-component: using cached instance for key:" instance-key)
                                         (into [(:instance cached-instance)] params-vec))
 
                                     cached-shared
-                                    (do (js/console.log "normalize-component: using cached shared for key:" shared-key)
+                                    (do (log "normalize-component: using cached shared for key:" shared-key)
                                         (into [(:instance cached-shared)] params-vec))
 
                                     :else
-                                    (let [_ (js/console.log "normalize-component: cache miss for keys:" instance-key "and" shared-key)
+                                    (let [_ (log "normalize-component: cache miss for keys:" instance-key "and" shared-key)
                                           func-or-hiccup (apply a-fn params-vec)]
                                       (if (fn? func-or-hiccup)
                                         ;; Form-2 component (stateful)
                                         (let [closure func-or-hiccup
                                               instance (merge life-cycle-methods {:reagent-render closure})
                                               result (into [instance] params-vec)]
-                                          (js/console.log "normalize-component: Form-2, caching with key:" instance-key)
+                                          (log "normalize-component: Form-2, caching with key:" instance-key)
                                           (swap! component-instances assoc instance-key {:type :form-2 :instance instance})
                                           result)
                                         ;; Form-1 component (stateless)
                                         (let [instance (merge life-cycle-methods {:reagent-render a-fn})
                                               result (into [instance] params-vec)]
-                                          (js/console.log "normalize-component: Form-1, caching with key:" shared-key)
+                                          (log "normalize-component: Form-1, caching with key:" shared-key)
                                           (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
                                           result)))))
             (keyword? first-element) (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
@@ -230,10 +225,9 @@
 (defn- component->hiccup [normalized-component]
   (let [[config & params] normalized-component
         reagent-render (:reagent-render config)]
-    (js/console.log "component->hiccup: calling reagent-render with params:" params)
-    (js/console.log "component->hiccup: reagent-render function:" reagent-render)
+    (log "component->hiccup: calling reagent-render with params:" params)
     (let [result (apply reagent-render params)]
-      (js/console.log "component->hiccup: reagent-render returned:" result)
+      (log "component->hiccup: reagent-render returned:" result)
       result)))
 
 (defn hiccup->dom [hiccup]
