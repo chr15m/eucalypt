@@ -73,6 +73,7 @@
 
 (defonce mounted-components (atom {}))
 (defonce container->mounted-component (atom {}))
+(defonce component-instances (atom {}))
 
 ;; *** hiccup-to-dom implementation ***
 
@@ -145,15 +146,16 @@
     (let [first-element (first component)
           params (rest component)]
       (cond (fn? first-element) (let [a-fn first-element
-                                      render-fn (if-let [cached (.-_cached_render_fn a-fn)]
-                                                  cached
-                                                  a-fn)
-                                      func-or-hiccup (apply render-fn params)]
-                                  (if (fn? func-or-hiccup)
-                                    (do
-                                      (aset a-fn "_cached_render_fn" func-or-hiccup)
-                                      (into [(merge life-cycle-methods {:reagent-render func-or-hiccup})] params))
-                                    (into [(merge life-cycle-methods {:reagent-render render-fn})] params)))
+                                      params-vec (vec params)
+                                      instance-key [a-fn params-vec]
+                                      cached-instance (get @component-instances instance-key)]
+                                  (or cached-instance
+                                    (let [func-or-hiccup (apply a-fn params-vec)]
+                                      (if (fn? func-or-hiccup)
+                                        (let [result (into [(merge life-cycle-methods {:reagent-render func-or-hiccup})] params-vec)]
+                                          (swap! component-instances assoc instance-key result)
+                                          result)
+                                        (into [(merge life-cycle-methods {:reagent-render a-fn})] params-vec)))))
             (keyword? first-element) (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
                                            params)
             (map? first-element) (let [component-as-map first-element
