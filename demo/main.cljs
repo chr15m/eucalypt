@@ -230,6 +230,127 @@
                                       (vec (remove #(= % item) items)))))}
         "x"]])]])
 
+;;; TodoMVC implementation
+
+(defonce todos (r/ratom {}))
+(defonce todomvc-counter (r/ratom 0))
+
+(defn add-todo [text]
+  (let [id (swap! todomvc-counter inc)]
+    (swap! todos assoc id {:id id :title text :done false})))
+
+(defn toggle [id] (swap! todos update-in [id :done] not))
+(defn save [id title] (swap! todos assoc-in [id :title] title))
+(defn delete-todo [id] (swap! todos dissoc id))
+
+(defn mmap [m f a] (->> m (f a) (into (empty m))))
+(defn complete-all [v] (swap! todos mmap map #(assoc-in % [1 :done] v)))
+(defn clear-done [] (swap! todos mmap remove #(get-in % [1 :done])))
+
+(defn todo-input [{:keys [title on-save on-stop] :as _props}]
+  (let [val (r/ratom (or title ""))]
+    (fn [props]
+      (letfn [(stop [_e]
+                (reset! val "")
+                (when on-stop (on-stop)))
+              (save [e]
+                (let [v (-> @val str str/trim)]
+                  (when-not (empty? v)
+                    (on-save v)))
+                (stop e))]
+        [:input (merge
+                  {:type "text"
+                   :value @val
+                   :on-blur save
+                   :on-change (fn [e] (reset! val (.. e -target -value)))
+                   :on-key-down (fn [e]
+                                  (case (.-code e)
+                                    "Enter" (save e)
+                                    "Escape" (stop e)
+                                    nil))}
+                  (select-keys props [:id :class :placeholder :ref]))]))))
+
+(defn todo-edit [props]
+  [todo-input (assoc props :ref (fn [el] (when el (.focus el))))])
+
+(defn todo-stats [{:keys [filt active done]}]
+  (let [props-for (fn [name]
+                    {:href "#"
+                     :class (when (= name @filt) "selected")
+                     :on-click (fn [e]
+                                 (.preventDefault e)
+                                 (reset! filt name))})]
+    [:div
+     [:span {:id "todo-count"}
+      [:strong active] " " (case active 1 "item" "items") " left"]
+     [:ul {:id "filters"}
+      [:li [:a (props-for :all) "All"]]
+      [:li [:a (props-for :active) "Active"]]
+      [:li [:a (props-for :done) "Completed"]]]
+     (when (pos? done)
+       [:button {:id "clear-completed" :on-click clear-done}
+        "Clear completed " done])]))
+
+(defn todo-item []
+  (let [editing (r/ratom false)]
+    (fn [{:keys [id done title]}]
+      [:li
+       {:class (->> [(when done "completed")
+                     (when @editing "editing")]
+                    (remove nil?)
+                    (str/join " "))}
+       [:div {:class "view"}
+        [:input {:class "toggle"
+                 :type "checkbox"
+                 :checked done
+                 :on-change #(toggle id)}]
+        [:label {:on-double-click #(reset! editing true)}
+         title]
+        [:button {:class "destroy" :on-click #(delete-todo id)}]]
+       (when @editing
+         [todo-edit {:class "edit"
+                     :title title
+                     :on-save #(save id %)
+                     :on-stop #(reset! editing false)}])])))
+
+(defn todomvc-page []
+  (let [filt (r/ratom :all)]
+    (fn []
+      (let [items (->> (vals @todos) (sort-by :id))
+            done (->> items (filter :done) count)
+            active (- (count items) done)]
+        [:div
+         [:section {:id "todoapp"}
+          [:header {:id "header"}
+           [:h1 "todos"]
+           [todo-input {:id "new-todo"
+                        :placeholder "What needs to be done?"
+                        :on-save add-todo}]]
+          (when (seq items)
+            [:div
+             [:section {:id "main"}
+              [:input {:id "toggle-all" :type "checkbox" :checked (zero? active)
+                       :on-change #(complete-all (pos? active))}]
+              [:label {:for "toggle-all"} "Mark all as complete"]
+              [:ul {:id "todo-list"}
+               (for [todo (filter (case @filt
+                                    :active (complement :done)
+                                    :done :done
+                                    :all identity) items)]
+                 ^{:key (:id todo)} [todo-item todo])]]
+             [:footer {:id "footer"}
+              [todo-stats {:active active :done done :filt filt}]]])]
+         [:footer {:id "info"}
+          [:p "Double-click to edit a todo"]]]))))
+
+(defn init-todos []
+  (reset! todos {})
+  (reset! todomvc-counter 0)
+  (add-todo "one")
+  (add-todo "two")
+  (add-todo "three")
+  (swap! todos assoc-in [2 :done] true))
+
 (defn greeting [message]
   [:h1 message])
 
@@ -293,6 +414,7 @@
       [nav-link :ref-test "Ref Test"]
       [nav-link :svg "SVG"]
       [nav-link :list-demo "List Demo"]
+      [nav-link :todomvc "TodoMVC"]
       [nav-link :fragments "Fragments"]
       [nav-link :clock "Clock Demo"]
       [nav-link :ohms "Ohm's Law"]]
@@ -305,6 +427,7 @@
        :ref-test [ref-test-page]
        :svg [svg-page]
        :list-demo [list-demo-page]
+       :todomvc [todomvc-page]
        :ohms [ohms-law-page]
        :fragments [fragments]
        :clock [clock-page]
@@ -315,4 +438,5 @@
 (r/render [app]
           (.getElementById js/document "app"))
 (get-page-size)
+(init-todos)
 (js/console.log "main.cljs: render! finished")
