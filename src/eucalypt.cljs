@@ -19,36 +19,6 @@
 (defn- meta* [obj]
   (aget obj "---meta"))
 
-#_ (defn- walk [inner outer form]
-  (js/console.log "walk called with form:" form)
-  (let [m (meta* form)]
-    (cond
-      (string? form)
-      (do (js/console.log "walk: string branch")
-          (outer form))
-
-      (list? form)
-      (do (js/console.log "walk: list branch")
-          (outer (let [res (apply list (map inner form))]
-                   (if m (with-meta* res m) res))))
-
-      (and (coll? form) (not (fn? form)))
-      (do (js/console.log "walk: coll branch")
-          (outer (let [res (into (empty form) (map inner form))]
-                   (if m (with-meta* res m) res))))
-
-      (seq? form)
-      (do (js/console.log "walk: seq branch")
-          (outer (let [res (doall (map inner form))]
-                   (if m (with-meta* res m) res))))
-
-      :else
-      (do (js/console.log "walk: else branch")
-          (outer form)))))
-
-#_ (defn- postwalk [f form]
-  (walk (partial postwalk f) f form))
-
 (defn- rm-watchers [normalized-component]
   (let [params (rest normalized-component)]
     (doseq [p params
