@@ -21,15 +21,13 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
-        working-directory: ./test
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
-          cache-dependency-path: test/pnpm-lock.yaml
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Run tests
         run: pnpm test
-        working-directory: ./test
