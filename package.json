@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "build": "npm run demo:build",
+    "clean": "find ./ -name '*.mjs' | xargs rm",
     "dev": "npm run demo:dev",
     "test": "npm run test:compile && vitest run --config test/vitest.config.js",
-    "test:watch": "npm run test:compile && vitest --config test/vitest.config.js",
-    "demo:build": "squint compile --config demo/squint.edn && vite build demo",
-    "demo:watch": "squint watch --config demo/squint.edn",
+    "demo:build": "cd demo && squint compile && cd .. && vite build demo",
+    "demo:watch": "cd demo && squint watch",
     "demo:dev": "concurrently \"npm run demo:watch\" \"vite demo --port 8000\"",
-    "test:compile": "squint compile --config test/squint.edn"
+    "test:compile": "cd test && squint compile && cd .."
   },
   "devDependencies": {
     "concurrently": "8.2.2",
