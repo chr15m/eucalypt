@@ -401,7 +401,10 @@
                         [:span
                          "⚪"]))
                     row-vec))])
-             rows))]]))]) 
+             rows))]]))
+   [:button
+    {:on-click #(swap! app-state update :showfrag not)}
+    (if (:showfrag @app-state) "Show" "Hide")]])
 
 (defn app []
   (let [page (:page @app-state)]
