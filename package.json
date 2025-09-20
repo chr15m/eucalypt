@@ -14,12 +14,12 @@
     "test:compile": "squint compile --config test/squint.edn"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2",
-    "es-toolkit": "^1.39.10",
-    "happy-dom": "^14.12.3",
+    "concurrently": "8.2.2",
+    "es-toolkit": "1.39.10",
+    "happy-dom": "14.12.3",
     "squint-cljs": "latest",
-    "vite": "^7.1.2",
-    "vite-plugin-singlefile": "^2.3.0",
-    "vitest": "^1.6.0"
+    "vite": "7.1.2",
+    "vite-plugin-singlefile": "2.3.0",
+    "vitest": "1.6.0"
   }
 }
