@@ -15,7 +15,6 @@ Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that h
 ## Dev
 
 ```
-cd demo
 pnpm i
 npm run dev
 ```
@@ -23,7 +22,7 @@ npm run dev
 ## Tests
 
 ```
-cd test && npm run test
+npm run test
 ```
 
 ## Build
