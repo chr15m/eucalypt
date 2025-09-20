@@ -306,7 +306,7 @@
                  :on-change #(toggle id)}]
         [:label {:on-double-click #(reset! editing true)}
          title]
-        [:button {:class "destroy" :on-click #(delete-todo id)}]]
+        [:button {:class "destroy" :on-click #(delete-todo id)} "X"]]
        (when @editing
          [todo-edit {:class "edit"
                      :title title
