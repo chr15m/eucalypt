@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def attribute-state (r/ratom {:disabled? false
+(def attribute-state (r/atom {:disabled? false
                                :checked? false}))
 
 (defn attribute-test-component []

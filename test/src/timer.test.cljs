@@ -10,7 +10,7 @@
 (defn sleep [ms]
   (js/Promise. (fn [resolve] (js/setTimeout resolve ms))))
 
-(def timer-state (r/ratom {:seconds 0}))
+(def timer-state (r/atom {:seconds 0}))
 
 (def timer-component
   (let [timer-id (atom nil)
@@ -27,7 +27,7 @@
        [:p "Seconds: " (:seconds @timer-state)]
        [:div {:ref ref-fn}]])))
 
-(def show-timer (r/ratom true))
+(def show-timer (r/atom true))
 
 (defn main-component []
   [:div

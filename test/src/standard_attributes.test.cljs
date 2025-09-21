@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def attribute-state (r/ratom {:show-class? false
+(def attribute-state (r/atom {:show-class? false
                                :show-title? false
                                :show-data-attr? false}))
 

@@ -7,7 +7,7 @@
  (fn []
    (set! (.-innerHTML js/document.body) "")))
 
-(def show-p (r/ratom true))
+(def show-p (r/atom true))
 
 (defn fragment-component []
   [:<>

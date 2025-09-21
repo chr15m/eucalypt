@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def slider-state (r/ratom {:value 50}))
+(def slider-state (r/atom {:value 50}))
 
 (defn range-slider-page []
   [:div

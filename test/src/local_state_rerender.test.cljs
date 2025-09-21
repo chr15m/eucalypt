@@ -9,7 +9,7 @@
 
 ;; A component with local state that controls rendering
 (defn editable-component []
-  (let [editing? (r/ratom false)]
+  (let [editing? (r/atom false)]
     (fn []
       [:div {:class (when @editing? "editing")}
        (if @editing?

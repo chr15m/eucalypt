@@ -7,7 +7,7 @@
  (fn []
    (set! (.-innerHTML js/document.body) "")))
 
-(def app-state (r/ratom {:page :simple}))
+(def app-state (r/atom {:page :simple}))
 
 (defn simple-page []
   [:p "Simple Page"])

@@ -1,6 +1,9 @@
 (ns eucalypt
+  ;(:refer-clojure :exclude [atom])
   (:require [clojure.string :as str]
             ["es-toolkit" :refer [isEqual]]))
+
+(def ^:private core-atom atom)
 
 (defn- log [& args]
   (try
@@ -43,11 +46,11 @@
                              :component-did-update identity
                              :component-will-unmount rm-watchers})
 
-(defonce mounted-components (atom {}))
-(defonce container->mounted-component (atom {}))
-(defonce component-instances (atom {}))
-(defonce positional-key-counter (atom 0))
-(defonce all-ratoms (atom {}))
+(defonce mounted-components (core-atom {}))
+(defonce container->mounted-component (core-atom {}))
+(defonce component-instances (core-atom {}))
+(defonce positional-key-counter (core-atom 0))
+(defonce all-ratoms (core-atom {}))
 
 (defn- with-watcher-bound [normalized-component f]
   (let [old-watcher *watcher*]
@@ -349,7 +352,7 @@
   (log "patch-children: hiccup-b-rendered" hiccup-b-rendered)
   (let [children-a (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
         children-b (vec (remove nil? (get-hiccup-children hiccup-b-rendered)))
-        dom-nodes (atom (vec (aget dom-a "childNodes")))
+        dom-nodes (core-atom (vec (aget dom-a "childNodes")))
         len-a (count children-a)
         len-b (count children-b)]
     (log "patch-children: children-a" children-a)
@@ -538,13 +541,13 @@
         [hiccup dom]))))
 
 (defn ratom [initial-value]
-  (let [a (atom initial-value)
+  (let [a (core-atom initial-value)
         orig-deref (aget a "_deref")
         orig-reset_BANG_ (aget a "_reset_BANG_")
         ratom-id (str "ratom-" (random-uuid))]
     (aset a "ratom-id" ratom-id)
-    (aset a "watchers" (atom #{}))
-    (aset a "cursors" (atom #{}))
+    (aset a "watchers" (core-atom #{}))
+    (aset a "cursors" (core-atom #{}))
     (aset a "_deref" (fn []
                       (when *watcher*
                         (log "ratom deref: watcher found, adding to set.")
@@ -564,7 +567,7 @@
   (let [cursors (aget the-ratom "cursors")
         found-cursor (some (fn [c] (when (= path (aget c "path")) c)) @cursors)]
     (if (nil? found-cursor)
-      (let [watchers (atom #{})
+      (let [watchers (core-atom #{})
             this-cursor (js-obj
                          "_deref" (fn []
                                    (when *watcher*
@@ -645,3 +648,6 @@
 
 (defn init []
   (prn "eucalypt init"))
+
+#_:clj-kondo/ignore
+(def atom ratom)

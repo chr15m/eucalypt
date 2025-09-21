@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def numeric-state (r/ratom {:value 10}))
+(def numeric-state (r/atom {:value 10}))
 
 (defn numeric-input-page []
   [:div

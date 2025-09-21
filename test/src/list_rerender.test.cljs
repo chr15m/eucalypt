@@ -7,13 +7,13 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def list-data (r/ratom [{:id 1 :text "A"}
+(def list-data (r/atom [{:id 1 :text "A"}
                          {:id 2 :text "B"}
                          {:id 3 :text "C"}]))
 
 ;; A stateful component with its own local state
 (defn list-item []
-  (let [selected? (r/ratom false)]
+  (let [selected? (r/atom false)]
     (fn [{:keys [id text]}]
       [:li {:id (str "item-" id)
             :class (when @selected? "selected")}

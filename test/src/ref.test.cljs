@@ -14,7 +14,7 @@
          :ref #(reset! ref-val %)}
    "I have a ref."])
 
-(def show-ref-component (r/ratom true))
+(def show-ref-component (r/atom true))
 
 (defn main-component []
   [:div

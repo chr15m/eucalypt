@@ -8,11 +8,11 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def submitted-text (r/ratom nil))
+(def submitted-text (r/atom nil))
 
 (defn enter-submit-input [{:keys [on-save]}]
   (js/console.log "enter-submit-input creating new state")
-  (let [val (r/ratom "")]
+  (let [val (r/atom "")]
     (fn []
       (letfn [(save [_e]
                 (js/console.log "save called. @val is:" @val)

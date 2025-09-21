@@ -12,7 +12,7 @@
     #_ (.removeItem js/localStorage "debug")
     (set! (.-innerHTML js/document.body) "")))
 
-(def radio-state (r/ratom {:selected "b"}))
+(def radio-state (r/atom {:selected "b"}))
 
 (defn radio-button-page []
   [:div

@@ -8,7 +8,7 @@
    (set! (.-innerHTML js/document.body) "")))
 
 ;;; on-blur test
-(def blur-state (r/ratom {:blurred? false}))
+(def blur-state (r/atom {:blurred? false}))
 
 (defn blur-component []
   [:input {:type "text"
@@ -29,7 +29,7 @@
             (th/assert-equal (:blurred? @blur-state) true)))))))
 
 ;;; on-double-click test
-(def dbl-click-state (r/ratom {:clicked? false}))
+(def dbl-click-state (r/atom {:clicked? false}))
 
 (defn dbl-click-component []
   [:button {:id "dbl-click-btn"
@@ -49,7 +49,7 @@
             (th/assert-equal (:clicked? @dbl-click-state) true)))))))
 
 ;;; on-key-down test
-(def key-down-state (r/ratom {:key-pressed nil}))
+(def key-down-state (r/atom {:key-pressed nil}))
 
 (defn key-down-component []
   [:input {:type "text"

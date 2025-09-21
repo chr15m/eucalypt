@@ -10,8 +10,8 @@
 
 ;;; TodoMVC implementation (isolated for testing, based on original reagent example)
 
-(defonce todos (r/ratom {}))
-(defonce counter (r/ratom 0))
+(defonce todos (r/atom {}))
+(defonce counter (r/atom 0))
 
 (defn add-todo [text]
   (js/console.log "add-todo called with:" text)
@@ -33,7 +33,7 @@
 (defn clear-done [] (swap! todos mmap remove #(get-in % [1 :done])))
 
 (defn todo-input [{:keys [title on-save on-stop] :as _props}]
-  (let [val (r/ratom (or title ""))]
+  (let [val (r/atom (or title ""))]
     (fn [props]
       (letfn [(stop [_e]
                 (reset! val "")
@@ -77,7 +77,7 @@
         "Clear completed " done])]))
 
 (defn todo-item []
-  (let [editing (r/ratom false)]
+  (let [editing (r/atom false)]
     (fn [{:keys [id done title]}]
       [:li
        {:class (->> [(when done "completed")
@@ -99,7 +99,7 @@
                      :on-stop #(reset! editing false)}])])))
 
 (defn todomvc-page []
-  (let [filt (r/ratom :all)]
+  (let [filt (r/atom :all)]
     (fn []
       (let [items (->> (vals @todos) (sort-by :id))
             done (->> items (filter :done) count)

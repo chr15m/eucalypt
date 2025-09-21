@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def app-state (r/ratom {:counter 0}))
+(def app-state (r/atom {:counter 0}))
 
 (defn counter-component []
   [:div

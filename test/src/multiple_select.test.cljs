@@ -13,7 +13,7 @@
     #_ (.removeItem js/localStorage "debug")
     (set! (.-innerHTML js/document.body) "")))
 
-(def select-state (r/ratom {:selected ["b"]}))
+(def select-state (r/atom {:selected ["b"]}))
 
 (defn handle-change [e]
   (let [selected-values (->> (.. e -target -selectedOptions)

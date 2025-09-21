@@ -5,7 +5,7 @@
 (js/console.log "main.cljs loading...")
 
 (def app-state
-  (r/ratom
+  (r/atom
    {:page :home
     :counter 0
     :timer 0
@@ -14,8 +14,8 @@
     :text-input ""
     :page-size "loading..."}))
 
-(def clock-time (r/ratom (js/Date.)))
-(def time-color (r/ratom "#f34"))
+(def clock-time (r/atom (js/Date.)))
+(def time-color (r/atom "#f34"))
 (js/setInterval #(reset! clock-time (js/Date.)) 1000)
 
 (defn get-page-size []
@@ -114,7 +114,7 @@
     (assoc data :voltage (* current resistance))
     (assoc data :current (/ voltage resistance))))
 
-(def ohms-data (r/ratom {:voltage 12 :current 0.5 :resistance 24}))
+(def ohms-data (r/atom {:voltage 12 :current 0.5 :resistance 24}))
 
 (defn ohms-law-page []
   (let [{:keys [voltage current resistance]} @ohms-data]
@@ -210,7 +210,7 @@
        [:p "The timer increments every second only while on this tab."]
        [:p "The current timer is: " (:timer @app-state)]])))
 
-(def list-data (r/ratom []))
+(def list-data (r/atom []))
 
 (defn list-demo-page []
   [:div
@@ -232,8 +232,8 @@
 
 ;;; TodoMVC implementation
 
-(defonce todos (r/ratom {}))
-(defonce todomvc-counter (r/ratom 0))
+(defonce todos (r/atom {}))
+(defonce todomvc-counter (r/atom 0))
 
 (defn add-todo [text]
   (let [id (swap! todomvc-counter inc)]
@@ -248,7 +248,7 @@
 (defn clear-done [] (swap! todos mmap remove #(get-in % [1 :done])))
 
 (defn todo-input [{:keys [title on-save on-stop] :as _props}]
-  (let [val (r/ratom (or title ""))]
+  (let [val (r/atom (or title ""))]
     (fn [props]
       (letfn [(stop [_e]
                 (reset! val "")
@@ -292,7 +292,7 @@
         "Clear completed " done])]))
 
 (defn todo-item []
-  (let [editing (r/ratom false)]
+  (let [editing (r/atom false)]
     (fn [{:keys [id done title]}]
       [:li
        {:class (->> [(when done "completed")
@@ -314,7 +314,7 @@
                      :on-stop #(reset! editing false)}])])))
 
 (defn todomvc-page []
-  (let [filt (r/ratom :all)]
+  (let [filt (r/atom :all)]
     (fn []
       (let [items (->> (vals @todos) (sort-by :id))
             done (->> items (filter :done) count)

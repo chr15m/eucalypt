@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def attribute-state (r/ratom {:selected-value nil}))
+(def attribute-state (r/atom {:selected-value nil}))
 
 (defn attribute-test-component []
   [:div

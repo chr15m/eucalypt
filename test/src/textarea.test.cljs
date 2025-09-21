@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def textarea-state (r/ratom {:text "Initial text"}))
+(def textarea-state (r/atom {:text "Initial text"}))
 
 (defn textarea-page []
   [:div

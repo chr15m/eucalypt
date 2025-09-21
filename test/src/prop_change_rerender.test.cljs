@@ -13,7 +13,7 @@
    (if done? "Task is done" "Task is not done")])
 
 ;; A parent component that controls the state
-(def app-state (r/ratom {:done? false}))
+(def app-state (r/atom {:done? false}))
 
 (defn parent-component []
   [:div

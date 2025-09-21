@@ -12,9 +12,9 @@
 
 ;; --- Test components and state ---
 
-(def page-state (r/ratom :fragments))
-(def clock-ratom (r/ratom 0))
-(def list-component-state (r/ratom {:show? true}))
+(def page-state (r/atom :fragments))
+(def clock-ratom (r/atom 0))
+(def list-component-state (r/atom {:show? true}))
 
 ;; This interval is intentionally not cleared to replicate the bug
 (defonce _ (js/setInterval #(swap! clock-ratom inc) 50))

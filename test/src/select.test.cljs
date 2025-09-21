@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def select-state (r/ratom {:selected "b"}))
+(def select-state (r/atom {:selected "b"}))
 
 (defn select-page []
   [:div

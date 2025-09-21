@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def state (r/ratom {:items [1 nil 3]}))
+(def state (r/atom {:items [1 nil 3]}))
 
 (defn handle-click []
   (swap! state assoc-in [:items 1] 2))

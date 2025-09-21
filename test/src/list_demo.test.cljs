@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def list-data (r/ratom []))
+(def list-data (r/atom []))
 
 (defn list-demo-page []
   [:div

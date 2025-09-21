@@ -1,14 +1,15 @@
 - [ ] Kuro neko bug still there
-- [ ] Change the name of ratom to atom
-- [ ] Can we replace with-meta* and meta* with the real ones?
-- [ ] Remove ^:dynamic defs
-- [ ] Deprecate old lifecycle methods?
-- [ ] Remove circularity and 'declare's from eucalypt.cljs
-- [ ] r/with-let
 - [ ] :div#hi.hello style shorthand
+- [ ] Can we replace with-meta* and meta* with the real ones?
+
+- [ ] r/with-let
+- [ ] Remove ^:dynamic defs
+- [ ] Remove circularity and 'declare's from eucalypt.cljs
+- [ ] Deprecate old lifecycle methods?
 
 # Done
 
+- [x] Change the name of ratom to atom
 - [x] Tests
 - [x] Timer test is not updating when the page switches
 - [x] List test is failing deletes

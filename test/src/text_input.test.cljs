@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def text-state (r/ratom {:text ""}))
+(def text-state (r/atom {:text ""}))
 
 (defn text-input-page []
   [:div

@@ -7,7 +7,7 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def checkbox-state (r/ratom {:checked? true}))
+(def checkbox-state (r/atom {:checked? true}))
 
 (defn checkbox-page []
   [:div

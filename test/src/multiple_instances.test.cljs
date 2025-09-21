@@ -12,7 +12,7 @@
     (set! (.-innerHTML js/document.body) "")))
 
 (defn counter-component [_id]
-  (let [counter (r/ratom 0)]
+  (let [counter (r/atom 0)]
     (fn [id]
       [:div
        [:p "Counter " id ": " @counter]
@@ -77,7 +77,7 @@
 
     (it "should maintain state when components are reordered with keys"
       (fn []
-        (let [order (r/ratom ["A" "B"])
+        (let [order (r/atom ["A" "B"])
               reorderable-page (fn []
                                  [:div
                                   [:button {:id "reorder"
