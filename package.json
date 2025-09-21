@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "npm run demo:build",
-    "clean": "find ./ -name '*.mjs' | xargs rm",
+    "clean": "find . -name '*.mjs' -not -path './node_modules/*' -delete",
     "dev": "npm run demo:dev",
     "test": "npm run test:compile && vitest run --config test/vitest.config.js",
     "demo:build": "cd demo && squint compile && cd .. && vite build demo",
