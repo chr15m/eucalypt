@@ -12,7 +12,8 @@
     :coins 99
     :showfrag false
     :text-input ""
-    :page-size "loading..."}))
+    :page-size "loading..."
+    :slots (vec (repeat 15 nil))}))
 
 (def clock-time (r/atom (js/Date.)))
 (def time-color (r/atom "#f34"))
@@ -377,32 +378,52 @@
    [color-input]])
 
 (defn coins []
-  [:div {:class "hud"} "🪙 " 99])
+  [:div {:class "hud"} "🪙 " (:coins @app-state)])
+
+(defn handle-fragments-click []
+  (swap! app-state
+         (fn [current-state]
+           (let [coins (:coins current-state)
+                 slots (:slots current-state)]
+             (if (and (> coins 0) (some nil? slots))
+               (let [slot-index (.indexOf slots nil)]
+                 (-> current-state
+                     (update :coins dec)
+                     (assoc-in [:slots slot-index] "🪙")))
+               current-state)))))
 
 (defn fragments []
   [:<>
    [coins]
    (if (:showfrag @app-state)
-     [:div "Hello"]
-     (for [_ [1 2 3]]
-       [:section
-        [:div
-         (let [slots-vec [1 2 3 4 5]
-               slots-per-row 5
-               rows (partition-all slots-per-row slots-vec)]
-           (map-indexed
-             (fn [row-idx row]
-               [:div {:class "slot-row" :key row-idx}
-                (let [row-vec (vec row)]
-                  (map
-                    (fn [slot]
+     [:div "Hidden"]
+     [:section {:class "slide big"
+                :style {:cursor "pointer"}
+                :on-click handle-fragments-click}
+      [:div {:class "slots"}
+       (let [slots-vec (:slots @app-state)
+             slots-per-row 5
+             rows (partition-all slots-per-row slots-vec)]
+         (map-indexed
+           (fn [row-idx row]
+             [:div {:class "slot-row" :key row-idx}
+              (let [row-vec (vec row)
+                    n (count row-vec)
+                    middle (/ (dec n) 2.0)]
+                (map-indexed
+                  (fn [col-idx slot]
+                    (let [dist (js/Math.abs (- col-idx middle))
+                          y-offset (* dist dist 0.2)
+                          style {:transform (str "translateY(" y-offset "em)")}]
                       (if slot
                         [:span
-                         "🪙"]
+                         {:class "emoji filled" :style style :key col-idx}
+                         slot]
                         [:span
-                         "⚪"]))
-                    row-vec))])
-             rows))]]))
+                         {:class "emoji" :style style :key col-idx}
+                         "⚪"])))
+                  row-vec))])
+           rows))]])
    [:button
     {:on-click #(swap! app-state update :showfrag not)}
     (if (:showfrag @app-state) "Show" "Hide")]])
