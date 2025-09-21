@@ -30,6 +30,8 @@
           (swap! watchers (fn [watchers]
                                          (set (remove #(= w %) watchers)))))))))
 
+(declare modify-dom)
+
 (defonce ^:dynamic *watcher* nil)
 (defonce ^:dynamic *xml-ns* "http://www.w3.org/1999/xhtml")
 (defonce create-class identity)
@@ -45,6 +47,25 @@
 (defonce container->mounted-component (atom {}))
 (defonce component-instances (atom {}))
 (defonce positional-key-counter (atom 0))
+(defonce all-ratoms (atom {}))
+
+(defn- with-watcher-bound [normalized-component f]
+  (let [old-watcher *watcher*]
+    (try
+      (set! *watcher* (with-meta* #(modify-dom normalized-component)
+                        {:normalized-component normalized-component}))
+      (f)
+      (finally
+        (set! *watcher* old-watcher)))))
+
+(defn- remove-watchers-for-component [component]
+  (doseq [[_ratom-id ratom] @all-ratoms]
+    (when-let [watchers (aget ratom "watchers")]
+      (swap! watchers
+             (fn [watcher-set]
+               (set (remove #(= (-> % meta* :normalized-component)
+                                component)
+                            watcher-set)))))))
 
 ;; *** hiccup-to-dom implementation ***
 
@@ -253,6 +274,7 @@
   (let [result (isEqual hiccup-a hiccup-b)]
     (log "hiccup-eq?:" result)
     (when (not result)
+      ;(js/console.log "hiccup-eq? returned false. a:" hiccup-a "b:" hiccup-b) 
       (log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))
     result))
 
@@ -268,10 +290,13 @@
 (defn- fully-render-hiccup [hiccup]
   (log "fully-render-hiccup called with:" hiccup)
   (let [result (cond
+                 (nil? hiccup)
+                 nil
+
                  (fn? hiccup)
                  (fully-render-hiccup (hiccup))
 
-                 (and (seq? hiccup) (not (vector? hiccup)) (not (string? hiccup)))
+                 (and (some? (aget hiccup js/Symbol.iterator)) (not (vector? hiccup)) (not (string? hiccup)))
                  (mapv fully-render-hiccup hiccup)
 
                  (vector? hiccup)
@@ -407,20 +432,34 @@
                                     v)]
                     (.setAttributeNS dom-a nil k val-str)))))))))))
 
+(defn- realize-deep [x]
+  (cond
+    ;; Squint's LazyIterable has a `.gen` property. Realize it to a vector.
+    (and (seq? x) (aget x "gen"))
+    (mapv realize-deep x)
+
+    ;; For other sequential types (vectors, lists), recurse.
+    (and (sequential? x) (not (string? x)))
+    (into (empty x) (map realize-deep x))
+
+    :else x))
+
 (defn patch
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a]
   (log "patch: hiccup-a-rendered" hiccup-a-rendered "hiccup-b-rendered" hiccup-b-rendered "dom-a" dom-a)
-  (let [are-equal (hiccup-eq? hiccup-a-rendered hiccup-b-rendered)]
+  (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
+        hiccup-b-realized (realize-deep hiccup-b-rendered)
+        are-equal (hiccup-eq? hiccup-a-realized hiccup-b-realized)]
     (log "patch: are-equal is" are-equal "(type" (js/typeof are-equal) ")")
     (cond
       are-equal
       (do (log "patch: hiccup is equal, doing nothing")
           dom-a)
 
-      (or (not (vector? hiccup-a-rendered)) (not (vector? hiccup-b-rendered)) (not= (first hiccup-a-rendered) (first hiccup-b-rendered)))
-      (let [new-node (hiccup->dom hiccup-b-rendered)]
+      (or (not (vector? hiccup-a-realized)) (not (vector? hiccup-b-realized)) (not= (first hiccup-a-realized) (first hiccup-b-realized)))
+      (let [new-node (hiccup->dom hiccup-b-realized)]
         (log "patch: replacing node" dom-a "with" new-node)
         (unmount-node-and-children dom-a)
         (.replaceWith dom-a new-node)
@@ -428,10 +467,10 @@
 
       :else
       (do (log "patch: hiccup not equal, patching children and attributes")
-          (patch-attributes hiccup-a-rendered hiccup-b-rendered dom-a)
-          (patch-children hiccup-a-rendered hiccup-b-rendered dom-a)
-          (let [a-attrs (get-attrs hiccup-a-rendered)
-                b-attrs (get-attrs hiccup-b-rendered)
+          (patch-attributes hiccup-a-realized hiccup-b-realized dom-a)
+          (patch-children hiccup-a-realized hiccup-b-realized dom-a)
+          (let [a-attrs (get-attrs hiccup-a-realized)
+                b-attrs (get-attrs hiccup-b-realized)
                 b-value (:value b-attrs)]
             (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
               (log "patch: value changed from" (:value a-attrs) "to" b-value "on" dom-a)
@@ -444,12 +483,14 @@
 
 (defn modify-dom [normalized-component]
   (log "modify-dom called for component:" normalized-component)
+  (remove-watchers-for-component normalized-component)
   (reset! positional-key-counter 0)
-  (let [[{:keys [_reagent-render]} & _params] normalized-component
-        mounted-info (get @mounted-components normalized-component)
+  (let [mounted-info (get @mounted-components normalized-component)
         _ (log "modify-dom: mounted-info from cache:" mounted-info)
         {:keys [hiccup dom container]} mounted-info
-        new-hiccup-unrendered (component->hiccup normalized-component)
+        new-hiccup-unrendered (with-watcher-bound
+                                normalized-component
+                                (fn [] (component->hiccup normalized-component)))
         new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)]
     (if (and (vector? hiccup) (= :<> (first hiccup)))
       (do
@@ -487,17 +528,14 @@
   This is achieved by setting the dnymaic var *watcher* then evaluating reagent-render
   which causes the deref of the ratom to trigger adding the watcher to (.-watchers ratom)"
   [normalized-component]
-  (let [old-watcher *watcher*]
-    (try
-      (set! *watcher* (with-meta* #(modify-dom normalized-component)
-                        {:normalized-component normalized-component}))
+  (with-watcher-bound
+    normalized-component
+    (fn []
       (let [reagent-render (-> normalized-component first :reagent-render)
             params (rest normalized-component)
             hiccup (apply reagent-render params)
             dom (hiccup->dom hiccup)]
-        [hiccup dom])
-      (finally
-        (set! *watcher* old-watcher)))))
+        [hiccup dom]))))
 
 (defn ratom [initial-value]
   (let [a (atom initial-value)
@@ -519,6 +557,7 @@
                                (doseq [c @(aget a "cursors")]
                                  (notify-watchers (aget c "watchers")))
                                res)))
+    (swap! all-ratoms assoc ratom-id a)
     a))
 
 (defn cursor [the-ratom path]
@@ -564,7 +603,9 @@
         (set! *watcher* old-watcher)))))
 
 (defn unmount-components [container]
+  ;(js/console.log "unmount-components called for container:" container)
   (when-let [mounted-component (get @container->mounted-component container)]
+    (remove-watchers-for-component mounted-component)
     (let [[{:keys [component-will-unmount]} & _params] mounted-component]
       (component-will-unmount mounted-component)
       (swap! container->mounted-component dissoc container)))
