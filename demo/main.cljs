@@ -329,9 +329,10 @@
           (when (seq items)
             [:div
              [:section {:id "main"}
-              [:input {:id "toggle-all" :type "checkbox" :checked (zero? active)
-                       :on-change #(complete-all (pos? active))}]
-              [:label {:for "toggle-all"} "Mark all as complete"]
+              [:p
+               [:input {:id "toggle-all" :type "checkbox" :checked (zero? active)
+                        :on-change #(complete-all (pos? active))}]
+               [:label {:for "toggle-all"} "Mark all as complete"]]
               [:ul {:id "todo-list"}
                (for [todo (filter (case @filt
                                     :active (complement :done)

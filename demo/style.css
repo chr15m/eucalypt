@@ -34,3 +34,15 @@ button:hover { background-color: #ddd; }
 .color-red {
   color: red;
 }
+
+#todo-list .view {
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  border-bottom: 1px solid silver;
+}
+
+#todo-list .view label {
+  flex-grow: 1;
+  margin-left: 0.5em;
+}
