@@ -1,4 +1,3 @@
-- [ ] Switch to clock then back to fragments test
 - [ ] Kuro neko bug still there
 - [ ] Change the name of ratom to atom
 - [ ] Can we replace with-meta* and meta* with the real ones?
@@ -15,4 +14,5 @@
 - [x] List test is failing deletes
 - [x] Ref test sticky-class bug
 - [x] Demo Clock fn is firing every second in console event when it's not on (this is because timer is global).
+- [x] Switch to clock then back to fragments test
 
