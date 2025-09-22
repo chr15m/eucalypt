@@ -14,17 +14,17 @@
 (defonce counter (r/atom 0))
 
 (defn add-todo [text]
-  (js/console.log "add-todo called with:" text)
-  (js/console.log "todos count before:" (count @todos))
+  (th/log "add-todo called with:" text)
+  (th/log "todos count before:" (count @todos))
   (let [id (swap! counter inc)]
     (swap! todos assoc id {:id id :title text :done false}))
-  (js/console.log "todos count after:" (count @todos)))
+  (th/log "todos count after:" (count @todos)))
 
 (defn toggle [id]
-  (js/console.log "toggle called for id:" id)
-  (js/console.log "todo" id "done state before:" (get-in @todos [id :done]))
+  (th/log "toggle called for id:" id)
+  (th/log "todo" id "done state before:" (get-in @todos [id :done]))
   (swap! todos update-in [id :done] not)
-  (js/console.log "todo" id "done state after:" (get-in @todos [id :done])))
+  (th/log "todo" id "done state after:" (get-in @todos [id :done])))
 (defn save [id title] (swap! todos assoc-in [id :title] title))
 (defn delete-todo [id] (swap! todos dissoc id))
 

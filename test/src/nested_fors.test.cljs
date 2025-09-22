@@ -56,7 +56,7 @@
           (let [container (.createElement js/document "div")]
             (.appendChild js/document.body container)
             (r/render [component-row [nil nil nil nil] 1.5] container)
-            (js/console.log "Container HTML:" (.-innerHTML container))
+            (th/log "Container HTML:" (.-innerHTML container))
             (let [spans (.querySelectorAll container "span")]
               (th/assert-equal (.-length spans) 4)))))
     (it "should render another row of spans"
@@ -64,7 +64,7 @@
           (let [container (.createElement js/document "div")]
             (.appendChild js/document.body container)
             (r/render [component-row [nil nil nil nil nil] 2.0] container)
-            (js/console.log "Container HTML:" (.-innerHTML container))
+            (th/log "Container HTML:" (.-innerHTML container))
             (let [spans (.querySelectorAll container "span")]
               (th/assert-equal (.-length spans) 5)))))
     (it "should render nested fors correctly"

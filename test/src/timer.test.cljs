@@ -17,10 +17,10 @@
         ref-fn (fn [el]
                  (if el
                    (do
-                     (js/console.log "Setting up timer")
+                     (th/log "Setting up timer")
                      (reset! timer-id (js/setInterval #(swap! timer-state update :seconds inc) 100)))
                    (do
-                     (js/console.log "Tearing down timer")
+                     (th/log "Tearing down timer")
                      (js/clearInterval @timer-id))))]
     (fn []
       [:div
