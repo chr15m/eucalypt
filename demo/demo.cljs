@@ -1,6 +1,7 @@
-(ns main
-  (:require [eucalypt :as r]
-            [clojure.string :as str]))
+(ns demo
+  (:require
+    [eucalypt :as r]
+    [clojure.string :as str]))
 
 (js/console.log "main.cljs loading...")
 
