@@ -606,9 +606,7 @@
             :container container})
     (swap! container->mounted-component assoc container normalized-component)))
 
-; *** Reagent API functions *** ;
-
-;; Reagent API
+; mirrored as atom below
 (defn ratom [initial-value]
   (let [a (core-atom initial-value)
         orig-deref (aget a "_deref")
@@ -631,6 +629,8 @@
                                res)))
     (swap! all-ratoms assoc ratom-id a)
     a))
+
+; *** Reagent API functions *** ;
 
 ;; Reagent API
 (defn cursor [the-ratom path]
