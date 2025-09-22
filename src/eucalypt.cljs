@@ -284,7 +284,7 @@
   (log "is-sequence-of-hiccup-elements? checking:" x)
   (let [result (and (sequential? x)
                     (not (string? x))
-                    (not (empty? x))
+                    (seq x)
                     (every? (fn [item]
                               (or (nil? item)
                                   (vector? item)))
@@ -394,10 +394,10 @@
       (when (< i (min len-a len-b))
         (let [child-a (nth children-a i)
               child-b (nth children-b i)
-              dom-node (nth @dom-nodes i)]
-          (let [new-dom-node (patch child-a child-b dom-node)]
-            (when (not= dom-node new-dom-node)
-              (swap! dom-nodes assoc i new-dom-node))))
+              dom-node (nth @dom-nodes i)
+              new-dom-node (patch child-a child-b dom-node)]
+          (when (not= dom-node new-dom-node)
+            (swap! dom-nodes assoc i new-dom-node)))
         (recur (inc i))))
     ;; Add new nodes
     (when (> len-b len-a)
