@@ -66,6 +66,7 @@
 
             ;; Click once
             (.click section)
+            (th/log "innerHTML after one click:" (.-innerHTML container))
             (th/assert-equal (.-length (get-coins)) 1)
             (th/assert-equal (.-length (get-slots)) 14)
 
