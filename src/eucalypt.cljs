@@ -205,7 +205,7 @@
                       (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
                       result)))))
 
-            (keyword? first-element)
+            (string? first-element)
             (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
                   params)
             (map? first-element)
@@ -280,6 +280,20 @@
       (log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))
     result))
 
+(defn- is-sequence-of-hiccup-elements? [x]
+  (log "is-sequence-of-hiccup-elements? checking:" x)
+  (let [result (and (sequential? x)
+                    (not (string? x))
+                    (not (empty? x))
+                    (every? (fn [item]
+                              (or (nil? item)
+                                  (and (vector? item)
+                                       (or (string? (first item))
+                                           (fn? (first item))))))
+                            x))]
+    (log "is-sequence-of-hiccup-elements? result:" result)
+    result))
+
 (declare fully-render-hiccup)
 (declare patch)
 
@@ -299,6 +313,9 @@
           (fn? hiccup)
           (fully-render-hiccup (hiccup))
 
+          (is-sequence-of-hiccup-elements? hiccup)
+          (mapv fully-render-hiccup hiccup)
+
           (and (some? (aget hiccup js/Symbol.iterator))
                (not (vector? hiccup))
                (not (string? hiccup)))
@@ -313,21 +330,30 @@
                     children (if attrs (drop 2 hiccup) (rest hiccup))
                     head (if attrs [(first hiccup) attrs] [(first hiccup)])]
                 (into head
-                      (mapcat
-                        (fn [child]
-                          (let [processed (fully-render-hiccup child)]
-                            (cond
-                              (and (vector? processed) (= :<> (first processed)))
-                              (get-hiccup-children processed)
+                      (reduce (fn [acc child]
+                                (let [processed (fully-render-hiccup child)]
+                                  (log "fully-render-hiccup reduce: processing child, processed=" processed)
+                                  (let [is-seq (is-sequence-of-hiccup-elements? processed)]
+                                    (log "fully-render-hiccup reduce: is-sequence-of-hiccup-elements?=" is-seq)
+                                    (cond
+                                      ;; Unpack fragments
+                                      (and (vector? processed) (= :<> (first processed)))
+                                      (do
+                                        (log "fully-render-hiccup reduce: unpacking fragment")
+                                        (into acc (get-hiccup-children processed)))
 
-                              (and (seq? processed)
-                                   (not (and (vector? processed) (string? (first processed))))
-                                   (not (string? processed)))
-                              processed
+                                      ;; Unpack sequences of hiccup elements (but not single hiccup vectors)
+                                      is-seq
+                                      (do
+                                        (log "fully-render-hiccup reduce: unpacking sequence of hiccup elements")
+                                        (into acc processed))
 
-                              :else
-                              [processed])))
-                        children)))))
+                                      ;; Append a single child (including single hiccup vectors)
+                                      :else
+                                      (do
+                                        (log "fully-render-hiccup reduce: appending single child")
+                                        (conj acc processed))))))
+                              [] children)))))
 
           (map? hiccup)
           ;; This is a map component directly in the hiccup tree
@@ -353,39 +379,34 @@
     (.remove node)))
 
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "--- patch-children start ---")
-  (log "patch-children: hiccup-a-rendered" hiccup-a-rendered)
-  (log "patch-children: hiccup-b-rendered" hiccup-b-rendered)
+  (log "--- patch-children start for dom:" (.toString dom-a))
   (let [children-a (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
         children-b (vec (remove nil? (get-hiccup-children hiccup-b-rendered)))
         dom-nodes (core-atom (vec (aget dom-a "childNodes")))
         len-a (count children-a)
-        len-b (count children-b)]
-    (log "patch-children: children-a" children-a)
-    (log "patch-children: children-b" children-b)
-    (log "patch-children: dom-nodes" @dom-nodes)
+        len-b (count children-b)
+        len-dom (count @dom-nodes)]
+    (log "patch-children: len-a:" len-a "len-b:" len-b "len-dom:" len-dom)
+    (log "patch-children: children-a:" children-a)
+    (log "patch-children: children-b:" children-b)
     ;; Patch or replace existing nodes
     (loop [i 0]
       (when (< i (min len-a len-b))
         (let [child-a (nth children-a i)
               child-b (nth children-b i)
               dom-node (nth @dom-nodes i)]
-          (log "patch-children: about to patch child" i "child-a:" child-a "child-b:" child-b "dom-node:" dom-node)
           (let [new-dom-node (patch child-a child-b dom-node)]
-            (log "patch-children: comparing child" i child-a child-b)
             (when (not= dom-node new-dom-node)
               (swap! dom-nodes assoc i new-dom-node))))
         (recur (inc i))))
     ;; Add new nodes
     (when (> len-b len-a)
-      (log "patch-children: adding new nodes")
       (doseq [i (range len-a len-b)]
         (.appendChild dom-a (hiccup->dom (nth children-b i)))))
     ;; Remove surplus nodes
     (when (> len-a len-b)
-      (log "patch-children: removing surplus nodes")
-      (doseq [i (range (dec len-a) (dec len-b) -1)]
-        (remove-node-and-unmount! (nth @dom-nodes i))))))
+      (dotimes [_ (- len-a len-b)]
+        (remove-node-and-unmount! (.-lastChild dom-a))))))
 
 (defn- get-attrs [hiccup]
   (log "get-attrs called on hiccup:" hiccup)
@@ -457,7 +478,7 @@
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "patch: hiccup-a-rendered" hiccup-a-rendered "hiccup-b-rendered" hiccup-b-rendered "dom-a" dom-a)
+  (log "patch: hiccup-a-rendered" hiccup-a-rendered "hiccup-b-rendered" hiccup-b-rendered "dom-a" (.toString dom-a))
   (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
         hiccup-b-realized (realize-deep hiccup-b-rendered)
         are-equal (hiccup-eq? hiccup-a-realized hiccup-b-realized)]
