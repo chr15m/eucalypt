@@ -38,8 +38,6 @@
 
 (defonce ^:dynamic *watcher* nil)
 (defonce ^:dynamic *xml-ns* "http://www.w3.org/1999/xhtml")
-(defonce create-class identity)
-(defonce dom-node identity)
 (defonce life-cycle-methods {:get-initial-state (fn [_this])
                              :component-will-receive-props identity
                              :should-component-update identity
@@ -165,57 +163,61 @@
   (when (sequential? component)
     (let [first-element (first component)
           params (rest component)]
-      (cond (fn? first-element) (let [a-fn first-element
-                                      params-vec (vec params)
-                                      component-meta (meta component)
-                                      fn-id (get-or-create-fn-id a-fn)
-                                      ;; Form-2 components are stateful and need a unique key per instance.
-                                      ;; Form-1 components are stateless and can be shared, using just the fn-id as a key.
-                                      instance-key (cond
-                                                     (contains? component-meta :key)
-                                                     (str fn-id "_key_" (:key component-meta))
-                                                     :else
-                                                     (str fn-id "_pos_" (swap! positional-key-counter inc)))
-                                      shared-key fn-id
-                                      cached-instance (get @component-instances instance-key)
-                                      cached-shared (get @component-instances shared-key)]
-                                  (cond
-                                    cached-instance
-                                    (do (log "normalize-component: using cached instance for key:" instance-key)
-                                        (into [(:instance cached-instance)] params-vec))
+      (cond (fn? first-element)
+            (let [a-fn first-element
+                  params-vec (vec params)
+                  component-meta (meta component)
+                  fn-id (get-or-create-fn-id a-fn)
+                  ;; Form-2 components are stateful and need a unique key per instance.
+                  ;; Form-1 components are stateless and can be shared, using just the fn-id as a key.
+                  instance-key (cond
+                                 (contains? component-meta :key)
+                                 (str fn-id "_key_" (:key component-meta))
+                                 :else
+                                 (str fn-id "_pos_" (swap! positional-key-counter inc)))
+                  shared-key fn-id
+                  cached-instance (get @component-instances instance-key)
+                  cached-shared (get @component-instances shared-key)]
+              (cond
+                cached-instance
+                (do (log "normalize-component: using cached instance for key:" instance-key)
+                    (into [(:instance cached-instance)] params-vec))
 
-                                    cached-shared
-                                    (do (log "normalize-component: using cached shared for key:" shared-key)
-                                        (into [(:instance cached-shared)] params-vec))
+                cached-shared
+                (do (log "normalize-component: using cached shared for key:" shared-key)
+                    (into [(:instance cached-shared)] params-vec))
 
-                                    :else
-                                    (let [_ (log "normalize-component: cache miss for keys:" instance-key "and" shared-key)
-                                          func-or-hiccup (apply a-fn params-vec)]
-                                      (if (fn? func-or-hiccup)
-                                        ;; Form-2 component (stateful)
-                                        (let [closure func-or-hiccup
-                                              instance (merge life-cycle-methods {:reagent-render closure})
-                                              result (into [instance] params-vec)]
-                                          (log "normalize-component: Form-2, caching with key:" instance-key)
-                                          (swap! component-instances assoc instance-key {:type :form-2 :instance instance})
-                                          result)
-                                        ;; Form-1 component (stateless)
-                                        (let [instance (merge life-cycle-methods {:reagent-render a-fn})
-                                              result (into [instance] params-vec)]
-                                          (log "normalize-component: Form-1, caching with key:" shared-key)
-                                          (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
-                                          result)))))
-            (keyword? first-element) (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
-                                           params)
-            (map? first-element) (let [component-as-map first-element
-                                       render-fn (:reagent-render component-as-map)
-                                       comp-with-lifecycle (into {:reagent-render render-fn}
-                                                                 (map (fn [[k func]]
-                                                                        (let [func2 (get component-as-map k)
-                                                                              func-func2 (if func2 (comp func2 func) func)]
-                                                                          [k func-func2]))
-                                                                      life-cycle-methods))]
-                                   (into [comp-with-lifecycle] params))))))
+                :else
+                (let [_ (log "normalize-component: cache miss for keys:" instance-key "and" shared-key)
+                      func-or-hiccup (apply a-fn params-vec)]
+                  (if (fn? func-or-hiccup)
+                    ;; Form-2 component (stateful)
+                    (let [closure func-or-hiccup
+                          instance (merge life-cycle-methods {:reagent-render closure})
+                          result (into [instance] params-vec)]
+                      (log "normalize-component: Form-2, caching with key:" instance-key)
+                      (swap! component-instances assoc instance-key {:type :form-2 :instance instance})
+                      result)
+                    ;; Form-1 component (stateless)
+                    (let [instance (merge life-cycle-methods {:reagent-render a-fn})
+                          result (into [instance] params-vec)]
+                      (log "normalize-component: Form-1, caching with key:" shared-key)
+                      (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
+                      result)))))
+
+            (keyword? first-element)
+            (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
+                  params)
+            (map? first-element)
+            (let [component-as-map first-element
+                  render-fn (:reagent-render component-as-map)
+                  comp-with-lifecycle (into {:reagent-render render-fn}
+                                            (map (fn [[k func]]
+                                                   (let [func2 (get component-as-map k)
+                                                         func-func2 (if func2 (comp func2 func) func)]
+                                                     [k func-func2]))
+                                                 life-cycle-methods))]
+              (into [comp-with-lifecycle] params))))))
 
 (defn- component->hiccup [normalized-component]
   (let [[config & params] normalized-component
@@ -227,52 +229,48 @@
 
 (defn hiccup->dom [hiccup]
   (log "hiccup->dom called with:" hiccup)
-  (let [result (cond
-                 (or (string? hiccup) (number? hiccup)) (.createTextNode js/document (str hiccup))
-                 (vector? hiccup) (let [[tag & _content] hiccup]
-                                    (cond
-                                      (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)))
-                                      (vector? tag) (let [fragment (.createDocumentFragment js/document)]
-                                                      (doseq [item hiccup]
-                                                        (when-let [child-node (hiccup->dom item)]
-                                                          (.appendChild fragment child-node)))
-                                                      fragment)
-                                      (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
-                                                    (doseq [child (rest hiccup)]
-                                                      (when-let [child-node (hiccup->dom child)]
-                                                        (.appendChild fragment child-node)))
-                                                    fragment)
-                                      :else (create-element hiccup)))
-                 (seq? hiccup) (let [fragment (.createDocumentFragment js/document)]
-                                 (doseq [item hiccup]
-                                   ;; Preserve metadata when processing sequences
-                                   (let [item-with-meta (if (and (vector? item) (meta item))
-                                                          (with-meta item (meta item))
-                                                          item)]
-                                     (when-let [child-node (hiccup->dom item-with-meta)]
-                                       (.appendChild fragment child-node))))
-                                 fragment)
-                 (fn? hiccup) (hiccup->dom (hiccup))
-                 (map? hiccup) (hiccup->dom ((:reagent-render hiccup)))
-                 (nil? hiccup) nil
-                 :else (.createTextNode js/document (str hiccup)))]
+  (let [result
+        (cond
+          (or (string? hiccup) (number? hiccup))
+          (.createTextNode js/document (str hiccup))
+
+          (vector? hiccup)
+          (let [[tag & _content] hiccup]
+            (cond
+              (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)))
+              (vector? tag) (let [fragment (.createDocumentFragment js/document)]
+                              (doseq [item hiccup]
+                                (when-let [child-node (hiccup->dom item)]
+                                  (.appendChild fragment child-node)))
+                              fragment)
+              (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
+                            (doseq [child (rest hiccup)]
+                              (when-let [child-node (hiccup->dom child)]
+                                (.appendChild fragment child-node)))
+                            fragment)
+              :else (create-element hiccup)))
+
+          (seq? hiccup)
+          (let [fragment (.createDocumentFragment js/document)]
+            (doseq [item hiccup]
+              ;; Preserve metadata when processing sequences
+              (let [item-with-meta (if (and (vector? item) (meta item))
+                                     (with-meta item (meta item))
+                                     item)]
+                (when-let [child-node (hiccup->dom item-with-meta)]
+                  (.appendChild fragment child-node))))
+            fragment)
+
+          (fn? hiccup)
+          (hiccup->dom (hiccup))
+
+          (map? hiccup) (hiccup->dom ((:reagent-render hiccup)))
+          (nil? hiccup) nil
+
+          :else
+          (.createTextNode js/document (str hiccup)))]
     (log "hiccup->dom returning:" result)
     result))
-
-;; Component support
-(defn component? [x]
-  (and (fn? x) (not (contains? (meta x) :component))))
-
-
-;; *** mr clean implementation continues ***
-
-;; (extend-type js/NodeList
-;;   ISeqable
-;;   (-seq [nodeList] (vec (array-seq nodeList))))
-
-;; (extend-type js/NamedNodeMap
-;;   ISeqable
-;;   (-seq [named-node-map] (vec (array-seq named-node-map))))
 
 (defn hiccup-eq? [hiccup-a hiccup-b]
   (let [result (isEqual hiccup-a hiccup-b)]
@@ -293,43 +291,50 @@
 
 (defn- fully-render-hiccup [hiccup]
   (log "fully-render-hiccup called with:" hiccup)
-  (let [result (cond
-                 (nil? hiccup)
-                 nil
+  (let [result
+        (cond
+          (nil? hiccup)
+          nil
 
-                 (fn? hiccup)
-                 (fully-render-hiccup (hiccup))
+          (fn? hiccup)
+          (fully-render-hiccup (hiccup))
 
-                 (and (some? (aget hiccup js/Symbol.iterator)) (not (vector? hiccup)) (not (string? hiccup)))
-                 (mapv fully-render-hiccup hiccup)
+          (and (some? (aget hiccup js/Symbol.iterator))
+               (not (vector? hiccup))
+               (not (string? hiccup)))
+          (mapv fully-render-hiccup hiccup)
 
-                 (vector? hiccup)
-                 (let [tag (first hiccup)]
-                   (if (fn? tag)
-                     (fully-render-hiccup (component->hiccup (normalize-component hiccup)))
+          (vector? hiccup)
+          (let [tag (first hiccup)]
+            (if (fn? tag)
+              (fully-render-hiccup (component->hiccup (normalize-component hiccup)))
 
-                     (let [attrs (when (map? (second hiccup)) (second hiccup))
-                           children (if attrs (drop 2 hiccup) (rest hiccup))
-                           head (if attrs [(first hiccup) attrs] [(first hiccup)])]
-                       (into head
-                             (mapcat
-                              (fn [child]
-                                (let [processed (fully-render-hiccup child)]
-                                  (cond
-                                    (and (vector? processed) (= :<> (first processed)))
-                                    (get-hiccup-children processed)
+              (let [attrs (when (map? (second hiccup)) (second hiccup))
+                    children (if attrs (drop 2 hiccup) (rest hiccup))
+                    head (if attrs [(first hiccup) attrs] [(first hiccup)])]
+                (into head
+                      (mapcat
+                        (fn [child]
+                          (let [processed (fully-render-hiccup child)]
+                            (cond
+                              (and (vector? processed) (= :<> (first processed)))
+                              (get-hiccup-children processed)
 
-                                    (and (seq? processed) (not (and (vector? processed) (string? (first processed)))) (not (string? processed)))
-                                    processed
+                              (and (seq? processed)
+                                   (not (and (vector? processed) (string? (first processed))))
+                                   (not (string? processed)))
+                              processed
 
-                                    :else
-                                    [processed])))
-                              children)))))
-                 (map? hiccup)
-                 ;; This is a map component directly in the hiccup tree
-                 (fully-render-hiccup ((:reagent-render hiccup)))
-                 :else
-                 hiccup)]
+                              :else
+                              [processed])))
+                        children)))))
+
+          (map? hiccup)
+          ;; This is a map component directly in the hiccup tree
+          (fully-render-hiccup ((:reagent-render hiccup)))
+
+          :else
+          hiccup)]
     (log "fully-render-hiccup returning:" result)
     result))
 
@@ -462,7 +467,10 @@
       (do (log "patch: hiccup is equal, doing nothing")
           dom-a)
 
-      (or (not (vector? hiccup-a-realized)) (not (vector? hiccup-b-realized)) (not= (first hiccup-a-realized) (first hiccup-b-realized)))
+      (or (not (vector? hiccup-a-realized))
+          (not (vector? hiccup-b-realized))
+          (not= (first hiccup-a-realized)
+                (first hiccup-b-realized)))
       (let [new-node (hiccup->dom hiccup-b-realized)]
         (log "patch: replacing node" dom-a "with" new-node)
         (unmount-node-and-children dom-a)
@@ -500,15 +508,17 @@
       (do
         (reset! positional-key-counter 0)
         (patch-children hiccup new-hiccup-rendered container)
-        (swap! mounted-components assoc normalized-component {:hiccup new-hiccup-rendered
-                                                              :dom dom
-                                                              :container container}))
+        (swap! mounted-components assoc normalized-component
+               {:hiccup new-hiccup-rendered
+                :dom dom
+                :container container}))
       (let [_ (reset! positional-key-counter 0)
             new-dom (patch hiccup new-hiccup-rendered dom)]
         (log "modify-dom: new DOM" new-dom)
-        (swap! mounted-components assoc normalized-component {:hiccup new-hiccup-rendered
-                                                              :dom new-dom
-                                                              :container container})
+        (swap! mounted-components assoc normalized-component
+               {:hiccup new-hiccup-rendered
+                :dom new-dom
+                :container container})
         (when (not= dom new-dom)
           (log "modify-dom: DOM changed, replacing in container")
           (aset container "innerHTML" "")
@@ -630,11 +640,11 @@
         _ (reset! positional-key-counter 0)
         hiccup-rendered (fully-render-hiccup hiccup)]
     (.appendChild container dom)
-    (swap! mounted-components assoc normalized-component {:hiccup hiccup-rendered
-                                                          :dom dom
-                                                          :container container})
+    (swap! mounted-components assoc normalized-component
+           {:hiccup hiccup-rendered
+            :dom dom
+            :container container})
     (swap! container->mounted-component assoc container normalized-component)))
-
 
 (defn render [component container]
   (log "render called with component:" component "and container:" container)

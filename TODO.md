@@ -1,8 +1,10 @@
 - [ ] Kuro neko bug still there
 - [ ] :div#hi.hello style shorthand
 - [ ] Can we replace with-meta* and meta* with the real ones?
+- [ ] Tests for r/cursor
 
 - [ ] r/with-let
+- [ ] Remove clear-component-instances! from tests
 - [ ] Remove ^:dynamic defs
 - [ ] Remove circularity and 'declare's from eucalypt.cljs
 - [ ] Deprecate old lifecycle methods?
