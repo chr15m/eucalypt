@@ -265,7 +265,7 @@
           (hiccup->dom (hiccup))
 
           (map? hiccup) (hiccup->dom ((:reagent-render hiccup)))
-          (nil? hiccup) nil
+          (or (nil? hiccup) (boolean? hiccup)) nil
 
           :else
           (.createTextNode js/document (str hiccup)))]
@@ -287,9 +287,7 @@
                     (not (empty? x))
                     (every? (fn [item]
                               (or (nil? item)
-                                  (and (vector? item)
-                                       (or (string? (first item))
-                                           (fn? (first item))))))
+                                  (vector? item)))
                             x))]
     (log "is-sequence-of-hiccup-elements? result:" result)
     result))
@@ -333,26 +331,28 @@
                       (reduce (fn [acc child]
                                 (let [processed (fully-render-hiccup child)]
                                   (log "fully-render-hiccup reduce: processing child, processed=" processed)
-                                  (let [is-seq (is-sequence-of-hiccup-elements? processed)]
-                                    (log "fully-render-hiccup reduce: is-sequence-of-hiccup-elements?=" is-seq)
-                                    (cond
-                                      ;; Unpack fragments
-                                      (and (vector? processed) (= :<> (first processed)))
-                                      (do
-                                        (log "fully-render-hiccup reduce: unpacking fragment")
-                                        (into acc (get-hiccup-children processed)))
+                                  (if (and (sequential? processed) (not (string? processed)) (empty? processed))
+                                    acc
+                                    (let [is-seq (is-sequence-of-hiccup-elements? processed)]
+                                      (log "fully-render-hiccup reduce: is-sequence-of-hiccup-elements?=" is-seq)
+                                      (cond
+                                        ;; Unpack fragments
+                                        (and (vector? processed) (= :<> (first processed)))
+                                        (do
+                                          (log "fully-render-hiccup reduce: unpacking fragment")
+                                          (into acc (get-hiccup-children processed)))
 
-                                      ;; Unpack sequences of hiccup elements (but not single hiccup vectors)
-                                      is-seq
-                                      (do
-                                        (log "fully-render-hiccup reduce: unpacking sequence of hiccup elements")
-                                        (into acc processed))
+                                        ;; Unpack sequences of hiccup elements (but not single hiccup vectors)
+                                        is-seq
+                                        (do
+                                          (log "fully-render-hiccup reduce: unpacking sequence of hiccup elements")
+                                          (into acc processed))
 
-                                      ;; Append a single child (including single hiccup vectors)
-                                      :else
-                                      (do
-                                        (log "fully-render-hiccup reduce: appending single child")
-                                        (conj acc processed))))))
+                                        ;; Append a single child (including single hiccup vectors)
+                                        :else
+                                        (do
+                                          (log "fully-render-hiccup reduce: appending single child")
+                                          (conj acc processed)))))))
                               [] children)))))
 
           (map? hiccup)
@@ -478,7 +478,9 @@
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "patch: hiccup-a-rendered" hiccup-a-rendered "hiccup-b-rendered" hiccup-b-rendered "dom-a" (.toString dom-a))
+  (log "patch: hiccup-a-rendered" hiccup-a-rendered
+       "hiccup-b-rendered" hiccup-b-rendered
+       "dom-a" (.toString dom-a))
   (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
         hiccup-b-realized (realize-deep hiccup-b-rendered)
         are-equal (hiccup-eq? hiccup-a-realized hiccup-b-realized)]
@@ -493,7 +495,9 @@
           (not= (first hiccup-a-realized)
                 (first hiccup-b-realized)))
       (let [new-node (hiccup->dom hiccup-b-realized)]
-        (log "patch: replacing node" dom-a "with" new-node)
+        (log "patch: replacing node. dom-a:" dom-a "new-node:" new-node)
+        (when dom-a
+          (log "patch: replacing node. dom-a.textContent:" (.-textContent dom-a) "new-node.textContent:" (.-textContent new-node)))
         (unmount-node-and-children dom-a)
         (.replaceWith dom-a new-node)
         new-node)
