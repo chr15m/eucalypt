@@ -1,7 +1,8 @@
 (ns eucalypt
   ;(:refer-clojure :exclude [atom])
-  (:require [clojure.string :as str]
-            ["es-toolkit" :refer [isEqual]]))
+  (:require
+    ; [clojure.core :refer [atom] :rename {atom core-atom}]
+    ["es-toolkit" :refer [isEqual]]))
 
 (def ^:private core-atom atom)
 
@@ -84,7 +85,7 @@
   (if (and (= k :on-change)
            (#{"INPUT" "TEXTAREA"} tag-name))
     "oninput"
-    (get event-name-map k (str/replace k #"-" ""))))
+    (get event-name-map k (.replaceAll k "-" ""))))
 
 (defn- set-attributes! [element attrs]
   (doseq [[k v] attrs]
@@ -97,7 +98,7 @@
         (aset element "---ref-fn" v)
         (v element))
 
-      (str/starts-with? k "on-")
+      (.startsWith k "on-")
       (when (some? v)
         (let [event-name (get-event-name k (.-tagName element))]
           (aset element event-name v)))
@@ -407,14 +408,14 @@
     ;; Remove attributes from a that are not in b
     (doseq [[k _] a-attrs]
       (when (and (not (contains? b-attrs k)) (not= k :ref) (not= k :xmlns))
-        (if (str/starts-with? k "on-")
+        (if (.startsWith k "on-")
           (aset dom-a (get-event-name k tag-name) nil)
           (.removeAttribute dom-a k))))
     ;; Add/update attributes from b
     (doseq [[k v] b-attrs]
       (when (and (not= k :ref) (not= k :xmlns))
         (let [old-v (get a-attrs k)]
-          (if (str/starts-with? k "on-")
+          (if (.startsWith k "on-")
             (aset dom-a (get-event-name k tag-name) v)
             (when (not= v old-v)
               (log "patch-attributes: updating attribute" k "from" old-v "to" v "on" dom-a)
