@@ -3,6 +3,7 @@
 - [ ] Can we replace with-meta* and meta* with the real ones?
 - [ ] Tests for r/cursor and r/reaction
 - [ ] Run tests in Scittle/Reagent and compare outputs.
+- [ ] Support top level component that isn't a function.
 
 - [ ] r/with-let
 - [ ] Remove clear-component-instances! from tests
