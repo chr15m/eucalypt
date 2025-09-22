@@ -2,6 +2,7 @@
 - [ ] :div#hi.hello style shorthand
 - [ ] Can we replace with-meta* and meta* with the real ones?
 - [ ] Tests for r/cursor
+- [ ] Run tests in Scittle/Reagent and compare outputs.
 
 - [ ] r/with-let
 - [ ] Remove clear-component-instances! from tests
