@@ -32,13 +32,16 @@
                 output (.querySelector container "#output")]
 
             (th/assert-equal (.-textContent output) "You typed: ")
+            (th/log "DOM after initial render:" (.-innerHTML container))
 
             ;; Type a few characters
             (set! (.-value input) "abc")
             (.dispatchEvent input (new js/Event "input" #js {:bubbles true}))
+            (th/log "DOM after first update:" (.-innerHTML container))
             (th/assert-equal (.-textContent output) "You typed: abc")
 
             ;; Type a few more
             (set! (.-value input) "abc def")
             (.dispatchEvent input (new js/Event "input" #js {:bubbles true}))
+            (th/log "DOM after second update:" (.-innerHTML container))
             (th/assert-equal (.-textContent output) "You typed: abc def")))))))
