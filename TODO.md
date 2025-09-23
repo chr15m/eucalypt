@@ -1,6 +1,5 @@
 - [ ] Classes from vec
 - [ ] :div#hi.hello style shorthand
-- [ ] Can we replace with-meta* and meta* with the real ones?
 - [ ] Tests for r/cursor and r/reaction
 - [ ] Run tests in Scittle/Reagent and compare outputs.
 - [ ] Support top level component that isn't a function.
@@ -21,3 +20,4 @@
 - [x] Ref test sticky-class bug
 - [x] Demo Clock fn is firing every second in console event when it's not on (this is because timer is global).
 - [x] Switch to clock then back to fragments test
+- [x] Can we replace with-meta* and meta* with the real ones? [answer: not easily]
