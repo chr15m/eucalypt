@@ -1,21 +1,25 @@
 {
   "name": "eucalypt",
-  "version": "0.0.1",
+  "version": "0.0.2",
+  "exports": "./index.mjs",
   "description": "Reagent compatibale-ish Squint-cljs library with no React. Builds tiny frontends.",
   "type": "module",
   "scripts": {
-    "build": "npm run demo:build",
+    "build": "npm run demo:build; npm run dist:build",
     "clean": "find . -name '*.mjs' -not -path './node_modules/*' -delete",
     "dev": "npm run demo:dev",
     "test": "npm run test:compile && vitest run --config test/vitest.config.js",
     "demo:build": "cd demo && squint compile && vite build && SRC=small.html vite build",
+    "dist:build": "cd src && squint compile",
     "demo:watch": "cd demo && squint watch",
     "demo:dev": "concurrently \"npm run demo:watch\" \"vite demo --port 8000\"",
     "test:compile": "cd test && squint compile && cd .."
   },
+  "dependencies": {
+    "es-toolkit": "1.39.10"
+  },
   "devDependencies": {
     "concurrently": "8.2.2",
-    "es-toolkit": "1.39.10",
     "happy-dom": "14.12.3",
     "squint-cljs": "latest",
     "vite": "7.1.2",
