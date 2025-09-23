@@ -1,6 +1,8 @@
-(ns main
-  (:require [eucalypt :as r]
-            [clojure.string :as str]))
+(ns index
+  (:require
+    ["../README.md?raw" :as readme]
+    [eucalypt :as r]
+    [clojure.string :as string]))
 
 (js/console.log "main.cljs loading...")
 
@@ -36,6 +38,33 @@
                 (js/console.error "Error fetching page size:" error)
                 (swap! app-state assoc :page-size "Error")))))
 
+(defn md [content]
+  (when content
+    (->> (.split content "\n\n")
+         #_ (remove #(or
+                    ; h1 headers
+                    (re-find #"^# " %)
+                    ; images
+                    (re-find #"!\[.*\]\(.*\)" %)))
+         (map (fn [line]
+                (let [line-with-links (string/replace line #"\[(.*?)\]\((.*?)\)" "<a href=\"$2\">$1</a>")]
+                  (cond
+                    ; Convert h1 headers to hiccup
+                    (re-find #"^# " line)
+                    (str "<h1>" (string/replace line #"^# " "") "</h1>")
+
+                    ; Convert list items (lines starting with dash)
+                    (re-find #"^- " line)
+                    (str line-with-links "</br>\n")
+
+                    ; Lines with links but not starting with dash
+                    (re-find #"\[.*?\]\(.*?\)" line)
+                    line-with-links
+
+                    :else
+                    (str "<p>" line "</p>")))))
+         (string/join "\n"))))
+
 (defn nav-link [page-kw text]
   [:a {:href "#"
        :class "nav-link"
@@ -46,19 +75,26 @@
 
 (defn home-page []
   [:div
-   [:h1 "Home Page"]
-   [:p "Welcome to the eucalypt demo app."]
-   [:p "The ClojureScript code for these examples is compiled into this single index.html
-       file."]
-   [:p "The size of this index.html file is: " [:strong (:page-size @app-state)]]
-   [:p "The compiler is "
-    [:a {:href "https://github.com/squint-cljs/squint"} "squint-cljs"]
-    " and the build tool is "
-    [:a {:href "https://vitejs.dev"} "vite"] "."]
+   [:h1 "Eucalypt demos"]
+   [:p "These demos are compiled into this single HTML file artifact."]
+   [:p "It has a file size of " [:strong (:page-size @app-state)] "."]
+   [:p "See " [:a {:href "small.html"} "small.html"]
+    " for the smallest possible artifact of around 9kb."]
+   [:p "Visit the " [:a {:href "https://github.com/chr15m/eucalypt"}
+                     "GitHub project"]
+    " for info on installing and using Eucalypt."]
+   [:section
+    {:ref #(when %
+             (as-> readme doc
+               (.-default doc)
+               (.split doc "<!-- end-about -->")
+               (first doc)
+               (md doc)
+               (aset % "innerHTML" doc)))}]
    [:hr]
-   [:p "The current count is: " (:counter @app-state)]
+   [:p "Counter demo: " (:counter @app-state)]
    [:button {:on-click (fn [_] (swap! app-state update :counter inc))}
-    "Increment counter"]])
+    "Increment"]])
 
 (defn text-input-page []
   [:div
@@ -255,7 +291,7 @@
                 (reset! val "")
                 (when on-stop (on-stop)))
               (save [e]
-                (let [v (-> @val str str/trim)]
+                (let [v (-> @val str string/trim)]
                   (when-not (empty? v)
                     (on-save v)))
                 (stop e))]
@@ -299,7 +335,7 @@
        {:class (->> [(when done "completed")
                      (when @editing "editing")]
                     (remove nil?)
-                    (str/join " "))}
+                    (string/join " "))}
        [:div {:class "view"}
         [:input {:class "toggle"
                  :type "checkbox"
@@ -357,7 +393,7 @@
   [:h1 message])
 
 (defn clock []
-  (let [time-str (-> @clock-time .toTimeString (str/split " ") first)]
+  (let [time-str (-> @clock-time .toTimeString (string/split " ") first)]
     [:div {:style {:color @time-color
                    :font-size "2em"
                    :font-family "monospace"}}
@@ -457,7 +493,8 @@
        :fragments [fragments]
        :clock [clock-page]
        [:div "Page not found"])
-     [:p [:a {:href "https://github.com/chr15m/eucalypt"} "Source code"]]]))
+     [:p [:a {:href "https://github.com/chr15m/eucalypt"}
+          "Eucalypt on GitHub"]]]))
 
 (js/console.log "main.cljs: about to call render!")
 (r/render [app]
