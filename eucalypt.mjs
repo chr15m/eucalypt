@@ -2,24 +2,24 @@ import * as squint_core from 'squint-cljs/core.js';
 import { isEqual } from 'es-toolkit';
 var core_atom = squint_core.atom;
 var log = (() => {
-const f1 = (function (var_args) {
-const args21 = [];
+const f9 = (function (var_args) {
+const args101 = [];
 const len__23056__auto__2 = arguments.length;
-let i33 = 0;
+let i113 = 0;
 while(true){
-if ((i33) < (len__23056__auto__2)) {
-args21.push((arguments[i33]));
-let G__4 = (i33 + 1);
-i33 = G__4;
+if ((i113) < (len__23056__auto__2)) {
+args101.push((arguments[i113]));
+let G__4 = (i113 + 1);
+i113 = G__4;
 continue;
 };break;
 }
 ;
-const argseq__23208__auto__5 = (((0) < (args21.length)) ? (args21.slice(0)) : (null));
-return f1.cljs$core$IFn$_invoke$arity$variadic(argseq__23208__auto__5);
+const argseq__23208__auto__5 = (((0) < (args101.length)) ? (args101.slice(0)) : (null));
+return f9.cljs$core$IFn$_invoke$arity$variadic(argseq__23208__auto__5);
 
 });
-f1.cljs$core$IFn$_invoke$arity$variadic = (function (args) {
+f9.cljs$core$IFn$_invoke$arity$variadic = (function (args) {
 return (() => {
 try{
 if ((localStorage.getItem("debug")) === ("eucalypt:*")) {
@@ -33,8 +33,8 @@ return null;
 })();
 
 });
-f1.cljs$lang$maxFixedArity = 0;
-return f1;
+f9.cljs$lang$maxFixedArity = 0;
+return f9;
 
 })();
 log("eucalypt.cljs loading...");
@@ -119,8 +119,8 @@ return (squint_core.get(meta_STAR_(_PERCENT_1), "normalized-component")) === (co
 
 };
 var style_map__GT_css_str = function (style_map) {
-return squint_core.apply(squint_core.str, squint_core.map((function (p__5) {
-const vec__14 = p__5;
+return squint_core.apply(squint_core.str, squint_core.map((function (p__13) {
+const vec__14 = p__13;
 const k5 = squint_core.nth(vec__14, 0, null);
 const v6 = squint_core.nth(vec__14, 1, null);
 return squint_core.str(k5, ":", v6, ";");
@@ -295,8 +295,8 @@ return component;
 if (squint_core.truth_(squint_core.map_QMARK_(first_element1))) {
 const component_as_map18 = first_element1;
 const render_fn19 = squint_core.get(component_as_map18, "reagent-render");
-const comp_with_lifecycle20 = squint_core.into(({ "reagent-render": render_fn19 }), squint_core.map((function (p__6) {
-const vec__2124 = p__6;
+const comp_with_lifecycle20 = squint_core.into(({ "reagent-render": render_fn19 }), squint_core.map((function (p__14) {
+const vec__2124 = p__14;
 const k25 = squint_core.nth(vec__2124, 0, null);
 const func26 = squint_core.nth(vec__2124, 1, null);
 const func227 = squint_core.get(component_as_map18, k25);
@@ -905,24 +905,24 @@ _STAR_watcher_STAR_ = old_watcher5}
 })();
 
 }), "_swap", (() => {
-const f7 = (function (var_args) {
-const args86 = [];
+const f15 = (function (var_args) {
+const args166 = [];
 const len__23056__auto__7 = arguments.length;
-let i98 = 0;
+let i178 = 0;
 while(true){
-if ((i98) < (len__23056__auto__7)) {
-args86.push((arguments[i98]));
-let G__9 = (i98 + 1);
-i98 = G__9;
+if ((i178) < (len__23056__auto__7)) {
+args166.push((arguments[i178]));
+let G__9 = (i178 + 1);
+i178 = G__9;
 continue;
 };break;
 }
 ;
-const argseq__23208__auto__10 = (((1) < (args86.length)) ? (args86.slice(1)) : (null));
-return f7.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23208__auto__10);
+const argseq__23208__auto__10 = (((1) < (args166.length)) ? (args166.slice(1)) : (null));
+return f15.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23208__auto__10);
 
 });
-f7.cljs$core$IFn$_invoke$arity$variadic = (function (f, args) {
+f15.cljs$core$IFn$_invoke$arity$variadic = (function (f, args) {
 return squint_core.swap_BANG_(the_ratom, (function (current_state) {
 const current_cursor_value11 = squint_core.get_in(current_state, path);
 const new_cursor_value12 = squint_core.apply(f, current_cursor_value11, args);
@@ -931,8 +931,8 @@ return squint_core.assoc_in(current_state, path, new_cursor_value12);
 }));
 
 });
-f7.cljs$lang$maxFixedArity = 1;
-return f7;
+f15.cljs$lang$maxFixedArity = 1;
+return f15;
 
 })(), "watchers", watchers3, "path", path);
 squint_core.swap_BANG_(cursors1, squint_core.conj, this_cursor4);
@@ -942,24 +942,24 @@ return found_cursor2};
 
 };
 var reaction = (() => {
-const f11 = (function (var_args) {
-const args121 = [];
+const f19 = (function (var_args) {
+const args201 = [];
 const len__23056__auto__2 = arguments.length;
-let i133 = 0;
+let i213 = 0;
 while(true){
-if ((i133) < (len__23056__auto__2)) {
-args121.push((arguments[i133]));
-let G__4 = (i133 + 1);
-i133 = G__4;
+if ((i213) < (len__23056__auto__2)) {
+args201.push((arguments[i213]));
+let G__4 = (i213 + 1);
+i213 = G__4;
 continue;
 };break;
 }
 ;
-const argseq__23208__auto__5 = (((1) < (args121.length)) ? (args121.slice(1)) : (null));
-return f11.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23208__auto__5);
+const argseq__23208__auto__5 = (((1) < (args201.length)) ? (args201.slice(1)) : (null));
+return f19.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23208__auto__5);
 
 });
-f11.cljs$core$IFn$_invoke$arity$variadic = (function (f, params) {
+f19.cljs$core$IFn$_invoke$arity$variadic = (function (f, params) {
 const ra6 = ratom(null);
 const watcher7 = (function () {
 return squint_core.reset_BANG_(ra6, squint_core.apply(f, params));
@@ -974,29 +974,29 @@ const reaction_obj9 = squint_core.js_obj("_deref", (function () {
 return squint_core.deref(ra6);
 
 }), "_swap", (() => {
-const f15 = (function (var_args) {
-const args1610 = [];
+const f23 = (function (var_args) {
+const args2410 = [];
 const len__23056__auto__11 = arguments.length;
-let i1712 = 0;
+let i2512 = 0;
 while(true){
-if ((i1712) < (len__23056__auto__11)) {
-args1610.push((arguments[i1712]));
-let G__13 = (i1712 + 1);
-i1712 = G__13;
+if ((i2512) < (len__23056__auto__11)) {
+args2410.push((arguments[i2512]));
+let G__13 = (i2512 + 1);
+i2512 = G__13;
 continue;
 };break;
 }
 ;
-const argseq__23208__auto__14 = (((0) < (args1610.length)) ? (args1610.slice(0)) : (null));
-return f15.cljs$core$IFn$_invoke$arity$variadic(argseq__23208__auto__14);
+const argseq__23208__auto__14 = (((0) < (args2410.length)) ? (args2410.slice(0)) : (null));
+return f23.cljs$core$IFn$_invoke$arity$variadic(argseq__23208__auto__14);
 
 });
-f15.cljs$core$IFn$_invoke$arity$variadic = (function (_) {
+f23.cljs$core$IFn$_invoke$arity$variadic = (function (_) {
 throw new Error("Reactions are readonly");
 
 });
-f15.cljs$lang$maxFixedArity = 0;
-return f15;
+f23.cljs$lang$maxFixedArity = 0;
+return f23;
 
 })());
 (reaction_obj9["watchers"] = ra6["watchers"]);
@@ -1008,8 +1008,8 @@ _STAR_watcher_STAR_ = old_watcher8}
 })();
 
 });
-f11.cljs$lang$maxFixedArity = 1;
-return f11;
+f19.cljs$lang$maxFixedArity = 1;
+return f19;
 
 })();
 var render = function (component, container) {
