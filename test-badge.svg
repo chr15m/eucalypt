@@ -1,0 +1,14 @@
+<svg width="127.8" height="20" viewBox="0 0 1278 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tests: 66/66 passing">
+  <title>Tests: 66/66 passing</title>
+  <g>
+    <rect fill="#999" width="391" height="200"/>
+    <rect fill="#3C1" x="391" width="887" height="200"/>
+  </g>
+  <g aria-hidden="true" fill="#fff" text-anchor="start" font-family="Verdana,DejaVu Sans,sans-serif" font-size="110">
+    <text x="60" y="148" textLength="291" fill="#000" opacity="0.1">Tests</text>
+    <text x="50" y="138" textLength="291">Tests</text>
+    <text x="446" y="148" textLength="787" fill="#000" opacity="0.1">66/66 passing</text>
+    <text x="436" y="138" textLength="787">66/66 passing</text>
+  </g>
+  
+</svg>
