@@ -49,8 +49,7 @@ jobs:
           label: 'Tests'
           status: '${{ env.PASSED }}/${{ env.TOTAL }} passing'
           color: ${{ env.PASSED == env.TOTAL && env.TOTAL > 0 && 'green' || 'red' }}
-          label-color: 'black'
-          style: 'flat'
+          label-color: "111"
           path: 'test-badge.svg'
 
       - name: Upload badge artifact
