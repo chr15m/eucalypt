@@ -1,16 +1,53 @@
 # Eucalypt
-## [WIP slop-code not-for-prod]
 
-[Reagent](https://reagent-project.github.io/) compatible-ish [Squint](https://github.com/squint-cljs/squint)-ClojureScript library without React.
+Eucalypt is a frontend library for [Squint ClojureScript](https://github.com/squint-cljs/squint).
+It replaces [Reagent & React](https://reagent-project.github.io/) with a compatible-ish subset of the Reagent API.
+It supports form-1 and form-2 Reagent components.
 
-* **[Try the demo (~10kb gzipped HTML artifact)](https://chr15m.github.io/eucalypt/)**.
-* [Demo source code](./demo).
+The goal is to build very small frontend artifacts (<10k) using "Reagent" and "ClojureScript" (if you squint hard enough).
+It's suitable for small pieces of one-off frontend code that do something simple, not large production web apps.
+The examples from the Reagent homepage have been ported and work with Eucalypt.
+Eucalypt is itself very small and fits in a single cljs file.
 
-Goal: create ClojureScript frontend UIs with a Reagent-like API that compile down to ~10k JS artifacts using [squint-cljs](https://github.com/squint-cljs/squint).
+<!-- end-about -->
 
-Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that has been slop-coded into compiling with Squint.
+- **[Try the demo](https://chr15m.github.io/eucalypt/)** - a single HTML file artifact gzipped to ~10k.
+- [See the demo source code for examples](https://github.com/chr15m/eucalypt/tree/main/demo/).
 
-*What's with the name? Eucalyptus (used in cleaning) looks like a reagent if you squint hard enough.*
+![Test badge](https://github.com/chr15m/eucalypt/actions/workflows/ci.yml/badge.svg)
+
+[Use](#use) | [Bugs](#bugs) | [Dev](#dev) | [Tests](#tests) | [Build](#build) | [Use of AI](#use-of-ai) | [Mr Clean](#mr-clean-original-readme)
+
+## Use
+
+Install with npm:
+
+```
+npm i eucalypt
+```
+
+Use it in your Squint cljs script like this:
+
+```
+(ns my-app
+  (:require
+    [eucalypt :as r]))
+
+(defonce state (r/atom {}))
+
+(defn component:main [state]
+  [:<>
+    [:p "Hello world!"]
+    [:pre (pr-str @state)]])
+
+(r/render
+  [component:main state]
+  (js/document.getElementById "app"))
+```
+
+## Bugs
+
+If you find an example form-1 or form-2 component that works in Reagent but doesn't work with Eucalypt, please create a failing test case in the `tests/src` folder, and raise a PR.
 
 ## Dev
 
@@ -30,6 +67,18 @@ npm run test
 ```
 npm run build
 ```
+
+## Use of AI
+
+Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that has been slop-coded with AI into compiling with Squint.
+
+Slop-coded means this library was built by 1. creating failing test cases 2. using an LLM to fix the code until all tests pass.
+If you're uncomfortable with this method of development, which involves less human oversight, then you may not want to use this library.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+What's with the name? Eucalyptus oil (sometimes used in cleaning) looks like a reagent if you squint hard enough.
+
+---
 
 ## Mr Clean (original README)
 
