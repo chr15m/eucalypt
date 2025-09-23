@@ -150,13 +150,6 @@
       (aset f "_eucalypt_id" new-id)
       new-id)))
 
-#_ (defn- get-or-create-component-instance-id [component-vec]
-  (if-let [id (aget component-vec "_eucalypt_instance_id")]
-    id
-    (let [new-id (str "instance_" (random-uuid))]
-      (aset component-vec "_eucalypt_instance_id" new-id)
-      new-id)))
-
 (defn normalize-component [component]
   (log "normalize-component called with:" component)
   (log "normalize-component: component metadata:" (meta component))
