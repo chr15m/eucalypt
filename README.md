@@ -11,7 +11,7 @@ Eucalypt is itself very small and fits in a single cljs file.
 
 <!-- end-about -->
 
-- **[Try the demo](https://chr15m.github.io/eucalypt/)** - a single HTML file artifact gzipped to ~10k.
+- **[Try the demo](https://chr15m.github.io/eucalypt/)** - a single HTML file artifact gzipped to ~15k.
 - [See the demo source code for examples](https://github.com/chr15m/eucalypt/tree/main/src/demo/).
 - [Check out the tests](https://github.com/chr15m/eucalypt/tree/main/src/test/src/)
 - ![Test badge](https://github.com/chr15m/eucalypt/actions/workflows/ci.yml/badge.svg)
