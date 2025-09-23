@@ -8,12 +8,12 @@
     "build": "npm run demo:build; npm run dist:build",
     "clean": "find . -name '*.mjs' -not -path './node_modules/*' -delete",
     "dev": "npm run demo:dev",
-    "test": "npm run test:compile && vitest run --config test/vitest.config.js",
-    "demo:build": "cd demo && squint compile && vite build && SRC=small.html vite build",
+    "test": "npm run test:compile && vitest run --config src/test/vitest.config.js",
+    "demo:build": "cd src/demo && squint compile && vite build && SRC=small.html vite build",
     "dist:build": "cd src && squint compile",
-    "demo:watch": "cd demo && squint watch",
-    "demo:dev": "concurrently \"npm run demo:watch\" \"vite demo --port 8000\"",
-    "test:compile": "cd test && squint compile && cd .."
+    "demo:watch": "cd src/demo && squint watch",
+    "demo:dev": "concurrently \"npm run demo:watch\" \"vite src/demo --port 8000\"",
+    "test:compile": "cd src/test && squint compile"
   },
   "dependencies": {
     "es-toolkit": "1.39.10"

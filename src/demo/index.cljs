@@ -1,6 +1,6 @@
 (ns index
   (:require
-    ["../README.md?raw" :as readme]
+    ["../../README.md?raw" :as readme]
     [eucalypt :as r]
     [clojure.string :as string]))
 

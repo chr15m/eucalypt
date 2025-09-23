@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [viteSingleFile({ removeViteModuleLoader: true })],
   build: {
     // minify: "terser", // slightly smaller
-    outDir: "../docs",
+    outDir: "../../docs",
     emptyOutDir: false,
     rollupOptions: {
       input: {
