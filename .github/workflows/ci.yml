@@ -73,7 +73,10 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git fetch
+          git add test-results.md test-badge.svg
+          git stash
           git checkout build
+          git checkout stash@{0} -- test-results.md test-badge.svg
           git add test-results.md test-badge.svg
           if git diff-index --quiet --cached HEAD; then
             echo "No changes to commit"
