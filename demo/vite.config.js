@@ -1,10 +1,17 @@
-import { defineConfig } from 'vite'
-import { viteSingleFile } from 'vite-plugin-singlefile'
+import { env } from "process"
+import { defineConfig } from "vite"
+import { viteSingleFile } from "vite-plugin-singlefile"
 
 export default defineConfig({
-  plugins: [viteSingleFile()],
+  plugins: [viteSingleFile({ removeViteModuleLoader: true })],
   build: {
-    outDir: '../doc',
+    // minify: "terser", // slightly smaller
+    outDir: "../docs",
     emptyOutDir: false,
+    rollupOptions: {
+      input: {
+        "index": env["SRC"] || "index.html"
+      }
+    }
   }
 })
