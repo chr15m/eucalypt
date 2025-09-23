@@ -46,7 +46,8 @@ jobs:
         with:
           label: 'Tests'
           status: '${{ env.PASSED }}/${{ env.TOTAL }} passing'
-          color: ${{ env.PASSED == env.TOTAL && env.TOTAL > 0 && 'brightgreen' || 'red' }}
+          color: ${{ env.PASSED == env.TOTAL && env.TOTAL > 0 && 'green' || 'red' }}
+          label-color: 'grey'
           style: 'flat'
           path: 'test-badge.svg'
 
