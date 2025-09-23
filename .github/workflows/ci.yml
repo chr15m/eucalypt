@@ -30,4 +30,53 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:ci
+
+      - name: Generate test report
+        if: always()
+        id: test-report
+        run: |
+          bash src/test/gen-test-report.sh test-results.json
+          PASSED=$(jq '.numPassedTests' test-results.json)
+          TOTAL=$(jq '.numTotalTests' test-results.json)
+          echo "PASSED=${PASSED:-0}" >> $GITHUB_ENV
+          echo "TOTAL=${TOTAL:-0}" >> $GITHUB_ENV
+
+      - name: Generate badge
+        if: always()
+        uses: emibcn/badge-action@v2.0.3
+        with:
+          label: 'Tests'
+          status: '${{ env.PASSED }}/${{ env.TOTAL }} passing'
+          color: ${{ env.PASSED == env.TOTAL && env.TOTAL > 0 && 'brightgreen' || 'red' }}
+          style: 'flat'
+          path: 'test-badge.svg'
+
+      - name: Upload badge artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-badge
+          path: test-badge.svg
+
+      - name: Upload test results artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.md
+
+      - name: Commit results
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git fetch
+          git checkout build
+          git add test-results.md test-badge.svg
+          if git diff-index --quiet --cached HEAD; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update test results and badge"
+            git push origin build
+          fi
