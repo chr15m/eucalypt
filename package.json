@@ -1,8 +1,8 @@
 {
   "name": "eucalypt",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "exports": "./eucalypt.mjs",
-  "description": "Reagent compatibale-ish Squint-cljs library with no React. Builds tiny frontends.",
+  "description": "Reagent compatible-ish Squint-cljs library with no React. Builds tiny frontends.",
   "type": "module",
   "scripts": {
     "build": "npm run demo:build; npm run dist:build",
@@ -26,5 +26,9 @@
     "vite": "7.1.2",
     "vite-plugin-singlefile": "2.3.0",
     "vitest": "3.2.4"
-  }
+  },
+  "files": [
+    "README.md",
+    "eucalypt.mjs"
+  ]
 }
