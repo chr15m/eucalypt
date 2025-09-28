@@ -3,6 +3,7 @@
 - [ ] Tests for r/cursor and r/reaction
 - [ ] Run tests in Scittle/Reagent and compare outputs.
 - [ ] Support top level component that isn't a function.
+- [ ] Test & Demo JavaScript use of the library
 
 - [ ] r/with-let
 - [ ] Remove clear-component-instances! from tests
