@@ -106,9 +106,12 @@
         (aset element "style" (style-map->css-str v)))
 
       (= :class k)
-      (if (or (nil? v) (= "" v))
-        (.removeAttribute element "class")
-        (.setAttribute element "class" v))
+      (let [class-val (if (and (sequential? v) (not (string? v)))
+                        (.join (vec (remove nil? v)) " ")
+                        v)]
+        (if (or (nil? class-val) (= "" class-val))
+          (.removeAttribute element "class")
+          (.setAttribute element "class" class-val)))
 
       (or (= :checked k) (= :selected k))
       (when (some? v)
@@ -441,9 +444,12 @@
               (cond
                 (= :value k) nil ;; handled in patch
                 (= :class k)
-                (if (or (nil? v) (= "" v))
-                  (.removeAttribute dom-a "class")
-                  (.setAttribute dom-a "class" v))
+                (let [class-val (if (and (sequential? v) (not (string? v)))
+                                  (.join (vec (remove nil? v)) " ")
+                                  v)]
+                  (if (or (nil? class-val) (= "" class-val))
+                    (.removeAttribute dom-a "class")
+                    (.setAttribute dom-a "class" class-val)))
                 (or (= :checked k) (= :selected k))
                 (aset dom-a k v)
 

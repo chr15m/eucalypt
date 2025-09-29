@@ -1,4 +1,3 @@
-- [ ] Classes from vec
 - [ ] :div#hi.hello style shorthand
 - [ ] Tests for r/cursor and r/reaction
 - [ ] Run tests in Scittle/Reagent and compare outputs.
@@ -13,6 +12,7 @@
 
 # Done
 
+- [x] Classes from vec
 - [x] Kuro neko bug still there
 - [x] Change the name of ratom to atom
 - [x] Tests

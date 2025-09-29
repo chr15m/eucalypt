@@ -76,3 +76,48 @@
           (.appendChild js/document.body container)
           (r/render [lister ["one" "two" "three"]] container)
           (th/assert-equal (.-innerHTML container) "<ul><li>one</li><li>two</li><li>three</li></ul>"))))))
+
+;;; Class attribute handling
+(describe "Class attribute handling"
+  (fn []
+    (it "should handle a vector of strings"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:class ["class1" "class2"]}] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"class1 class2\"></div>"))))
+
+    (it "should handle a vector of keywords"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:class [:class1 :class2]}] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"class1 class2\"></div>"))))
+
+    (it "should handle a vector of mixed strings and keywords"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:class ["class1" :class2]}] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"class1 class2\"></div>"))))
+
+    (it "should handle a vector with nil values"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:class ["class1" nil "class2"]}] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"class1 class2\"></div>"))))
+
+    (it "should handle an empty vector"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:class []}] container)
+          (th/assert-equal (.-innerHTML container) "<div></div>"))))
+
+    (it "should handle a vector with only nil values"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:class [nil nil]}] container)
+          (th/assert-equal (.-innerHTML container) "<div></div>"))))))
