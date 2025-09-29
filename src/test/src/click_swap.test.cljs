@@ -7,31 +7,24 @@
   (fn []
     (set! (.-innerHTML js/document.body) "")))
 
-(def state (r/atom {:items [1 nil 3]}))
-
-(defn handle-click []
-  (swap! state assoc-in [:items 1] 2))
+(def state (r/atom nil))
 
 (defn test-component []
   [:div
-   [:button {:on-click handle-click} "Click Me"]
-   [:div
-    (for [item (:items @state)]
-      (when item
-        [:p (str "Item " item)]))]])
+   [:button {:on-click #(swap! state update :counter (fnil inc 0))} "inc"]
+   [:p (pr-str @state)]])
 
-(describe "Click Swap bug"
+(describe "Click Swap with nil atom"
   (fn []
-    (it "should not crash when swapping item"
+    (it "should update nil atom correctly"
       (fn []
-        (reset! state {:items [1 nil 3]})
+        (reset! state nil)
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [test-component] container)
 
           (let [button (.querySelector container "button")]
             (.click button)
-            ;; The test passes if it doesn't crash.
-            (let [ps (.querySelectorAll container "p")]
-              (th/assert-equal (.-length ps) 3)
-              (th/assert-equal (.-textContent (aget ps 1)) "Item 2"))))))))
+            (th/assert-equal @state {:counter 1})
+            (let [p (.querySelector container "p")]
+              (th/assert-equal (.-textContent p) "{\"counter\":1}"))))))))
