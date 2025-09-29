@@ -21,13 +21,13 @@ Eucalypt is itself very small and fits in a single cljs file.
 
 Install with npm:
 
-```
+```shell
 npm i eucalypt
 ```
 
 Use it in your Squint cljs script like this:
 
-```
+```clojure
 (ns my-app
   (:require
     [eucalypt :as r]))
@@ -50,20 +50,20 @@ If you find an example form-1 or form-2 component that works in Reagent but does
 
 ## Dev
 
-```
+```shell
 pnpm i
 npm run dev
 ```
 
 ## Tests
 
-```
+```shell
 npm run test
 ```
 
 ## Build
 
-```
+```shell
 npm run build
 ```
 
