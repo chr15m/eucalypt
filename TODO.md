@@ -1,11 +1,11 @@
+- [ ] Create a create script for npm init.
+- [ ] Support :onClick as well as :on-click.
 - [ ] Tests for r/cursor and r/reaction
 - [ ] Run tests in Scittle/Reagent and compare outputs.
 - [ ] Support top level component that isn't a function.
-- [ ] Test & Demo JavaScript use of the library
-- [ ] Re-export stuff to make interop with JS better?
 
 - [ ] r/with-let
-- [ ] r/create-ref?
+- [ ] Re-export stuff to make interop with JS better?
 - [ ] Remove clear-component-instances! from tests (make it reentrant)
 - [ ] Remove ^:dynamic defs
 - [ ] Remove circularity and 'declare's from eucalypt.cljs
@@ -13,6 +13,7 @@
 
 # Done
 
+- [x] Test & Demo JavaScript use of the library. (thx bordude)
 - [x] :div#hi.hello style shorthand
 - [x] Classes from vec
 - [x] Kuro neko bug still there
