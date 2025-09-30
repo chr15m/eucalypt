@@ -4,7 +4,7 @@ Eucalypt is a frontend library for [Squint ClojureScript](https://github.com/squ
 It replaces [Reagent & React](https://reagent-project.github.io/) with a compatible-ish subset of the Reagent API.
 It supports form-1 and form-2 Reagent components.
 
-The goal is to build very small frontend artifacts (<10k) using "Reagent" and "ClojureScript" (if you squint hard enough).
+The goal is to build very small frontend artifacts (~10k) using "Reagent" and "ClojureScript" (if you squint hard enough).
 It's suitable for small pieces of one-off frontend code that do something simple, not large production web apps.
 The examples from the Reagent homepage have been ported and work with Eucalypt.
 Eucalypt is itself very small and fits in a single cljs file.
@@ -82,6 +82,7 @@ Eucalypt gotchas:
 - Not currently reentrant. State is shared globally.
 - The only well-tested API is `r/atom` and `r/render`.
 - Lots and lots of other weirdness and edge cases for sure.
+- [It's slop code](#use-of-ai).
 
 Some things to watch out for when using Squint, which I ran into building this:
 
