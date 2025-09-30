@@ -2,9 +2,11 @@
 - [ ] Run tests in Scittle/Reagent and compare outputs.
 - [ ] Support top level component that isn't a function.
 - [ ] Test & Demo JavaScript use of the library
+- [ ] Re-export stuff to make interop with JS better?
 
 - [ ] r/with-let
-- [ ] Remove clear-component-instances! from tests
+- [ ] r/create-ref?
+- [ ] Remove clear-component-instances! from tests (make it reentrant)
 - [ ] Remove ^:dynamic defs
 - [ ] Remove circularity and 'declare's from eucalypt.cljs
 - [ ] Deprecate old lifecycle methods?
