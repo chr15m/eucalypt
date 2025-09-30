@@ -44,6 +44,33 @@ Use it in your Squint cljs script like this:
   (js/document.getElementById "app"))
 ```
 
+#### Use in JavaScript
+
+Thanks to @borkdude for [this example](https://codepen.io/borkdude/pen/OPMNvwa).
+
+```javascript
+import { render, atom } from "https://esm.sh/eucalypt";
+import { deref, swap_BANG_, update_in } from "https://esm.sh/squint-cljs/core.js";
+
+const swap = swap_BANG_;
+
+const state = atom({counter: 0});
+
+function myComponent () {
+ return ["<>",
+          ["div", "Hello world"],
+          ["div", "Counter: ", deref(state).counter],
+          ["button", {"on-click": () => {
+            console.log('clock')
+            swap(state, update_in, ["counter"], (x) => x + 1);           
+            }
+          }, "inc"]
+        ];
+}
+
+render([myComponent], document.getElementById("app"))
+```
+
 ## Bugs
 
 If you find an example form-1 or form-2 component that works in Reagent but doesn't work with Eucalypt, please create a failing test case in the `tests/src` folder, and raise a PR.
