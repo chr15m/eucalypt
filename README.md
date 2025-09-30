@@ -15,7 +15,7 @@ Eucalypt is itself very small and fits in a single cljs file.
 - [See the demo source code for examples](https://github.com/chr15m/eucalypt/tree/main/src/demo/).
 - [![Latest test Results](https://raw.githubusercontent.com/chr15m/eucalypt/build/test-badge.svg)](https://github.com/chr15m/eucalypt/blob/build/test-results.md) [Tests source code](https://github.com/chr15m/eucalypt/tree/main/src/test/src/)
 
-[Use](#use) | [Bugs](#bugs) | [Dev](#dev) | [Tests](#tests) | [Build](#build) | [Use of AI](#use-of-ai) | [Mr Clean](#mr-clean-original-readme)
+[Use](#use) | [Bugs](#bugs) | [Gotchas](#gotchas) | [Dev](#dev) | [Tests](#tests) | [Build](#build) | [Use of AI](#use-of-ai) | [Mr Clean](#mr-clean-original-readme)
 
 ## Use
 
@@ -74,6 +74,15 @@ render([myComponent], document.getElementById("app"))
 ## Bugs
 
 If you find an example form-1 or form-2 component that works in Reagent but doesn't work with Eucalypt, please create a failing test case in the `tests/src` folder, and raise a PR.
+
+## Gotchas
+
+Some things to watch out for when using Squint, which I ran into:
+
+- Keywords are just strings. No `keyword`, `name` etc.
+- No `binding`.
+- No `sorted-hashmap`.
+- `(get {} :a)` evaluates to `undefined` not `nil` which breaks some `swap!`'s.
 
 ## Dev
 
