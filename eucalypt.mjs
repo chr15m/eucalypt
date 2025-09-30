@@ -160,19 +160,26 @@ if (("style") === (k6)) {
 if (squint_core.truth_(squint_core.some_QMARK_(v7))) {
 (element["style"] = style_map__GT_css_str(v7))}} else {
 if (("class") === (k6)) {
+const class_val9 = ((squint_core.truth_((() => {
+const and__23207__auto__10 = squint_core.sequential_QMARK_(v7);
+if (squint_core.truth_(and__23207__auto__10)) {
+return squint_core.not(squint_core.string_QMARK_(v7))} else {
+return and__23207__auto__10};
+
+})())) ? (squint_core.vec(squint_core.remove(squint_core.nil_QMARK_, v7)).join(" ")) : (v7));
 if (squint_core.truth_((() => {
-const or__23198__auto__9 = (v7 == null);
-if (or__23198__auto__9) {
-return or__23198__auto__9} else {
-return ("") === (v7)};
+const or__23198__auto__11 = (class_val9 == null);
+if (or__23198__auto__11) {
+return or__23198__auto__11} else {
+return ("") === (class_val9)};
 
 })())) {
 element.removeAttribute("class")} else {
-element.setAttribute("class", v7)}} else {
+element.setAttribute("class", class_val9)}} else {
 if (squint_core.truth_((() => {
-const or__23198__auto__10 = ("checked") === (k6);
-if (or__23198__auto__10) {
-return or__23198__auto__10} else {
+const or__23198__auto__12 = ("checked") === (k6);
+if (or__23198__auto__12) {
+return or__23198__auto__12} else {
 return ("selected") === (k6)};
 
 })())) {
@@ -185,49 +192,114 @@ element.setAttributeNS(null, k6, v7)}} else {
 }return null;
 
 };
+var parse_tag = function (tag) {
+const tag_str10 = squint_core.str(tag);
+const vec__111 = tag_str10.split("#", 2);
+const before_hash12 = squint_core.nth(vec__111, 0, null);
+const after_hash13 = squint_core.nth(vec__111, 1, null);
+const vec__414 = before_hash12.split(/\./);
+const seq__515 = squint_core.seq(vec__414);
+const first__616 = squint_core.first(seq__515);
+const seq__517 = squint_core.next(seq__515);
+const tag_name_str18 = first__616;
+const classes_from_before_hash19 = seq__517;
+const tag_name20 = ((squint_core.truth_(squint_core.empty_QMARK_(tag_name_str18))) ? ("div") : (tag_name_str18));
+const vec__721 = ((squint_core.truth_(after_hash13)) ? (after_hash13.split(/\./)) : ([]));
+const seq__822 = squint_core.seq(vec__721);
+const first__923 = squint_core.first(seq__822);
+const seq__824 = squint_core.next(seq__822);
+const id25 = first__923;
+const classes_from_after_hash26 = seq__824;
+const all_classes27 = squint_core.vec(squint_core.remove(squint_core.empty_QMARK_, squint_core.concat(classes_from_before_hash19, classes_from_after_hash26)));
+return ({ "tag-name": tag_name20, "id": id25, "classes": ((squint_core.truth_(squint_core.seq(all_classes27))) ? (all_classes27) : (null)) });
+
+};
+var parse_hiccup = function (hiccup) {
+const vec__15 = hiccup;
+const seq__26 = squint_core.seq(vec__15);
+const first__37 = squint_core.first(seq__26);
+const seq__28 = squint_core.next(seq__26);
+const tag_keyword9 = first__37;
+const content10 = seq__28;
+const map__411 = parse_tag(tag_keyword9);
+const tag_name12 = squint_core.get(map__411, "tag-name");
+const id13 = squint_core.get(map__411, "id");
+const classes14 = squint_core.get(map__411, "classes");
+const attrs_from_hiccup15 = ((squint_core.truth_(squint_core.map_QMARK_(squint_core.first(content10)))) ? (squint_core.first(content10)) : (({  })));
+const final_id16 = (() => {
+const or__23198__auto__17 = squint_core.get(attrs_from_hiccup15, "id");
+if (squint_core.truth_(or__23198__auto__17)) {
+return or__23198__auto__17} else {
+return id13};
+
+})();
+const class_from_hiccup18 = squint_core.get(attrs_from_hiccup15, "class");
+const all_classes19 = (() => {
+const tag_classes20 = (() => {
+const or__23198__auto__21 = classes14;
+if (squint_core.truth_(or__23198__auto__21)) {
+return or__23198__auto__21} else {
+return []};
+
+})();
+const attr_classes22 = (((class_from_hiccup18 == null)) ? ([]) : (((squint_core.truth_(squint_core.string_QMARK_(class_from_hiccup18))) ? ([class_from_hiccup18]) : (((squint_core.truth_((() => {
+const and__23207__auto__23 = squint_core.sequential_QMARK_(class_from_hiccup18);
+if (squint_core.truth_(and__23207__auto__23)) {
+return squint_core.not(squint_core.string_QMARK_(class_from_hiccup18))} else {
+return and__23207__auto__23};
+
+})())) ? (squint_core.vec(class_from_hiccup18)) : ((("else") ? ([class_from_hiccup18]) : (null))))))));
+const combined24 = squint_core.vec(squint_core.concat(tag_classes20, attr_classes22));
+if (squint_core.truth_(squint_core.seq(combined24))) {
+return combined24;
+};
+
+})();
+const attrs_with_id25 = ((squint_core.truth_(final_id16)) ? (squint_core.assoc(attrs_from_hiccup15, "id", final_id16)) : (attrs_from_hiccup15));
+const final_attrs26 = ((squint_core.truth_(squint_core.some_QMARK_(all_classes19))) ? (squint_core.assoc(attrs_with_id25, "class", all_classes19)) : (squint_core.dissoc(attrs_with_id25, "class")));
+const final_content27 = ((squint_core.truth_(squint_core.map_QMARK_(squint_core.first(content10)))) ? (squint_core.rest(content10)) : (content10));
+return ({ "tag-name": tag_name12, "attrs": final_attrs26, "content": final_content27 });
+
+};
 var create_element = function (hiccup) {
-const vec__14 = hiccup;
-const seq__25 = squint_core.seq(vec__14);
-const first__36 = squint_core.first(seq__25);
-const seq__27 = squint_core.next(seq__25);
-const tag8 = first__36;
-const content9 = seq__27;
-const attrs10 = ((squint_core.truth_(squint_core.map_QMARK_(squint_core.first(content9)))) ? (squint_core.first(content9)) : (({  })));
-const value11 = squint_core.get(attrs10, "value");
-const attrs_without_value12 = squint_core.dissoc(attrs10, "value");
-const content13 = ((squint_core.truth_(squint_core.map_QMARK_(squint_core.first(content9)))) ? (squint_core.rest(content9)) : (content9));
-const old_ns14 = _STAR_xml_ns_STAR_;
-const new_ns15 = ((("svg") === (tag8)) ? ("http://www.w3.org/2000/svg") : (old_ns14));
-const element16 = document.createElementNS(new_ns15, tag8);
+const map__12 = parse_hiccup(hiccup);
+const tag_name3 = squint_core.get(map__12, "tag-name");
+const attrs4 = squint_core.get(map__12, "attrs");
+const content5 = squint_core.get(map__12, "content");
+const value6 = squint_core.get(attrs4, "value");
+const attrs_without_value7 = squint_core.dissoc(attrs4, "value");
+const old_ns8 = _STAR_xml_ns_STAR_;
+const new_ns9 = ((("svg") === (tag_name3)) ? ("http://www.w3.org/2000/svg") : (old_ns8));
+const element10 = document.createElementNS(new_ns9, tag_name3);
 return (() => {
 try{
-_STAR_xml_ns_STAR_ = new_ns15;
-set_attributes_BANG_(element16, attrs_without_value12);
-for (let G__17 of squint_core.iterable(content13)) {
-const child18 = G__17;
-const temp__22825__auto__19 = hiccup__GT_dom(child18);
-if (squint_core.truth_(temp__22825__auto__19)) {
-const child_node20 = temp__22825__auto__19;
-element16.appendChild(child_node20)}
+_STAR_xml_ns_STAR_ = new_ns9;
+set_attributes_BANG_(element10, attrs_without_value7);
+for (let G__11 of squint_core.iterable(content5)) {
+const child12 = G__11;
+const temp__22825__auto__13 = hiccup__GT_dom(child12);
+if (squint_core.truth_(temp__22825__auto__13)) {
+const child_node14 = temp__22825__auto__13;
+element10.appendChild(child_node14)}
 };
-if (squint_core.truth_(squint_core.some_QMARK_(value11))) {
+if (squint_core.truth_(squint_core.some_QMARK_(value6))) {
 if (squint_core.truth_((() => {
-const and__23207__auto__21 = (element16.tagName) === ("SELECT");
-if (and__23207__auto__21) {
-return element16.multiple} else {
-return and__23207__auto__21};
+const and__23207__auto__15 = (element10.tagName) === ("SELECT");
+if (and__23207__auto__15) {
+return element10.multiple} else {
+return and__23207__auto__15};
 
 })())) {
-const value_set22 = squint_core.set(value11);
-for (let G__23 of squint_core.iterable(element16.options)) {
-const opt24 = G__23;
-(opt24["selected"] = squint_core.contains_QMARK_(value_set22, opt24.value))
+const value_set16 = squint_core.set(value6);
+for (let G__17 of squint_core.iterable(element10.options)) {
+const opt18 = G__17;
+(opt18["selected"] = squint_core.contains_QMARK_(value_set16, opt18.value))
 }} else {
-(element16["value"] = value11)}};
-return element16;
+(element10["value"] = value6)}};
+return element10;
 }
 finally{
-_STAR_xml_ns_STAR_ = old_ns14}
+_STAR_xml_ns_STAR_ = old_ns8}
 
 })();
 
@@ -635,19 +707,26 @@ log("patch-attributes: updating attribute", k20, "from", old_v23, "to", v21, "on
 if (("value") === (k20)) {
 } else {
 if (("class") === (k20)) {
+const class_val24 = ((squint_core.truth_((() => {
+const and__23207__auto__25 = squint_core.sequential_QMARK_(v21);
+if (squint_core.truth_(and__23207__auto__25)) {
+return squint_core.not(squint_core.string_QMARK_(v21))} else {
+return and__23207__auto__25};
+
+})())) ? (squint_core.vec(squint_core.remove(squint_core.nil_QMARK_, v21)).join(" ")) : (v21));
 if (squint_core.truth_((() => {
-const or__23198__auto__24 = (v21 == null);
-if (or__23198__auto__24) {
-return or__23198__auto__24} else {
-return ("") === (v21)};
+const or__23198__auto__26 = (class_val24 == null);
+if (or__23198__auto__26) {
+return or__23198__auto__26} else {
+return ("") === (class_val24)};
 
 })())) {
 dom_a.removeAttribute("class")} else {
-dom_a.setAttribute("class", v21)}} else {
+dom_a.setAttribute("class", class_val24)}} else {
 if (squint_core.truth_((() => {
-const or__23198__auto__25 = ("checked") === (k20);
-if (or__23198__auto__25) {
-return or__23198__auto__25} else {
+const or__23198__auto__27 = ("checked") === (k20);
+if (or__23198__auto__27) {
+return or__23198__auto__27} else {
 return ("selected") === (k20)};
 
 })())) {
@@ -655,8 +734,8 @@ return ("selected") === (k20)};
 if ("else") {
 if ((v21 == null)) {
 dom_a.removeAttribute(k20)} else {
-const val_str26 = (((k20) === ("style")) ? (style_map__GT_css_str(v21)) : (v21));
-dom_a.setAttributeNS(null, k20, val_str26)}} else {
+const val_str28 = (((k20) === ("style")) ? (style_map__GT_css_str(v21)) : (v21));
+dom_a.setAttributeNS(null, k20, val_str28)}} else {
 }}}}}}}
 }return null;
 
