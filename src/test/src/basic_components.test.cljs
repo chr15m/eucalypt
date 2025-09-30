@@ -121,3 +121,69 @@
           (.appendChild js/document.body container)
           (r/render [:div {:class [nil nil]}] container)
           (th/assert-equal (.-innerHTML container) "<div></div>"))))))
+
+;;; Hiccup tag decorators
+(describe "Hiccup tag decorators"
+  (fn []
+    (it "should handle a single class decorator"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div.my-class] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"my-class\"></div>"))))
+
+    (it "should handle multiple class decorators"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div.class1.class2] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"class1 class2\"></div>"))))
+
+    (it "should handle an id decorator"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div#my-id] container)
+          (th/assert-equal (.-innerHTML container) "<div id=\"my-id\"></div>"))))
+
+    (it "should handle both id and class decorators"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div#my-id.my-class] container)
+          (th/assert-equal (.-innerHTML container) "<div id=\"my-id\" class=\"my-class\"></div>"))))
+
+    (it "should merge class decorator with :class string attribute"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div.class1 {:class "class2"}] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"class1 class2\"></div>"))))
+
+    (it "should merge class decorator with :class vector attribute"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div.class1 {:class ["class2" "class3"]}] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"class1 class2 class3\"></div>"))))
+
+    (it "should give :id attribute precedence over id decorator"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div#id-from-tag {:id "id-from-attr"}] container)
+          (th/assert-equal (.-innerHTML container) "<div id=\"id-from-attr\"></div>"))))
+
+    (it "should handle complex precedence"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div#id-from-tag.class-from-tag {:id "id-from-attr" :class "class-from-attr"}] container)
+          (th/assert-equal (.-innerHTML container) "<div id=\"id-from-attr\" class=\"class-from-tag class-from-attr\"></div>"))))
+
+    (it "should default to div for class-only decorator"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:.my-class] container)
+          (th/assert-equal (.-innerHTML container) "<div class=\"my-class\"></div>"))))))

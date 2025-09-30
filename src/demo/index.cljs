@@ -195,6 +195,11 @@
    "Here is a list:"
    [lister (range 3)]])
 
+(defn decorated-component []
+  [:div#main.container
+   [:h1.title "Decorated Component"]
+   [:p "This component uses ID and class decorators."]])
+
 (defn basic-tests-page []
   [:div
    [:h1 "Basic Tests"]
@@ -208,7 +213,10 @@
    [say-hello]
    [:hr]
    [:h2 "lister-user (lister)"]
-   [lister-user]])
+   [lister-user]
+   [:hr]
+   [:h2 "Decorated Component"]
+   [decorated-component]])
 
 (defn ref-test-page []
   (js/console.log "ref-test-page render fn called")

@@ -121,15 +121,45 @@
       (when (some? v)
         (.setAttributeNS element nil k v)))))
 
+(defn- parse-tag [tag]
+  (let [tag-str (str tag)
+        [before-hash after-hash] (.split tag-str "#" 2)
+        [tag-name-str & classes-from-before-hash] (.split before-hash #"\.")
+        tag-name (if (empty? tag-name-str) "div" tag-name-str)
+        [id & classes-from-after-hash] (if after-hash (.split after-hash #"\.") [])
+        all-classes (vec (remove empty? (concat classes-from-before-hash classes-from-after-hash)))]
+    {:tag-name tag-name
+     :id id
+     :classes (when (seq all-classes) all-classes)}))
+
+(defn- parse-hiccup [hiccup]
+  (let [[tag-keyword & content] hiccup
+        {:keys [tag-name id classes]} (parse-tag tag-keyword)
+        attrs-from-hiccup (if (map? (first content)) (first content) {})
+        final-id (or (:id attrs-from-hiccup) id)
+        class-from-hiccup (:class attrs-from-hiccup)
+        all-classes (let [tag-classes (or classes [])
+                          attr-classes (cond
+                                         (nil? class-from-hiccup) []
+                                         (string? class-from-hiccup) [class-from-hiccup]
+                                         (and (sequential? class-from-hiccup) (not (string? class-from-hiccup))) (vec class-from-hiccup)
+                                         :else [class-from-hiccup])
+                          combined (vec (concat tag-classes attr-classes))]
+                      (when (seq combined) combined))
+        attrs-with-id (if final-id (assoc attrs-from-hiccup :id final-id) attrs-from-hiccup)
+        final-attrs (if (some? all-classes) (assoc attrs-with-id :class all-classes) (dissoc attrs-with-id :class))
+        final-content (if (map? (first content)) (rest content) content)]
+    {:tag-name tag-name
+     :attrs final-attrs
+     :content final-content}))
+
 (defn- create-element [hiccup]
-  (let [[tag & content] hiccup
-        attrs (if (map? (first content)) (first content) {})
+  (let [{:keys [tag-name attrs content]} (parse-hiccup hiccup)
         value (:value attrs)
         attrs-without-value (dissoc attrs :value)
-        content (if (map? (first content)) (rest content) content)
         old-ns *xml-ns*
-        new-ns (if (= :svg tag) "http://www.w3.org/2000/svg" old-ns)
-        element (.createElementNS js/document new-ns tag)]
+        new-ns (if (= "svg" tag-name) "http://www.w3.org/2000/svg" old-ns)
+        element (.createElementNS js/document new-ns tag-name)]
     (try
       (set! *xml-ns* new-ns)
       (set-attributes! element attrs-without-value)

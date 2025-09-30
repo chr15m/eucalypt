@@ -1,4 +1,3 @@
-- [ ] :div#hi.hello style shorthand
 - [ ] Tests for r/cursor and r/reaction
 - [ ] Run tests in Scittle/Reagent and compare outputs.
 - [ ] Support top level component that isn't a function.
@@ -12,6 +11,7 @@
 
 # Done
 
+- [x] :div#hi.hello style shorthand
 - [x] Classes from vec
 - [x] Kuro neko bug still there
 - [x] Change the name of ratom to atom
