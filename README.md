@@ -77,12 +77,18 @@ If you find an example form-1 or form-2 component that works in Reagent but does
 
 ## Gotchas
 
-Some things to watch out for when using Squint, which I ran into:
+Eucalypt gotchas:
 
-- Keywords are just strings. No `keyword`, `name` etc.
+- Not currently reentrant. State is shared globally.
+- The only well-tested API is `r/atom` and `r/render`.
+- Lots and lots of other weirdness and edge cases for sure.
+
+Some things to watch out for when using Squint, which I ran into building this:
+
+- Keywords are just strings. No `keyword?`, `name` etc.
 - No `binding`.
 - No `sorted-hashmap`.
-- `(get {} :a)` evaluates to `undefined` not `nil` which breaks some `swap!`'s.
+- `(get {} :a)` evaluates to `undefined` not `nil` which can break `assoc`, `update` and friends on `nil`.
 
 ## Dev
 
