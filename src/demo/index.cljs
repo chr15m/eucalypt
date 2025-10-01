@@ -1,6 +1,6 @@
 (ns index
   (:require
-    ["../../README.md?raw" :as readme]
+    ["../../README.md?raw$default" :as readme]
     [eucalypt :as r]
     [clojure.string :as string]))
 
@@ -57,6 +57,9 @@
                     (re-find #"^- " line)
                     (str line-with-links "</br>\n")
 
+                    (re-find #"docs/eucalypt.svg" line)
+                    (.replace line "docs/" "")
+
                     ; Lines with links but not starting with dash
                     (re-find #"\[.*?\]\(.*?\)" line)
                     line-with-links
@@ -86,7 +89,6 @@
    [:section
     {:ref #(when %
              (as-> readme doc
-               (.-default doc)
                (.split doc "<!-- end-about -->")
                (first doc)
                (md doc)
