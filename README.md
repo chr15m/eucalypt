@@ -46,6 +46,16 @@ Use it in your Squint cljs script like this:
   (js/document.getElementById "app"))
 ```
 
+There's also a "create" script you can use to bootstrap a Squint, Vite, and Eucalypt project:
+
+```shell
+npm create eucalypt myapp
+cd myapp
+npm i
+npm run watch
+npm run build # <- builds a dist/index.html
+```
+
 #### Use in JavaScript
 
 Thanks to @borkdude for [this example](https://codepen.io/borkdude/pen/OPMNvwa).
