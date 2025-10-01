@@ -1,8 +1,8 @@
 {
   "devDependencies": {
     "concurrently": "^9.2.1",
-    "eucalypt": "^0.0.4",
-    "squint-cljs": "^0.8.154",
+    "eucalypt": "latest",
+    "squint-cljs": "latest",
     "vite": "^7.1.7",
     "vite-plugin-singlefile": "^2.3.0"
   },
