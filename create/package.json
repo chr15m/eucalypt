@@ -2,7 +2,7 @@
   "name": "create-eucalypt",
   "description": "Set up a Eucalypt Squint Cljs project.",
   "repository": "https://github.com/chr15m/eucalypt",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "bin": {
     "create-eucalypt": "index.js"
   },
