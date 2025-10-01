@@ -7,6 +7,7 @@
   "scripts": {
     "build": "npm run demo:build; npm run dist:build",
     "clean": "find . -name '*.mjs' -not -path './node_modules/*' -delete",
+    "watch": "npm run dev",
     "dev": "npm run demo:dev",
     "test": "npm run test:compile && vitest run --config src/test/vitest.config.js",
     "test:ci": "npm run test:compile && vitest run --reporter=default --reporter=json --outputFile=./test-results.json --config src/test/vitest.config.js",
