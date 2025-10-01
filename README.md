@@ -1,5 +1,7 @@
 # Eucalypt
 
+<p align="center" id="logo"><img src="docs/eucalypt.svg" alt="Eucalypt leaf logo" width="128"/></p>
+
 Eucalypt is a frontend library for [Squint ClojureScript](https://github.com/squint-cljs/squint).
 It replaces [Reagent & React](https://reagent-project.github.io/) with a compatible-ish subset of the Reagent API.
 It supports form-1 and form-2 Reagent components.
