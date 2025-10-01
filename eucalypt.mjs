@@ -959,6 +959,138 @@ squint_core.swap_BANG_(all_ratoms, squint_core.assoc, ratom_id4, a1);
 return a1;
 
 };
+var cursor = function (the_ratom, path) {
+const cursors1 = the_ratom["cursors"];
+const found_cursor2 = squint_core.some((function (c) {
+if ((path) === (c["path"])) {
+return c;
+};
+
+}), squint_core.deref(cursors1));
+if ((found_cursor2 == null)) {
+const watchers3 = core_atom(new Set([]));
+const this_cursor4 = squint_core.js_obj("_deref", (function () {
+if (squint_core.truth_(_STAR_watcher_STAR_)) {
+squint_core.swap_BANG_(watchers3, squint_core.conj, _STAR_watcher_STAR_)};
+const old_watcher5 = _STAR_watcher_STAR_;
+return (() => {
+try{
+_STAR_watcher_STAR_ = null;
+return squint_core.get_in(squint_core.deref(the_ratom), path);
+}
+finally{
+_STAR_watcher_STAR_ = old_watcher5}
+
+})();
+
+}), "_swap", (() => {
+const f15 = (function (var_args) {
+const args166 = [];
+const len__23056__auto__7 = arguments.length;
+let i178 = 0;
+while(true){
+if ((i178) < (len__23056__auto__7)) {
+args166.push((arguments[i178]));
+let G__9 = (i178 + 1);
+i178 = G__9;
+continue;
+};break;
+}
+;
+const argseq__23208__auto__10 = (((1) < (args166.length)) ? (args166.slice(1)) : (null));
+return f15.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23208__auto__10);
+
+});
+f15.cljs$core$IFn$_invoke$arity$variadic = (function (f, args) {
+return squint_core.swap_BANG_(the_ratom, (function (current_state) {
+const current_cursor_value11 = squint_core.get_in(current_state, path);
+const new_cursor_value12 = squint_core.apply(f, current_cursor_value11, args);
+return squint_core.assoc_in(current_state, path, new_cursor_value12);
+
+}));
+
+});
+f15.cljs$lang$maxFixedArity = 1;
+return f15;
+
+})(), "watchers", watchers3, "path", path);
+squint_core.swap_BANG_(cursors1, squint_core.conj, this_cursor4);
+return this_cursor4;
+} else {
+return found_cursor2};
+
+};
+var reaction = (() => {
+const f19 = (function (var_args) {
+const args201 = [];
+const len__23056__auto__2 = arguments.length;
+let i213 = 0;
+while(true){
+if ((i213) < (len__23056__auto__2)) {
+args201.push((arguments[i213]));
+let G__4 = (i213 + 1);
+i213 = G__4;
+continue;
+};break;
+}
+;
+const argseq__23208__auto__5 = (((1) < (args201.length)) ? (args201.slice(1)) : (null));
+return f19.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23208__auto__5);
+
+});
+f19.cljs$core$IFn$_invoke$arity$variadic = (function (f, params) {
+const ra6 = ratom(null);
+const watcher7 = (function () {
+return squint_core.reset_BANG_(ra6, squint_core.apply(f, params));
+
+});
+const old_watcher8 = _STAR_watcher_STAR_;
+return (() => {
+try{
+_STAR_watcher_STAR_ = watcher7;
+watcher7();
+const reaction_obj9 = squint_core.js_obj("_deref", (function () {
+return squint_core.deref(ra6);
+
+}), "_swap", (() => {
+const f23 = (function (var_args) {
+const args2410 = [];
+const len__23056__auto__11 = arguments.length;
+let i2512 = 0;
+while(true){
+if ((i2512) < (len__23056__auto__11)) {
+args2410.push((arguments[i2512]));
+let G__13 = (i2512 + 1);
+i2512 = G__13;
+continue;
+};break;
+}
+;
+const argseq__23208__auto__14 = (((0) < (args2410.length)) ? (args2410.slice(0)) : (null));
+return f23.cljs$core$IFn$_invoke$arity$variadic(argseq__23208__auto__14);
+
+});
+f23.cljs$core$IFn$_invoke$arity$variadic = (function (_) {
+throw new Error("Reactions are readonly");
+
+});
+f23.cljs$lang$maxFixedArity = 0;
+return f23;
+
+})());
+(reaction_obj9["watchers"] = ra6["watchers"]);
+return reaction_obj9;
+}
+finally{
+_STAR_watcher_STAR_ = old_watcher8}
+
+})();
+
+});
+f19.cljs$lang$maxFixedArity = 1;
+return f19;
+
+})();
 var render = function (component, container) {
 log("render called with component:", component, "and container:", container);
 const normalized_component1 = normalize_component(component);
@@ -973,4 +1105,4 @@ return squint_core.reset_BANG_(component_instances, ({  }));
 };
 var atom = ratom;
 
-export { unmount_components, hiccup_eq_QMARK_, do_render, _STAR_watcher_STAR_, render_component, mounted_components, _STAR_xml_ns_STAR_, atom, patch, positional_key_counter, ratom, component_instances, all_ratoms, clear_component_instances_BANG_, life_cycle_methods, render, normalize_component, modify_dom, container__GT_mounted_component, hiccup__GT_dom, notify_watchers }
+export { unmount_components, hiccup_eq_QMARK_, do_render, reaction, _STAR_watcher_STAR_, render_component, mounted_components, _STAR_xml_ns_STAR_, atom, cursor, patch, positional_key_counter, ratom, component_instances, all_ratoms, clear_component_instances_BANG_, life_cycle_methods, render, normalize_component, modify_dom, container__GT_mounted_component, hiccup__GT_dom, notify_watchers }
