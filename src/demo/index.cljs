@@ -415,11 +415,42 @@
             :on-input (fn [e]
                         (reset! time-color (.. e -target -value)))}]])
 
+(defn clock-hand [angle length stroke-width color]
+  [:line {:x1 50 :y1 50
+          :x2 (+ 50 (* length (Math/sin (/ (* Math/PI angle) 180))))
+          :y2 (- 50 (* length (Math/cos (/ (* Math/PI angle) 180))))
+          :stroke color
+          :stroke-width stroke-width
+          :stroke-linecap "round"}])
+
+(defn svg-clock []
+  (let [time (r/atom (js/Date.))]
+    (js/setInterval #(reset! time (js/Date.)) 1000)
+    (fn []
+      (let [now @time
+            h (* 30 (+ (.getHours now) (/ (.getMinutes now) 60))) ; hours
+            m (* 6 (.getMinutes now))                                ; minutes
+            s (* 6 (.getSeconds now))]                               ; seconds
+        [:svg {:width 200 :height 200 :viewBox "0 0 100 100"}
+         ;; clock face
+         [:circle {:cx 50 :cy 50 :r 48 :fill "#fff" :stroke "#000"}]
+         ;; hour hand
+         [clock-hand h 25 3 "black"]
+         ;; minute hand
+         [clock-hand m 35 2 "blue"]
+         ;; second hand
+         [clock-hand s 40 1 "red"]
+         ;; center dot
+         [:circle {:cx 50 :cy 50 :r 1.5 :fill "#000"}]]))))
+
+
 (defn clock-page []
   [:div
    [greeting "Hello world, it is now"]
    [clock]
-   [color-input]])
+   [color-input]
+   [:p "Borkdude SVG clock:"]
+   [svg-clock]])
 
 (defn coins []
   [:div {:class "hud"} "🪙 " (:coins @app-state)])
