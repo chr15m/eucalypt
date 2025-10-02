@@ -1,10 +1,10 @@
 (ns eucalypt
   ;(:refer-clojure :exclude [atom])
   (:require
-    ; [clojure.core :refer [atom] :rename {atom core-atom}]
-    ["es-toolkit" :refer [isEqual]]))
+    ["es-toolkit" :refer [isEqual]]
+    ["squint-cljs/core.js" :as squint]))
 
-(def ^:private core-atom atom)
+(def ^:private core-atom squint/atom)
 
 (defn- log [& args]
   (try
