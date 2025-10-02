@@ -5,6 +5,11 @@
 
 (def app-state (r/atom {:page :home}))
 
+(defn- rand
+  "Return a random double in [0.0, n) if n given, else [0.0,1)."
+  ([] (js/Math.random))
+  ([n] (* n (js/Math.random))))
+
 ;;; --- Tic Tac Toe ---
 (defn ttt-new-game []
   {:board (vec (repeat 9 nil))
@@ -109,11 +114,14 @@
 (def snake-game-board
   (let [interval-id (r/atom nil)
         ref-fn (fn [el]
+                 (js/console.log "snake-game-board" el)
                  (if el
                    (when (nil? @interval-id)
+                     (js/console.log "snake-game-board mount")
                      (reset! interval-id (js/setInterval move-snake 200))
                      (.addEventListener js/window "keydown" handle-keydown))
                    (when @interval-id
+                     (js/console.log "snake-game-board unmount")
                      (js/clearInterval @interval-id)
                      (reset! interval-id nil)
                      (.removeEventListener js/window "keydown" handle-keydown))))]
@@ -137,6 +145,82 @@
                                                     :food [15 10]
                                                     :alive? true})} "Restart"]]]))))
 
+;;; --- Game of Life ---
+(def life-size 30)
+(def life-cell 15)
+
+(defn life-random-grid []
+  (vec (for [_y (range life-size)]
+         (vec (for [_x (range life-size)]
+                (if (< (rand) 0.2) 1 0))))))
+
+(defonce life-state
+  (r/atom {:grid (life-random-grid)
+           :running? true}))
+
+(defn life-neighbors [grid x y]
+  (let [coords [[-1 -1] [0 -1] [1 -1]
+                [-1 0]         [1 0]
+                [-1 1]  [0 1]  [1 1]]]
+    (reduce
+      (fn [acc [dx dy]]
+        (let [nx (+ x dx) ny (+ y dy)]
+          (if (and (>= nx 0) (< nx life-size)
+                   (>= ny 0) (< ny life-size))
+            (+ acc (nth (nth grid ny) nx))
+            acc)))
+      0
+      coords)))
+
+(defn life-step [grid]
+  (vec (for [y (range life-size)]
+         (vec (for [x (range life-size)]
+                (let [alive? (= (nth (nth grid y) x) 1)
+                      n (life-neighbors grid x y)]
+                  (cond
+                    (and alive? (or (= n 2) (= n 3))) 1
+                    (and (not alive?) (= n 3)) 1
+                    :else 0)))))))
+
+(defn life-tick []
+  (swap! life-state
+         (fn [{:keys [grid running?] :as st}]
+           (if running?
+             (assoc st :grid (life-step grid))
+             st))))
+
+(defn life-cell-rect [x y alive?]
+  [:rect {:x (* x life-cell) :y (* y life-cell)
+          :width life-cell :height life-cell
+          :fill (if (= alive? 1) "black" "white")
+          :stroke "#ddd"}])
+
+(def game-of-life-board
+  (let [interval-id (r/atom nil)
+        ref-fn (fn [el]
+                 (if el
+                   (when (nil? @interval-id)
+                     (reset! interval-id (js/setInterval life-tick 200)))
+                   (when @interval-id
+                     (js/clearInterval @interval-id)
+                     (reset! interval-id nil))))]
+    (fn []
+      (let [{:keys [grid running?]} @life-state]
+        [:div {:ref ref-fn}
+         [:svg {:width (* life-size life-cell) :height (* life-size life-cell)
+                :style {:border "1px solid black"}}
+          (for [y (range life-size)
+                x (range life-size)]
+            ^{:key (str x "-" y)}
+            [life-cell-rect x y (nth (nth grid y) x)])
+          (when (not running?)
+            [:text {:x 50 :y 50 :fill "red" :font-size 20} "Paused"])]
+         [:p
+          [:button {:on-click #(swap! life-state update :running? not)}
+           (if running? "Pause" "Resume")]
+          [:button {:on-click #(swap! life-state assoc :grid (life-random-grid))}
+           "Randomize"]]]))))
+
 ;;; --- Main App ---
 (defn nav-link [page-kw text]
   [:a {:href "#"
@@ -157,12 +241,14 @@
      [:nav
       [nav-link :home "Home"]
       [nav-link :tic-tac-toe "Tic Tac Toe"]
-      [nav-link :snake "Snake"]]
+      [nav-link :snake "Snake"]
+      [nav-link :game-of-life "Game of Life"]]
      [:hr]
      (case page
        :home [home-page]
        :tic-tac-toe [tic-tac-toe-game]
        :snake [snake-game-board]
+       :game-of-life [game-of-life-board]
        [:div "Page not found"])]))
 
 (r/render [app] (.getElementById js/document "app"))
