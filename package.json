@@ -7,6 +7,7 @@
   "scripts": {
     "build": "npm run demo:build; npm run dist:build",
     "clean": "find . -name '*.mjs' -not -path './node_modules/*' -delete",
+    "analyze": "ANALYZE=1 npm run build",
     "watch": "npm run dev",
     "dev": "npm run demo:dev",
     "test": "npm run test:compile && vitest run --config src/test/vitest.config.js",
@@ -25,6 +26,7 @@
     "happy-dom": "14.12.3",
     "squint-cljs": "latest",
     "vite": "7.1.2",
+    "vite-bundle-analyzer": "^1.2.3",
     "vite-plugin-singlefile": "2.3.0",
     "vitest": "3.2.4"
   },
