@@ -16,6 +16,9 @@ Eucalypt is itself very small and fits in a single cljs file.
 - **[Try the demo](https://chr15m.github.io/eucalypt/)** - a single HTML file artifact gzipped to ~16k.
 - [See the demo source code for examples](https://github.com/chr15m/eucalypt/tree/main/src/demo/).
 - [![Latest test Results](https://raw.githubusercontent.com/chr15m/eucalypt/build/test-badge.svg)](https://github.com/chr15m/eucalypt/blob/build/test-results.md) [Tests source code](https://github.com/chr15m/eucalypt/tree/main/src/test/src/)
+- Note: Eucalypt was [slop-coded with AI and low human oversight](#use-of-ai) so please be careful.
+
+*What's with the name?* Eucalyptus oil, which is sometimes used in cleaning, looks like a reagent if you squint hard enough.
 
 [Use](#use) | [Bugs](#bugs) | [Gotchas](#gotchas) | [Dev](#dev) | [Tests](#tests) | [Build](#build) | [Use of AI](#use-of-ai) | [Mr Clean](#mr-clean-original-readme)
 
@@ -126,11 +129,13 @@ npm run build
 
 Eucalypt is a fork of [Mr Clean](https://bitbucket.org/sonwh98/mr-clean/) that has been slop-coded with AI into compiling with Squint.
 
-Slop-coded means this library was built by 1. creating failing test cases 2. using an LLM to fix the code until all tests pass.
-If you're uncomfortable with this method of development, which involves less human oversight, then you may not want to use this library.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+Slop-coded means this library was built by:
 
-What's with the name? Eucalyptus oil (sometimes used in cleaning) looks like a reagent if you squint hard enough.
+1. Creating failing test cases.
+2. Using various LLMs to fix the code until all tests pass.
+
+If you're uncomfortable with this method of development, which involves less human oversight, then you may want to be careful when using this library.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
 
 ---
 
