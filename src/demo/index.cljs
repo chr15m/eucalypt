@@ -488,7 +488,7 @@
       [nav-link :fragments "Fragments"]
       [nav-link :clock "Clock Demo"]
       [nav-link :ohms "Ohm's Law"]
-      [:a {:href "games.html" :class "nav-link"} "Games"]]
+      #_ [:a {:href "games.html" :class "nav-link"} "Games"]]
      [:hr {:class "separator"}]
      (case page
        :home [home-page]
