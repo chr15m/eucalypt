@@ -1,6 +1,5 @@
 (ns index
   (:require
-    ["../../README.md?raw$default" :as readme]
     [eucalypt :as r]
     [clojure.string :as string]))
 
@@ -38,36 +37,6 @@
                 (js/console.error "Error fetching page size:" error)
                 (swap! app-state assoc :page-size "Error")))))
 
-(defn md [content]
-  (when content
-    (->> (.split content "\n\n")
-         #_ (remove #(or
-                    ; h1 headers
-                    (re-find #"^# " %)
-                    ; images
-                    (re-find #"!\[.*\]\(.*\)" %)))
-         (map (fn [line]
-                (let [line-with-links (string/replace line #"\[(.*?)\]\((.*?)\)" "<a href=\"$2\">$1</a>")]
-                  (cond
-                    ; Convert h1 headers to hiccup
-                    (re-find #"^# " line)
-                    (str "<h1>" (string/replace line #"^# " "") "</h1>")
-
-                    ; Convert list items (lines starting with dash)
-                    (re-find #"^- " line)
-                    (str line-with-links "</br>\n")
-
-                    (re-find #"docs/eucalypt.svg" line)
-                    (.replace line "docs/" "")
-
-                    ; Lines with links but not starting with dash
-                    (re-find #"\[.*?\]\(.*?\)" line)
-                    line-with-links
-
-                    :else
-                    (str "<p>" line "</p>")))))
-         (string/join "\n"))))
-
 (defn nav-link [page-kw text]
   [:a {:href "#"
        :class "nav-link"
@@ -87,12 +56,11 @@
                      "GitHub project"]
     " for info on installing and using Eucalypt."]
    [:section
-    {:ref #(when %
-             (as-> readme doc
-               (.split doc "<!-- end-about -->")
-               (first doc)
-               (md doc)
-               (aset % "innerHTML" doc)))}]
+    [:h2 "Eucalypt"]
+    [:p "Eucalypt is a frontend library for " [:a {:href "https://github.com/squint-cljs/squint"} "Squint ClojureScript"] "."
+     "It replaces " [:a {:href "https://reagent-project.github.io/"} "Reagent & React"] 
+     " with a compatible-ish subset of the Reagent API. It supports form-1 and form-2 Reagent components."]
+    [:p "The goal is to build very small frontend artifacts (~10k) using 'Reagent' and 'ClojureScript' (if you squint hard enough). It's suitable for small pieces of one-off frontend code that do something simple, not large production web apps. The examples from the Reagent homepage have been ported and work with Eucalypt. Eucalypt is itself very small and fits in a single cljs file."]]
    [:hr]
    [:p "Counter demo: " (:counter @app-state)]
    [:button {:on-click (fn [_] (swap! app-state update :counter inc))}
