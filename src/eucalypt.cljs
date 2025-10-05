@@ -8,9 +8,14 @@
 
 (def log
   (try
-    (if (or (= (.getItem js/localStorage "debug") "eucalypt:*")
-            (some-> js/globalThis (aget "process") (aget "env") (aget "DEBUG")))
+    (cond
+      (some-> js/globalThis (aget "process") (aget "env") (aget "DEBUG"))
+      ; (fn [& args] (js/console.dir args {:depth nil}))
       js/console.log
+      (some-> js/globalThis (aget "localStorage") (.getItem "debug")
+              (.startsWith "eucalypt:"))
+      js/console.log
+      :else
       identity)
     (catch :default _
       ;; ignore if localStorage is not available
@@ -231,6 +236,7 @@
             (string? first-element)
             (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
                   params)
+
             (map? first-element)
             (let [component-as-map first-element
                   render-fn (:reagent-render component-as-map)
@@ -247,7 +253,8 @@
         reagent-render (:reagent-render config)]
     (log "component->hiccup: calling reagent-render with params:" params)
     (let [result (apply reagent-render params)]
-      (log "component->hiccup: reagent-render returned:" result)
+      (log "component->hiccup: reagent-render returned:"
+           (some-> result .toString))
       result)))
 
 (defn hiccup->dom [hiccup]
@@ -292,7 +299,7 @@
 
           :else
           (.createTextNode js/document (str hiccup)))]
-    (log "hiccup->dom returning:" result)
+    (log "hiccup->dom returning:" (some-> result .toString))
     result))
 
 (defn hiccup-eq? [hiccup-a hiccup-b]
@@ -353,7 +360,8 @@
                 (into head
                       (reduce (fn [acc child]
                                 (let [processed (fully-render-hiccup child)]
-                                  (log "fully-render-hiccup reduce: processing child, processed=" processed)
+                                  (log "fully-render-hiccup reduce: processing child, processed="
+                                      (str processed))
                                   (if (and (sequential? processed) (not (string? processed)) (empty? processed))
                                     acc
                                     (let [is-seq (is-sequence-of-hiccup-elements? processed)]
@@ -384,13 +392,13 @@
 
           :else
           hiccup)]
-    (log "fully-render-hiccup returning:" result)
+    (log "fully-render-hiccup returning:" (str result))
     result))
 
 (defn- unmount-node-and-children [node]
   (when node
     (when-let [ref-fn (aget node "---ref-fn")]
-      (log "unmount-node-and-children: calling ref-fn for node" node)
+      (log "unmount-node-and-children: calling ref-fn for node" (str ref-fn))
       (ref-fn nil)
       (aset node "---ref-fn" nil))
     (doseq [child (vec (aget node "childNodes"))]
@@ -402,7 +410,7 @@
     (.remove node)))
 
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "--- patch-children start for dom:" (.toString dom-a))
+  (log "--- patch-children start for dom:" (some-> dom-a .toString))
   (let [children-a (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
         children-b (vec (remove nil? (get-hiccup-children hiccup-b-rendered)))
         dom-nodes (core-atom (vec (aget dom-a "childNodes")))
@@ -410,8 +418,8 @@
         len-b (count children-b)
         len-dom (count @dom-nodes)]
     (log "patch-children: len-a:" len-a "len-b:" len-b "len-dom:" len-dom)
-    (log "patch-children: children-a:" children-a)
-    (log "patch-children: children-b:" children-b)
+    (log "patch-children: children-a:" (str children-a))
+    (log "patch-children: children-b:" (str children-b))
     ;; Patch or replace existing nodes
     (loop [i 0]
       (when (< i (min len-a len-b))
@@ -437,7 +445,8 @@
     (if (map? s) s {})))
 
 (defn- patch-attributes [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "patch-attributes called with hiccup-a:" hiccup-a-rendered "hiccup-b:" hiccup-b-rendered)
+  (log "patch-attributes called with hiccup-a:" hiccup-a-rendered
+       "hiccup-b:" hiccup-b-rendered)
   (let [a-attrs (get-attrs hiccup-a-rendered)
         b-attrs (get-attrs hiccup-b-rendered)
         a-ref (get a-attrs :ref)
@@ -467,7 +476,8 @@
           (if (.startsWith k "on-")
             (aset dom-a (get-event-name k tag-name) v)
             (when (not= v old-v)
-              (log "patch-attributes: updating attribute" k "from" old-v "to" v "on" dom-a)
+              (log "patch-attributes: updating attribute" k "from" old-v "to" v
+                   "on" (str dom-a))
               (cond
                 (= :value k) nil ;; handled in patch
                 (= :class k)
@@ -504,9 +514,9 @@
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "patch: hiccup-a-rendered" hiccup-a-rendered
-       "hiccup-b-rendered" hiccup-b-rendered
-       "dom-a" (.toString dom-a))
+  (log "patch: hiccup-a-rendered" (str hiccup-a-rendered)
+       "hiccup-b-rendered" (str hiccup-b-rendered)
+       "dom-a" (str dom-a))
   (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
         hiccup-b-realized (realize-deep hiccup-b-rendered)
         are-equal (hiccup-eq? hiccup-a-realized hiccup-b-realized)]
@@ -521,7 +531,8 @@
           (not= (first hiccup-a-realized)
                 (first hiccup-b-realized)))
       (let [new-node (hiccup->dom hiccup-b-realized)]
-        (log "patch: replacing node. dom-a:" dom-a "new-node:" new-node)
+        (log "patch: replacing node. dom-a:" (str dom-a)
+             "new-node:" (str new-node))
         (when dom-a
           (log "patch: replacing node. dom-a.textContent:" (.-textContent dom-a) "new-node.textContent:" (.-textContent new-node)))
         (unmount-node-and-children dom-a)
@@ -536,7 +547,9 @@
                 b-attrs (get-attrs hiccup-b-realized)
                 b-value (:value b-attrs)]
             (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
-              (log "patch: value changed from" (:value a-attrs) "to" b-value "on" dom-a)
+              (log "patch: value changed from" (:value a-attrs)
+                   "to" b-value
+                   "on" (str dom-a))
               (if (and (= (.-tagName dom-a) "SELECT") (.-multiple dom-a))
                 (let [value-set (set b-value)]
                   (doseq [opt (.-options dom-a)]
@@ -549,7 +562,7 @@
   (remove-watchers-for-component normalized-component)
   (reset! positional-key-counter 0)
   (let [mounted-info (get @mounted-components normalized-component)
-        _ (log "modify-dom: mounted-info from cache:" mounted-info)
+        ;_ (log "modify-dom: mounted-info from cache:" mounted-info)
         {:keys [hiccup dom container]} mounted-info
         new-hiccup-unrendered (with-watcher-bound
                                 normalized-component
@@ -565,7 +578,7 @@
                 :container container}))
       (let [_ (reset! positional-key-counter 0)
             new-dom (patch hiccup new-hiccup-rendered dom)]
-        (log "modify-dom: new DOM" new-dom)
+        (log "modify-dom: new DOM" (str new-dom))
         (swap! mounted-components assoc normalized-component
                {:hiccup new-hiccup-rendered
                 :dom new-dom
@@ -704,7 +717,7 @@
 
 ;; Reagent API
 (defn render [component container]
-  (log "render called with component:" component "and container:" container)
+  (log "render called with component:" component "and container:" (str container))
   (let [normalized-component (normalize-component component)]
     (log "render: normalized-component is" normalized-component)
     (do-render normalized-component container)))
