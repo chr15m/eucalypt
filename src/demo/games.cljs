@@ -112,7 +112,7 @@
           :fill color}])
 
 (def snake-game-board
-  (let [interval-id (r/atom nil)
+  (let [interval-id (atom nil)
         ref-fn (fn [el]
                  (js/console.log "snake-game-board" el)
                  (if el
@@ -196,7 +196,7 @@
           :stroke "#ddd"}])
 
 (def game-of-life-board
-  (let [interval-id (r/atom nil)
+  (let [interval-id (atom nil)
         ref-fn (fn [el]
                  (if el
                    (when (nil? @interval-id)
