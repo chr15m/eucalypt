@@ -6,13 +6,15 @@
 
 (def ^:private core-atom squint/atom)
 
-(defn- log [& args]
+(def log
   (try
-    (when (= (.getItem js/localStorage "debug") "eucalypt:*")
-      (.apply (.-log js/console) js/console args))
+    (if (or (= (.getItem js/localStorage "debug") "eucalypt:*")
+            (some-> js/globalThis (aget "process") (aget "env") (aget "DEBUG")))
+      js/console.log
+      identity)
     (catch :default _
       ;; ignore if localStorage is not available
-      )))
+      identity)))
 
 (log "eucalypt.cljs loading...")
 
