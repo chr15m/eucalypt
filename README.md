@@ -54,7 +54,7 @@ There's also a "create" script you can use to bootstrap a Squint, Vite, and Euca
 ```shell
 npm create eucalypt myapp
 cd myapp
-npm i
+npm install
 npm run watch
 npm run build # <- builds a dist/index.html
 ```
@@ -97,6 +97,7 @@ Eucalypt gotchas:
 - Not currently reentrant. State is shared globally.
 - The only well-tested API is `r/atom` and `r/render`.
 - Lots and lots of other weirdness and edge cases for sure.
+- Only the `:component-will-unmount` lifecycle hook is currently wired up. Other Reagent lifecycle keys are not yet implemented yet (but `:ref` is).
 - [It's slop code](#use-of-ai).
 
 Some things to watch out for when using Squint, which I ran into building this:

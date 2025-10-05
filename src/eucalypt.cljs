@@ -38,12 +38,7 @@
 
 (defonce ^:dynamic *watcher* nil)
 (defonce ^:dynamic *xml-ns* "http://www.w3.org/1999/xhtml")
-(defonce life-cycle-methods {:get-initial-state (fn [_this])
-                             :component-will-receive-props identity
-                             :should-component-update identity
-                             :component-will-update identity
-                             :component-did-update identity
-                             :component-will-unmount rm-watchers})
+(defonce life-cycle-methods {:component-will-unmount rm-watchers})
 
 (defonce mounted-components (core-atom {}))
 (defonce container->mounted-component (core-atom {}))
