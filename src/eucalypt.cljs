@@ -23,6 +23,25 @@
 
 (log "eucalypt.cljs loading...")
 
+(def ^:private html-namespace "http://www.w3.org/1999/xhtml")
+(def ^:private svg-namespace "http://www.w3.org/2000/svg")
+(def ^:private svg-html-boundary-tags #{"foreignObject"})
+
+(defn- normalize-namespace [ns]
+  (or ns html-namespace))
+
+(defn- next-namespace [current tag-name]
+  (cond
+    (= "svg" tag-name) svg-namespace
+    (and (= current svg-namespace)
+         (contains? svg-html-boundary-tags tag-name)) html-namespace
+    :else current))
+
+(defn- dom->namespace [dom]
+  (if (some? dom)
+    (normalize-namespace (.-namespaceURI dom))
+    html-namespace))
+
 (defn- with-meta* [obj m]
   (aset obj "---meta" m)
   obj)
@@ -41,10 +60,10 @@
           (swap! watchers (fn [watchers]
                                          (set (remove #(= w %) watchers)))))))))
 
+(declare hiccup->dom)
 (declare modify-dom)
 
 (defonce ^:dynamic *watcher* nil)
-(defonce ^:dynamic *xml-ns* "http://www.w3.org/1999/xhtml")
 (defonce life-cycle-methods {:component-will-unmount rm-watchers})
 
 (defonce mounted-components (core-atom {}))
@@ -72,8 +91,6 @@
                             watcher-set)))))))
 
 ;; *** hiccup-to-dom implementation ***
-
-(declare hiccup->dom)
 
 (defn- style-map->css-str [style-map]
   (apply str (map (fn [[k v]] (str k ":" v ";")) style-map)))
@@ -158,28 +175,23 @@
      :attrs final-attrs
      :content final-content}))
 
-(defn- create-element [hiccup]
+(defn- create-element [hiccup current-ns]
   (let [{:keys [tag-name attrs content]} (parse-hiccup hiccup)
         value (:value attrs)
         attrs-without-value (dissoc attrs :value)
-        old-ns *xml-ns*
-        new-ns (if (= "svg" tag-name) "http://www.w3.org/2000/svg" old-ns)
+        new-ns (next-namespace (normalize-namespace current-ns) tag-name)
         element (.createElementNS js/document new-ns tag-name)]
-    (try
-      (set! *xml-ns* new-ns)
-      (set-attributes! element attrs-without-value)
-      (doseq [child content]
-        (when-let [child-node (hiccup->dom child)]
-          (.appendChild element child-node)))
-      (when (some? value)
-        (if (and (= (.-tagName element) "SELECT") (.-multiple element))
-          (let [value-set (set value)]
-            (doseq [opt (.-options element)]
-              (aset opt "selected" (contains? value-set (.-value opt)))))
-          (aset element "value" value)))
-      element
-      (finally
-        (set! *xml-ns* old-ns)))))
+    (set-attributes! element attrs-without-value)
+    (doseq [child content]
+      (when-let [child-node (hiccup->dom child new-ns)]
+        (.appendChild element child-node)))
+    (when (some? value)
+      (if (and (= (.-tagName element) "SELECT") (.-multiple element))
+        (let [value-set (set value)]
+          (doseq [opt (.-options element)]
+            (aset opt "selected" (contains? value-set (.-value opt)))))
+        (aset element "value" value)))
+    element))
 
 (defn- get-or-create-fn-id [f]
   (if-let [id (aget f "_eucalypt_id")]
@@ -260,50 +272,53 @@
            (some-> result .toString))
       result)))
 
-(defn hiccup->dom [hiccup]
-  (log "hiccup->dom called with:" hiccup)
-  (let [result
-        (cond
-          (or (string? hiccup) (number? hiccup))
-          (.createTextNode js/document (str hiccup))
+(defn hiccup->dom
+  ([hiccup]
+   (hiccup->dom hiccup html-namespace))
+  ([hiccup current-ns]
+   (log "hiccup->dom called with:" hiccup)
+   (let [result
+         (cond
+           (or (string? hiccup) (number? hiccup))
+           (.createTextNode js/document (str hiccup))
 
-          (vector? hiccup)
-          (let [[tag & _content] hiccup]
-            (cond
-              (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)))
-              (vector? tag) (let [fragment (.createDocumentFragment js/document)]
-                              (doseq [item hiccup]
-                                (when-let [child-node (hiccup->dom item)]
-                                  (.appendChild fragment child-node)))
-                              fragment)
-              (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
-                            (doseq [child (rest hiccup)]
-                              (when-let [child-node (hiccup->dom child)]
-                                (.appendChild fragment child-node)))
-                            fragment)
-              :else (create-element hiccup)))
+           (vector? hiccup)
+           (let [[tag & _content] hiccup]
+             (cond
+               (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)) current-ns)
+               (vector? tag) (let [fragment (.createDocumentFragment js/document)]
+                               (doseq [item hiccup]
+                                 (when-let [child-node (hiccup->dom item current-ns)]
+                                   (.appendChild fragment child-node)))
+                               fragment)
+               (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
+                             (doseq [child (rest hiccup)]
+                               (when-let [child-node (hiccup->dom child current-ns)]
+                                 (.appendChild fragment child-node)))
+                             fragment)
+               :else (create-element hiccup current-ns)))
 
-          (seq? hiccup)
-          (let [fragment (.createDocumentFragment js/document)]
-            (doseq [item hiccup]
-              ;; Preserve metadata when processing sequences
-              (let [item-with-meta (if (and (vector? item) (meta item))
-                                     (with-meta item (meta item))
-                                     item)]
-                (when-let [child-node (hiccup->dom item-with-meta)]
-                  (.appendChild fragment child-node))))
-            fragment)
+           (seq? hiccup)
+           (let [fragment (.createDocumentFragment js/document)]
+             (doseq [item hiccup]
+               ;; Preserve metadata when processing sequences
+               (let [item-with-meta (if (and (vector? item) (meta item))
+                                      (with-meta item (meta item))
+                                      item)]
+                 (when-let [child-node (hiccup->dom item-with-meta current-ns)]
+                   (.appendChild fragment child-node))))
+             fragment)
 
-          (fn? hiccup)
-          (hiccup->dom (hiccup))
+           (fn? hiccup)
+           (hiccup->dom (hiccup) current-ns)
 
-          (map? hiccup) (hiccup->dom ((:reagent-render hiccup)))
-          (or (nil? hiccup) (boolean? hiccup)) nil
+           (map? hiccup) (hiccup->dom ((:reagent-render hiccup)) current-ns)
+           (or (nil? hiccup) (boolean? hiccup)) nil
 
-          :else
-          (.createTextNode js/document (str hiccup)))]
-    (log "hiccup->dom returning:" (some-> result .toString))
-    result))
+           :else
+           (.createTextNode js/document (str hiccup)))]
+     (log "hiccup->dom returning:" (some-> result .toString))
+     result)))
 
 (defn hiccup-eq? [hiccup-a hiccup-b]
   (let [result (isEqual hiccup-a hiccup-b)]
@@ -419,7 +434,8 @@
         dom-nodes (core-atom (vec (aget dom-a "childNodes")))
         len-a (count children-a)
         len-b (count children-b)
-        len-dom (count @dom-nodes)]
+        len-dom (count @dom-nodes)
+        parent-ns (dom->namespace dom-a)]
     (log "patch-children: len-a:" len-a "len-b:" len-b "len-dom:" len-dom)
     (log "patch-children: children-a:" (str children-a))
     (log "patch-children: children-b:" (str children-b))
@@ -436,7 +452,8 @@
     ;; Add new nodes
     (when (> len-b len-a)
       (doseq [i (range len-a len-b)]
-        (.appendChild dom-a (hiccup->dom (nth children-b i)))))
+        (when-let [new-child (hiccup->dom (nth children-b i) parent-ns)]
+          (.appendChild dom-a new-child))))
     ;; Remove surplus nodes
     (when (> len-a len-b)
       (dotimes [_ (- len-a len-b)]
@@ -538,7 +555,9 @@
           (not (vector? hiccup-b-realized))
           (not= (first hiccup-a-realized)
                 (first hiccup-b-realized)))
-      (let [new-node (hiccup->dom hiccup-b-realized)]
+      (let [parent (.-parentNode dom-a)
+            parent-ns (dom->namespace parent)
+            new-node (hiccup->dom hiccup-b-realized parent-ns)]
         (log "patch: replacing node. dom-a:" (str dom-a)
              "new-node:" (str new-node))
         (when dom-a
@@ -572,6 +591,7 @@
   (let [mounted-info (get @mounted-components normalized-component)
         ;_ (log "modify-dom: mounted-info from cache:" mounted-info)
         {:keys [hiccup dom container]} mounted-info
+        parent-ns (dom->namespace container)
         new-hiccup-unrendered (with-watcher-bound
                                 normalized-component
                                 (fn [] (component->hiccup normalized-component)))
@@ -613,14 +633,14 @@
   "This is where the magic of adding watchers to ratoms happen automatically.
   This is achieved by setting the dnymaic var *watcher* then evaluating reagent-render
   which causes the deref of the ratom to trigger adding the watcher to (.-watchers ratom)"
-  [normalized-component]
+  [normalized-component base-namespace]
   (with-watcher-bound
     normalized-component
     (fn []
       (let [reagent-render (-> normalized-component first :reagent-render)
             params (rest normalized-component)
             hiccup (apply reagent-render params)
-            dom (hiccup->dom hiccup)]
+            dom (hiccup->dom hiccup (normalize-namespace base-namespace))]
         [hiccup dom]))))
 
 (defn unmount-components [container]
@@ -641,9 +661,10 @@
   (unmount-components container)
   (reset! positional-key-counter 0)
 
-  (let [[{:keys [_reagent-render]}
+  (let [container-ns (dom->namespace container)
+        [{:keys [_reagent-render]}
          & _params] normalized-component
-        [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component)
+        [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component container-ns)
         _ (reset! positional-key-counter 0)
         hiccup-rendered (fully-render-hiccup hiccup)]
     (.appendChild container dom)
