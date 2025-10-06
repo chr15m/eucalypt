@@ -105,7 +105,10 @@
 
       (= :style k)
       (when (some? v)
-        (aset element "style" (style-map->css-str v)))
+        (let [css (style-map->css-str v)]
+          (if (seq css)
+            (.setAttribute element "style" css)
+            (.removeAttribute element "style"))))
 
       (= :class k)
       (let [class-val (if (and (sequential? v) (not (string? v)))
@@ -487,6 +490,11 @@
                   (if (or (nil? class-val) (= "" class-val))
                     (.removeAttribute dom-a "class")
                     (.setAttribute dom-a "class" class-val)))
+                (= :style k)
+                (let [css (style-map->css-str v)]
+                  (if (seq css)
+                    (.setAttribute dom-a "style" css)
+                    (.removeAttribute dom-a "style")))
                 (or (= :checked k) (= :selected k))
                 (aset dom-a k v)
 
