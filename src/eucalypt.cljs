@@ -23,24 +23,67 @@
 
 (log "eucalypt.cljs loading...")
 
-(def ^:private html-namespace "http://www.w3.org/1999/xhtml")
-(def ^:private svg-namespace "http://www.w3.org/2000/svg")
-(def ^:private svg-html-boundary-tags #{"foreignObject"})
+(def default-namespace :html)
 
-(defn- normalize-namespace [ns]
-  (or ns html-namespace))
+(def namespaces
+  {:html {:uri "http://www.w3.org/1999/xhtml"}
+   :svg {:uri "http://www.w3.org/2000/svg"
+         :entry-tags #{"svg"}
+         :boundary-tags #{"foreignObject"}}
+   :math {:uri "http://www.w3.org/1998/Math/MathML"
+          :entry-tags #{"math"}
+          :boundary-tags #{"annotation-xml"}}})
+
+(def entry-tag->namespace
+  (reduce-kv
+    (fn [acc ns {:keys [entry-tags]}]
+      (reduce (fn [m tag] (assoc m tag ns))
+              acc
+              (or entry-tags #{})))
+    {}
+    namespaces))
+
+(def uri->namespace
+  (reduce-kv
+    (fn [acc ns {:keys [uri]}]
+      (if uri
+        (assoc acc uri ns)
+        acc))
+    {}
+    namespaces))
+
+(defn- namespace-uri [ns-key]
+  (or (get-in namespaces [ns-key :uri])
+      (get-in namespaces [default-namespace :uri])))
+
+(defn- normalize-namespace [uri]
+  (let [candidate (or uri (namespace-uri default-namespace))]
+    (if (contains? uri->namespace candidate)
+      candidate
+      (namespace-uri default-namespace))))
+
+(defn- namespace-key [uri]
+  (get uri->namespace uri default-namespace))
 
 (defn- next-namespace [current tag-name]
-  (cond
-    (= "svg" tag-name) svg-namespace
-    (and (= current svg-namespace)
-         (contains? svg-html-boundary-tags tag-name)) html-namespace
-    :else current))
+  (let [current-uri (normalize-namespace current)
+        current-key (namespace-key current-uri)
+        boundary-tags (get-in namespaces [current-key :boundary-tags] #{})
+        enter-target (get entry-tag->namespace tag-name)]
+    (cond
+      enter-target
+      (namespace-uri enter-target)
+
+      (contains? boundary-tags tag-name)
+      (namespace-uri default-namespace)
+
+      :else
+      current-uri)))
 
 (defn- dom->namespace [dom]
   (if (some? dom)
     (normalize-namespace (.-namespaceURI dom))
-    html-namespace))
+    (namespace-uri default-namespace)))
 
 (defn- with-meta* [obj m]
   (aset obj "---meta" m)
@@ -274,57 +317,56 @@
 
 (defn hiccup->dom
   ([hiccup]
-   (hiccup->dom hiccup html-namespace))
+   (hiccup->dom hiccup (namespace-uri default-namespace)))
   ([hiccup current-ns]
    (log "hiccup->dom called with:" hiccup)
-   (let [result
-         (cond
-           (or (string? hiccup) (number? hiccup))
-           (.createTextNode js/document (str hiccup))
+    (let [result
+          (cond
+            (or (string? hiccup) (number? hiccup))
+            (.createTextNode js/document (str hiccup))
 
-           (vector? hiccup)
-           (let [[tag & _content] hiccup]
-             (cond
-               (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)) current-ns)
-               (vector? tag) (let [fragment (.createDocumentFragment js/document)]
-                               (doseq [item hiccup]
-                                 (when-let [child-node (hiccup->dom item current-ns)]
-                                   (.appendChild fragment child-node)))
-                               fragment)
-               (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
-                             (doseq [child (rest hiccup)]
-                               (when-let [child-node (hiccup->dom child current-ns)]
-                                 (.appendChild fragment child-node)))
-                             fragment)
-               :else (create-element hiccup current-ns)))
+            (vector? hiccup)
+            (let [[tag & _content] hiccup]
+              (cond
+                (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)) current-ns)
+                (vector? tag) (let [fragment (.createDocumentFragment js/document)]
+                                (doseq [item hiccup]
+                                  (when-let [child-node (hiccup->dom item current-ns)]
+                                    (.appendChild fragment child-node)))
+                                fragment)
+                (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
+                              (doseq [child (rest hiccup)]
+                                (when-let [child-node (hiccup->dom child current-ns)]
+                                  (.appendChild fragment child-node)))
+                              fragment)
+                :else (create-element hiccup current-ns)))
 
-           (seq? hiccup)
-           (let [fragment (.createDocumentFragment js/document)]
-             (doseq [item hiccup]
-               ;; Preserve metadata when processing sequences
-               (let [item-with-meta (if (and (vector? item) (meta item))
-                                      (with-meta item (meta item))
-                                      item)]
-                 (when-let [child-node (hiccup->dom item-with-meta current-ns)]
-                   (.appendChild fragment child-node))))
-             fragment)
+            (seq? hiccup)
+            (let [fragment (.createDocumentFragment js/document)]
+              (doseq [item hiccup]
+                ;; Preserve metadata when processing sequences
+                (let [item-with-meta (if (and (vector? item) (meta item))
+                                       (with-meta item (meta item))
+                                       item)]
+                  (when-let [child-node (hiccup->dom item-with-meta current-ns)]
+                    (.appendChild fragment child-node))))
+              fragment)
 
-           (fn? hiccup)
-           (hiccup->dom (hiccup) current-ns)
+            (fn? hiccup)
+            (hiccup->dom (hiccup) current-ns)
 
-           (map? hiccup) (hiccup->dom ((:reagent-render hiccup)) current-ns)
-           (or (nil? hiccup) (boolean? hiccup)) nil
+            (map? hiccup) (hiccup->dom ((:reagent-render hiccup)) current-ns)
+            (or (nil? hiccup) (boolean? hiccup)) nil
 
-           :else
-           (.createTextNode js/document (str hiccup)))]
-     (log "hiccup->dom returning:" (some-> result .toString))
-     result)))
+            :else
+            (.createTextNode js/document (str hiccup)))]
+      (log "hiccup->dom returning:" (some-> result .toString))
+      result)))
 
 (defn hiccup-eq? [hiccup-a hiccup-b]
   (let [result (isEqual hiccup-a hiccup-b)]
     (log "hiccup-eq?:" result)
     (when (not result)
-      ;(js/console.log "hiccup-eq? returned false. a:" hiccup-a "b:" hiccup-b) 
       (log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))
     result))
 
@@ -379,7 +421,7 @@
                       (reduce (fn [acc child]
                                 (let [processed (fully-render-hiccup child)]
                                   (log "fully-render-hiccup reduce: processing child, processed="
-                                      (str processed))
+                                       (str processed))
                                   (if (and (sequential? processed) (not (string? processed)) (empty? processed))
                                     acc
                                     (let [is-seq (is-sequence-of-hiccup-elements? processed)]
@@ -589,9 +631,8 @@
   (remove-watchers-for-component normalized-component)
   (reset! positional-key-counter 0)
   (let [mounted-info (get @mounted-components normalized-component)
-        ;_ (log "modify-dom: mounted-info from cache:" mounted-info)
         {:keys [hiccup dom container]} mounted-info
-        parent-ns (dom->namespace container)
+        ; parent-ns (dom->namespace container)
         new-hiccup-unrendered (with-watcher-bound
                                 normalized-component
                                 (fn [] (component->hiccup normalized-component)))
@@ -618,10 +659,8 @@
 
 (defn notify-watchers [watchers]
   (log "notify-watchers called with" (count @watchers) "watchers")
-  ;(js/console.log "notify-watchers called with" (count @watchers) "watchers")
   (doseq [watcher @watchers]
     (log "calling watcher")
-    ;(js/console.log "calling watcher")
     (let [old-watcher *watcher*]
       (try
         (set! *watcher* watcher)
@@ -644,7 +683,6 @@
         [hiccup dom]))))
 
 (defn unmount-components [container]
-  ;(js/console.log "unmount-components called for container:" container)
   (when-let [mounted-component (get @container->mounted-component container)]
     (remove-watchers-for-component mounted-component)
     (let [[{:keys [component-will-unmount]} & _params] mounted-component]
@@ -754,7 +792,6 @@
 ;; Reagent API
 (def render-component render)
 
-;; Reagent API
 (defn clear-component-instances! []
   (reset! component-instances {}))
 
