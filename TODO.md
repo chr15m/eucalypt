@@ -1,14 +1,16 @@
+- [ ] Remove the :^private and defn- nonsense.
 - [ ] Support :onClick as well as :on-click.
-- [ ] Tests for r/cursor and r/reaction
-- [ ] Run tests in Scittle/Reagent and compare outputs.
-- [ ] Support top level component that isn't a function.
-- [ ] r/with-let
-- [ ] Re-export stuff to make interop with JS better?
 - [ ] Make it reentrant
   - [ ] Add multiple component render test & get it passing
   - [ ] Remove ^:dynamic defs
   - [ ] Remove clear-component-instances! from tests
 - [ ] Remove circularity and `declare`'s
+
+- [ ] Tests for r/cursor and r/reaction
+- [ ] Run tests in Scittle/Reagent and compare outputs.
+- [ ] Support top level component that isn't a function.
+- [ ] r/with-let
+- [ ] Re-export stuff to make interop with JS better?
 - [ ] Implement remaining lifecycle stuff
 
 # Done
