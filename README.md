@@ -105,8 +105,6 @@ Some things to watch out for when using Squint, which I ran into building this:
 - Keywords are just strings. No `keyword?`, `name` etc.
 - No `binding`.
 - No `sorted-hashmap`.
-- `(get {} :a)` evaluates to `undefined` not `nil` which can break `assoc`, `update` and friends on `nil`.
-- Squint `swap!` is not atomic, so watch out for async re-render issues.
 
 ## Dev
 
