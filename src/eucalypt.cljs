@@ -1,7 +1,6 @@
 (ns eucalypt
   ;(:refer-clojure :exclude [atom])
   (:require
-    ["es-toolkit" :refer [isEqual]]
     ["squint-cljs/core.js" :as squint]))
 
 (def ^:private core-atom squint/atom)
@@ -364,7 +363,7 @@
       result)))
 
 (defn hiccup-eq? [hiccup-a hiccup-b]
-  (let [result (isEqual hiccup-a hiccup-b)]
+  (let [result (= hiccup-a hiccup-b)]
     (log "hiccup-eq?:" result)
     (when (not result)
       (log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))

@@ -1,6 +1,5 @@
 (ns multiple-select.test
   (:require ["vitest" :refer [describe it afterEach beforeEach]]
-            ["es-toolkit" :refer [isEqual]]
             [eucalypt :as r]
             [helpers :as th]))
 
@@ -9,9 +8,9 @@
    #_ (.setItem js/localStorage "debug" "eucalypt:*")))
 
 (afterEach
-  (fn []
-    #_ (.removeItem js/localStorage "debug")
-    (set! (.-innerHTML js/document.body) "")))
+ (fn []
+   #_ (.removeItem js/localStorage "debug")
+   (set! (.-innerHTML js/document.body) "")))
 
 (def select-state (r/atom {:selected ["b"]}))
 
@@ -36,42 +35,42 @@
    [:button {:id "change-selection" :on-click #(reset! select-state {:selected ["a" "c"]})} "Set to A & C"]])
 
 (describe "Multiple Select Component"
-  (fn []
-    (it "should update on change and be controllable"
-      (fn []
-        (reset! select-state {:selected ["b"]})
-        (let [container (.createElement js/document "div")]
-          (.appendChild js/document.body container)
-          (r/render [multiple-select-page] container)
+          (fn []
+            (it "should update on change and be controllable"
+                (fn []
+                  (reset! select-state {:selected ["b"]})
+                  (let [container (.createElement js/document "div")]
+                    (.appendChild js/document.body container)
+                    (r/render [multiple-select-page] container)
 
-          (let [select-el (.querySelector container "#select-input")
-                output (.querySelector container "#output")
-                button (.querySelector container "#change-selection")
-                option-a (-> select-el (.querySelector "[value=a]"))
-                option-b (-> select-el (.querySelector "[value=b]"))
-                option-c (-> select-el (.querySelector "[value=c]"))]
+                    (let [select-el (.querySelector container "#select-input")
+                          output (.querySelector container "#output")
+                          button (.querySelector container "#change-selection")
+                          option-a (-> select-el (.querySelector "[value=a]"))
+                          option-b (-> select-el (.querySelector "[value=b]"))
+                          option-c (-> select-el (.querySelector "[value=c]"))]
 
-            (th/assert-equal (.-selected option-a) false)
-            (th/assert-equal (.-selected option-b) true)
-            (th/assert-equal (.-selected option-c) false)
-            (th/assert-equal (.-textContent output) "You selected: b")
+                      (th/assert-equal (.-selected option-a) false)
+                      (th/assert-equal (.-selected option-b) true)
+                      (th/assert-equal (.-selected option-c) false)
+                      (th/assert-equal (.-textContent output) "You selected: b")
 
-            ;; Simulate user changing selection (selecting A and C, deselecting B)
-            (set! (.-selected option-a) true)
-            (set! (.-selected option-b) false)
-            (set! (.-selected option-c) true)
-            (.dispatchEvent select-el (new js/Event "change" #js {:bubbles true}))
+                      ;; Simulate user changing selection (selecting A and C, deselecting B)
+                      (set! (.-selected option-a) true)
+                      (set! (.-selected option-b) false)
+                      (set! (.-selected option-c) true)
+                      (.dispatchEvent select-el (new js/Event "change" #js {:bubbles true}))
 
-            (th/assert-equal (.-selected option-a) true)
-            (th/assert-equal (.-selected option-b) false)
-            (th/assert-equal (.-selected option-c) true)
-            (th/assert-equal (.-textContent output) "You selected: a,c")
-            (th/assert-equal (isEqual (:selected @select-state) ["a" "c"]) true)
+                      (th/assert-equal (.-selected option-a) true)
+                      (th/assert-equal (.-selected option-b) false)
+                      (th/assert-equal (.-selected option-c) true)
+                      (th/assert-equal (.-textContent output) "You selected: a,c")
+                      (th/assert-equal (= (:selected @select-state) ["a" "c"]) true)
 
-            ;; Control component by clicking button
-            (.click button)
-            (th/assert-equal (.-selected option-a) true)
-            (th/assert-equal (.-selected option-b) false)
-            (th/assert-equal (.-selected option-c) true)
-            (th/assert-equal (.-textContent output) "You selected: a,c")
-            (th/assert-equal (isEqual (:selected @select-state) ["a" "c"]) true))))))) 
+                      ;; Control component by clicking button
+                      (.click button)
+                      (th/assert-equal (.-selected option-a) true)
+                      (th/assert-equal (.-selected option-b) false)
+                      (th/assert-equal (.-selected option-c) true)
+                      (th/assert-equal (.-textContent output) "You selected: a,c")
+                      (th/assert-equal (= (:selected @select-state) ["a" "c"]) true)))))))

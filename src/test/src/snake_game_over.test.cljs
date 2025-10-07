@@ -1,6 +1,5 @@
 (ns snake-game-over.test
   (:require ["vitest" :refer [describe it]]
-            ["es-toolkit" :refer [isEqual]]
             [eucalypt :as r]
             [helpers :as th]))
 
@@ -32,11 +31,11 @@
              (let [[hx hy] (first snake)
                    [dx dy] dir
                    new-head [(+ hx dx) (+ hy dy)]
-                   ate? (isEqual new-head food)
+                   ate? (= new-head food)
                    new-snake (vec (cons new-head (if ate? snake (butlast snake))))
                    [nx ny] new-head
                    hit-wall? (or (< nx 0) (>= nx size) (< ny 0) (>= ny size))
-                   hit-self? (some #(isEqual new-head %) (rest new-snake))]
+                   hit-self? (some #(= new-head %) (rest new-snake))]
                (cond
                  hit-wall? (assoc st :alive? false)
                  hit-self? (assoc st :alive? false)
@@ -52,10 +51,10 @@
                          (swap! snake-state update :dir
                                 (fn [dir]
                                   (case key
-                                    "ArrowUp" (if (isEqual dir [0 1]) dir [0 -1])
-                                    "ArrowDown" (if (isEqual dir [0 -1]) dir [0 1])
-                                    "ArrowLeft" (if (isEqual dir [1 0]) dir [-1 0])
-                                    "ArrowRight" (if (isEqual dir [-1 0]) dir [1 0])
+                                    "ArrowUp" (if (= dir [0 1]) dir [0 -1])
+                                    "ArrowDown" (if (= dir [0 -1]) dir [0 1])
+                                    "ArrowLeft" (if (= dir [1 0]) dir [-1 0])
+                                    "ArrowRight" (if (= dir [-1 0]) dir [1 0])
                                     dir)))))))
 
 (defn cell-rect [[x y] color]
