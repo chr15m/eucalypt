@@ -1,8 +1,10 @@
 (ns snake-game-over.test
   (:require ["vitest" :refer [describe it]]
-            ["es-toolkit" :refer [isEqual]]
+            ["dequal" :refer [dequal]]
             [eucalypt :as r]
             [helpers :as th]))
+
+(def isEqual dequal)
 
 (defn sleep [ms]
   (js/Promise. (fn [resolve] (js/setTimeout resolve ms))))

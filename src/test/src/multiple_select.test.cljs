@@ -1,8 +1,10 @@
 (ns multiple-select.test
   (:require ["vitest" :refer [describe it afterEach beforeEach]]
-            ["es-toolkit" :refer [isEqual]]
+            ["dequal" :refer [dequal]]
             [eucalypt :as r]
             [helpers :as th]))
+
+(def isEqual dequal)
 
 (beforeEach
  (fn []
