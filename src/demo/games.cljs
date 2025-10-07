@@ -1,10 +1,13 @@
 (ns games
   (:require
     [eucalypt :as r]
-    ["es-toolkit" :refer [isEqual]]))
+    ["dequal" :refer [dequal]]))
+
+(def isEqual dequal)
 
 (def app-state (r/atom {:page :home}))
 
+#_:clj-kondo/ignore
 (defn- rand
   "Return a random double in [0.0, n) if n given, else [0.0,1)."
   ([] (js/Math.random))
