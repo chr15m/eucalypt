@@ -45,7 +45,7 @@
                  ate? (assoc st :snake new-snake :food (random-food))
                  :else (assoc st :snake new-snake)))))))
 
-(defonce snake-interval (js/setInterval move-snake 200))
+(defonce snake-interval (js/setInterval move-snake 20))
 
 (defonce keydown-listener
   (.addEventListener js/window "keydown"
@@ -92,7 +92,7 @@
         (reset-snake-state)
         (let [initial-child-count (atom nil)]
           (r/render [game-board] container)
-          (-> (sleep 10)
+          (-> (sleep 1)
               (.then (fn []
                        (let [svg (.querySelector container "svg")]
                          (th/assert-not-nil svg)
@@ -100,13 +100,13 @@
                            (reset! initial-child-count child-count))
                          (th/assert-equal (:alive? @snake-state) true)
                          (th/assert-equal (.-textContent svg) ""))))
-              (.then (fn [] (sleep 10)))
+              (.then (fn [] (sleep 1)))
               (.then (fn []
                        (let [svg (.querySelector container "svg")]
                          (th/assert-not-nil svg)
                          (th/assert-equal (:alive? @snake-state) true)
                          (th/assert-equal (.-textContent svg) ""))))
-              (.then (fn [] (sleep 3500)))
+              (.then (fn [] (sleep 350)))
               (.then (fn []
                        (let [svg (.querySelector container "svg")]
                          (th/assert-not-nil svg)
