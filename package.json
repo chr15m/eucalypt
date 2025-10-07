@@ -19,7 +19,7 @@
     "test:compile": "cd src/test && squint compile"
   },
   "dependencies": {
-    "es-toolkit": "1.39.10"
+    "dequal": "^2.0.3"
   },
   "devDependencies": {
     "concurrently": "8.2.2",

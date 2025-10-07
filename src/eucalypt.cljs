@@ -1,7 +1,8 @@
 (ns eucalypt
   ;(:refer-clojure :exclude [atom])
   (:require
-    ["es-toolkit" :refer [isEqual]]
+    ;["es-toolkit" :refer [isEqual]]
+    ["dequal" :refer [dequal] :rename {dequal isEqual}]
     ["squint-cljs/core.js" :as squint]))
 
 (def ^:private core-atom squint/atom)
