@@ -388,8 +388,6 @@
   (let [result
         (cond
           (nil? hiccup) nil
-          (fn? hiccup) (fully-render-hiccup (hiccup))
-
           (hiccup-seq? hiccup)
           (mapv fully-render-hiccup hiccup)
 
