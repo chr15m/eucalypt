@@ -414,7 +414,7 @@
                                     (and (vector? processed) (= :<> (aget processed 0)))
                                     (do
                                       (log "fully-render-hiccup reduce: unpacking fragment")
-                                      (into acc (get-hiccup-children processed)))
+                                      (into acc (subvec processed 1)))
 
                                     ;; Unnest hiccup children
                                     (hiccup-seq? child)
