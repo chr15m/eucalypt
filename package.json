@@ -21,7 +21,7 @@
   "devDependencies": {
     "concurrently": "8.2.2",
     "happy-dom": "14.12.3",
-    "squint-cljs": "0.8.156",
+    "squint-cljs": "0.8.158",
     "vite": "7.1.2",
     "vite-bundle-analyzer": "^1.2.3",
     "vite-plugin-singlefile": "2.3.0",

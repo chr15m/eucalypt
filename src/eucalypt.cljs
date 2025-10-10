@@ -387,11 +387,8 @@
   (log "fully-render-hiccup called with:" hiccup)
   (let [result
         (cond
-          (nil? hiccup)
-          nil
-
-          (fn? hiccup)
-          (fully-render-hiccup (hiccup))
+          (nil? hiccup) nil
+          (fn? hiccup) (fully-render-hiccup (hiccup))
 
           (hiccup-seq? hiccup)
           (mapv fully-render-hiccup hiccup)
@@ -401,7 +398,8 @@
             (if (fn? tag)
               (fully-render-hiccup (component->hiccup (normalize-component hiccup)))
               (let [attrs (let [?attrs (aget hiccup 1)]
-                            (when (map? ?attrs) ?attrs))
+                            (when (map? ?attrs)
+                              ?attrs))
                     children (if attrs (subvec hiccup 2) (subvec hiccup 1))
                     head (if attrs [(aget hiccup 0) attrs] [(aget hiccup 0)])]
                 (into head
@@ -409,33 +407,28 @@
                                 (let [processed (fully-render-hiccup child)]
                                   (log "fully-render-hiccup reduce: processing child, processed="
                                        (str processed))
-                                  (if (and (seq? processed) (empty? processed))
-                                    acc
-                                    (cond
-                                      ;; Unpack fragments
-                                      (and (vector? processed) (= :<> (aget processed 0)))
-                                      (do
-                                        (log "fully-render-hiccup reduce: unpacking fragment")
-                                        (into acc (get-hiccup-children processed)))
+                                  (cond
+                                    ;; Unpack fragments
+                                    (and (vector? processed) (= :<> (aget processed 0)))
+                                    (do
+                                      (log "fully-render-hiccup reduce: unpacking fragment")
+                                      (into acc (get-hiccup-children processed)))
 
-                                      ;; Unpack sequences of hiccup elements (but not single hiccup vectors)
-                                      (hiccup-seq? child)
-                                      (into acc processed)
-                                      ;; Append a single child (including single hiccup vectors)
-                                      :else
-                                      (do
-                                        (log "fully-render-hiccup reduce: appending single child")
-                                        (conj acc processed))))))
+                                    (hiccup-seq? child)
+                                    (into acc processed)
+
+                                    ;; Append a single child (including single hiccup vectors)
+                                    :else (conj acc processed))))
                               [] children)))))
 
           (map? hiccup)
           ;; This is a map component directly in the hiccup tree
           (fully-render-hiccup ((:reagent-render hiccup)))
-
           :else
           hiccup)]
     (log "fully-render-hiccup returning:" (str result))
     result))
+
 
 (defn- unmount-node-and-children [node]
   (when node
