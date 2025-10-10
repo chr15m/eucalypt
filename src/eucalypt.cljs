@@ -408,16 +408,19 @@
                                   (log "fully-render-hiccup reduce: processing child, processed="
                                        (str processed))
                                   (cond
+                                    (nil? processed) acc
+
                                     ;; Unpack fragments
                                     (and (vector? processed) (= :<> (aget processed 0)))
                                     (do
                                       (log "fully-render-hiccup reduce: unpacking fragment")
                                       (into acc (get-hiccup-children processed)))
 
+                                    ;; Unnest hiccup children
                                     (hiccup-seq? child)
                                     (into acc processed)
 
-                                    ;; Append a single child (including single hiccup vectors)
+                                    ;; Single child
                                     :else (conj acc processed))))
                               [] children)))))
 
