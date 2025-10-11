@@ -548,10 +548,9 @@
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
   (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
-        hiccup-b-realized (realize-deep hiccup-b-rendered)
-        are-equal (= hiccup-a-realized hiccup-b-realized)]
+        hiccup-b-realized (realize-deep hiccup-b-rendered)]
     (cond
-      are-equal
+      (= hiccup-a-realized hiccup-b-realized)
       dom-a
 
       (or (not (vector? hiccup-a-realized))
