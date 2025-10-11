@@ -38,7 +38,6 @@
 
 (defonce mounted-components (core-atom {}))
 (defonce container->mounted-component (core-atom {}))
-(defonce component-instances (core-atom {}))
 (defonce all-ratoms (core-atom {}))
 
 (defonce pending-watcher-queue (core-atom []))
@@ -95,13 +94,28 @@
           (swap! watchers (fn [watchers]
                             (set (remove #(= w %) watchers)))))))))
 
-(defn- create-render-state [{:keys [normalized-component container base-namespace]}]
+(defn- render-state-runtime [render-state]
+  (when render-state
+    (:runtime @render-state)))
+
+(defn- runtime-component-cache [runtime]
+  (when runtime
+    (:component-instances @runtime)))
+
+(defn- update-component-cache! [runtime update-fn]
+  (when runtime
+    (swap! runtime update :component-instances
+           (fn [instances]
+             (update-fn (or instances {}))))))
+
+(defn- create-render-state [{:keys [normalized-component container base-namespace runtime]}]
   (let [state {:active true
                :positional-key-counter 0
                :base-namespace (normalize-namespace base-namespace)}
         state (cond-> state
                 normalized-component (assoc :normalized-component normalized-component)
-                container (assoc :container container))]
+                container (assoc :container container)
+                runtime (assoc :runtime runtime))]
     (core-atom state)))
 
 (defn- next-positional-key! [render-state]
@@ -286,6 +300,8 @@
               params-vec (vec params)
               component-meta (meta component)
               fn-id (get-or-create-fn-id a-fn)
+              runtime (render-state-runtime render-state)
+              component-cache (runtime-component-cache runtime)
               instance-key (if (contains? component-meta :key)
                              (str fn-id "_key_" (:key component-meta))
                              (str fn-id "_pos_"
@@ -293,8 +309,8 @@
                                     (next-positional-key! render-state)
                                     (random-uuid))))
               shared-key fn-id
-              cached-instance (get @component-instances instance-key)
-              cached-shared (get @component-instances shared-key)]
+              cached-instance (when component-cache (get component-cache instance-key))
+              cached-shared (when component-cache (get component-cache shared-key))]
           (cond
             cached-instance
             (into [(:instance cached-instance)] params-vec)
@@ -309,12 +325,18 @@
                 (let [closure func-or-hiccup
                       instance {:reagent-render closure}
                       result (into [instance] params-vec)]
-                  (swap! component-instances assoc instance-key {:type :form-2 :instance instance})
+                  (update-component-cache! runtime
+                                           (fn [cache]
+                                             (assoc cache instance-key {:type :form-2
+                                                                        :instance instance})))
                   result)
                 ;; Form-1 component (stateless)
                 (let [instance {:reagent-render a-fn}
                       result (into [instance] params-vec)]
-                  (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
+                  (update-component-cache! runtime
+                                           (fn [cache]
+                                             (assoc cache shared-key {:type :form-1
+                                                                      :instance instance})))
                   result)))))
 
         (string? first-element)
@@ -566,11 +588,12 @@
 (defn- modify-dom [normalized-component]
   (remove-watchers-for-component normalized-component)
   (when-let [mounted-info (get @mounted-components normalized-component)]
-    (let [{:keys [hiccup dom container base-namespace]} mounted-info
+    (let [{:keys [hiccup dom container base-namespace runtime]} mounted-info
           render-state (create-render-state {:normalized-component normalized-component
                                              :container container
                                              :base-namespace (or base-namespace
-                                                                 (dom->namespace container))})]
+                                                                 (dom->namespace container))
+                                             :runtime runtime})]
       (try
         (swap! render-state assoc :positional-key-counter 0)
         (let [new-hiccup-unrendered (with-watcher-bound
@@ -588,7 +611,8 @@
                        {:hiccup new-hiccup-rendered
                         :dom dom
                         :container container
-                        :base-namespace base-ns})))
+                        :base-namespace base-ns
+                        :runtime runtime})))
             (let [_ (swap! render-state assoc :positional-key-counter 0)
                   new-dom (patch hiccup new-hiccup-rendered dom render-state)
                   base-ns (:base-namespace @render-state)]
@@ -596,7 +620,8 @@
                      {:hiccup new-hiccup-rendered
                       :dom new-dom
                       :container container
-                      :base-namespace base-ns})
+                      :base-namespace base-ns
+                      :runtime runtime})
               (when (not= dom new-dom)
                 (aset container "innerHTML" "")
                 (.appendChild container new-dom)))))
@@ -630,11 +655,11 @@
   (when-let [mounted-component (get @container->mounted-component container)]
     (remove-watchers-for-component mounted-component)
     (rm-watchers mounted-component)
+    (when-let [mounted-info (get @mounted-components mounted-component)]
+      (when-let [runtime (:runtime mounted-info)]
+        (swap! runtime assoc :component-instances {}))
+      (swap! mounted-components dissoc mounted-component))
     (swap! container->mounted-component dissoc container))
-  ;; Always clear the component cache when unmounting
-  ;; This matches Reagent's behavior where component instances
-  ;; are destroyed when unmounted
-  (reset! component-instances {})
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
 
@@ -642,7 +667,8 @@
   (unmount-components container)
   (swap! render-state assoc :positional-key-counter 0)
   (try
-    (let [base-ns (:base-namespace @render-state)
+    (let [runtime (render-state-runtime render-state)
+          base-ns (:base-namespace @render-state)
           [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component render-state)
           _ (swap! render-state assoc :positional-key-counter 0)
           hiccup-rendered (fully-render-hiccup hiccup render-state)]
@@ -651,7 +677,8 @@
              {:hiccup hiccup-rendered
               :dom dom
               :container container
-              :base-namespace base-ns})
+              :base-namespace base-ns
+              :runtime runtime})
       (swap! container->mounted-component assoc container normalized-component))
     (finally
       (swap! render-state assoc :active false))))
@@ -726,9 +753,11 @@
 
 ;; Reagent API
 (defn render [component container]
-  (let [base-ns (dom->namespace container)
+  (let [runtime (core-atom {:component-instances {}})
+        base-ns (dom->namespace container)
         render-state (create-render-state {:container container
-                                           :base-namespace base-ns})
+                                           :base-namespace base-ns
+                                           :runtime runtime})
         normalized (normalize-component component render-state)]
     (swap! render-state assoc :normalized-component normalized)
     (do-render normalized container render-state)))
@@ -737,7 +766,9 @@
 (def render-component render)
 
 (defn clear-component-instances! []
-  (reset! component-instances {}))
+  (doseq [{:keys [runtime]} (vals @mounted-components)]
+    (when runtime
+      (swap! runtime assoc :component-instances {}))))
 
 ;; Reagent API
 #_:clj-kondo/ignore
