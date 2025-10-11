@@ -108,21 +108,23 @@ Some things to watch out for when using Squint, which I ran into building this:
 
 ## Dev
 
+We are using `pnpm` for dev. You don't have to but it will probably help.
+
 ```shell
 pnpm i
-npm run dev
+pnpm watch
 ```
 
 ## Tests
 
 ```shell
-npm run test
+pnpm test
 ```
 
 ## Build
 
 ```shell
-npm run build
+pnpm build
 ```
 
 ## Use of AI
