@@ -98,8 +98,6 @@
 (defonce pending-watcher-queue (core-atom []))
 (defonce watcher-flush-scheduled? (core-atom false))
 
-(declare flush-queued-watchers)
-
 (defn- create-render-state [{:keys [normalized-component container base-namespace]}]
   (let [state {:active true
                :positional-key-counter 0
@@ -113,15 +111,6 @@
   (let [next-val (inc (:positional-key-counter @render-state))]
     (swap! render-state assoc :positional-key-counter next-val)
     next-val))
-
-(defn- schedule-watcher-flush! []
-  (when-not @watcher-flush-scheduled?
-    (reset! watcher-flush-scheduled? true)
-    (let [runner (fn []
-                   (flush-queued-watchers))]
-      (if (some? (.-queueMicrotask js/globalThis))
-        (.queueMicrotask js/globalThis runner)
-        (js/setTimeout runner 0)))))
 
 (defn- run-watcher-now [watcher]
   (let [old-watcher *watcher*]
@@ -137,6 +126,15 @@
     (reset! watcher-flush-scheduled? false)
     (doseq [watcher queued]
       (run-watcher-now watcher))))
+
+(defn- schedule-watcher-flush! []
+  (when-not @watcher-flush-scheduled?
+    (reset! watcher-flush-scheduled? true)
+    (let [runner (fn []
+                   (flush-queued-watchers))]
+      (if (some? (.-queueMicrotask js/globalThis))
+        (.queueMicrotask js/globalThis runner)
+        (js/setTimeout runner 0)))))
 
 (defn- queue-watcher!
   [watcher]
