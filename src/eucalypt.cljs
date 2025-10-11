@@ -282,8 +282,7 @@
 (defn normalize-component [component render-state]
   (when (sequential? component)
     (let [first-element (first component)
-          params (rest component)
-          base-lifecycle {}]
+          params (rest component)]
       (cond
         (fn? first-element)
         (let [a-fn first-element
@@ -311,29 +310,24 @@
               (if (fn? func-or-hiccup)
                 ;; Form-2 component (stateful)
                 (let [closure func-or-hiccup
-                      instance (assoc base-lifecycle :reagent-render closure)
+                      instance {:reagent-render closure}
                       result (into [instance] params-vec)]
                   (swap! component-instances assoc instance-key {:type :form-2 :instance instance})
                   result)
                 ;; Form-1 component (stateless)
-                (let [instance (assoc base-lifecycle :reagent-render a-fn)
+                (let [instance {:reagent-render a-fn}
                       result (into [instance] params-vec)]
                   (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
                   result)))))
 
         (string? first-element)
-        (into [(assoc base-lifecycle :reagent-render (fn [] component))]
+        (into [{:reagent-render (fn [] component)}]
               params)
 
         (map? first-element)
         (let [component-as-map first-element
               render-fn (:reagent-render component-as-map)
-              comp-with-lifecycle (into {:reagent-render render-fn}
-                                        (map (fn [[k func]]
-                                               (let [func2 (get component-as-map k)
-                                                     func-func2 (if func2 (comp func2 func) func)]
-                                                 [k func-func2]))
-                                             base-lifecycle))]
+              comp-with-lifecycle {:reagent-render render-fn}]
           (into [comp-with-lifecycle] params))))))
 
 (defn- component->hiccup [normalized-component]
