@@ -174,14 +174,15 @@
 (defn- style-map->css-str [style-map]
   (apply str (map (fn [[k v]] (str k ":" v ";")) style-map)))
 
-(def ^:private event-name-map
-  {:on-double-click "ondblclick"})
-
 (defn- get-event-name [k tag-name]
-  (if (and (= k :on-change)
-           (#{"INPUT" "TEXTAREA"} tag-name))
+  (cond
+    (and (= k :on-change)
+         (#{"INPUT" "TEXTAREA"} tag-name))
     "oninput"
-    (get event-name-map k (.replaceAll k "-" ""))))
+    (= k :on-double-click)
+    "ondblclick"
+    :else
+    (.replaceAll k "-" "")))
 
 (defn- set-attributes! [element attrs]
   (doseq [[k v] attrs]
