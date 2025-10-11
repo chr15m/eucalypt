@@ -34,6 +34,16 @@
     {}
     namespaces))
 
+(defonce ^:dynamic *watcher* nil)
+
+(defonce mounted-components (core-atom {}))
+(defonce container->mounted-component (core-atom {}))
+(defonce component-instances (core-atom {}))
+(defonce all-ratoms (core-atom {}))
+
+(defonce pending-watcher-queue (core-atom []))
+(defonce watcher-flush-scheduled? (core-atom false))
+
 (defn- namespace-uri [ns-key]
   (or (get-in namespaces [ns-key :uri])
       (get-in namespaces [default-namespace :uri])))
@@ -85,19 +95,6 @@
           (swap! watchers (fn [watchers]
                             (set (remove #(= w %) watchers)))))))))
 
-(declare hiccup->dom)
-(declare modify-dom)
-
-(defonce ^:dynamic *watcher* nil)
-
-(defonce mounted-components (core-atom {}))
-(defonce container->mounted-component (core-atom {}))
-(defonce component-instances (core-atom {}))
-(defonce all-ratoms (core-atom {}))
-
-(defonce pending-watcher-queue (core-atom []))
-(defonce watcher-flush-scheduled? (core-atom false))
-
 (defn- create-render-state [{:keys [normalized-component container base-namespace]}]
   (let [state {:active true
                :positional-key-counter 0
@@ -144,6 +141,9 @@
         defer-fn (and meta-info (:should-defer? meta-info))]
     (boolean (and (fn? defer-fn)
                   (defer-fn)))))
+
+(declare hiccup->dom)
+(declare modify-dom)
 
 (defn- with-watcher-bound [normalized-component render-state f]
   (let [old-watcher *watcher*
