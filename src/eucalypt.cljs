@@ -276,7 +276,7 @@
       (aset f "_eucalypt_id" new-id)
       new-id)))
 
-(defn normalize-component [component render-state]
+(defn- normalize-component [component render-state]
   (when (vector? component)
     (let [first-element (aget component 0)
           params (subvec component 1)]
@@ -332,7 +332,7 @@
         reagent-render (:reagent-render config)]
     (apply reagent-render params)))
 
-(defn hiccup->dom
+(defn- hiccup->dom
   ([hiccup render-state]
    (hiccup->dom hiccup (namespace-uri default-namespace) render-state))
   ([hiccup current-ns render-state]
@@ -368,9 +368,6 @@
            :else
            (.createTextNode js/document (str hiccup)))]
      result)))
-
-(declare fully-render-hiccup)
-(declare patch)
 
 (defn- get-hiccup-children [hiccup]
   (let [content (rest hiccup)]
@@ -424,7 +421,6 @@
           hiccup)]
     result))
 
-
 (defn- unmount-node-and-children [node]
   (when node
     (when-let [ref-fn (aget node "---ref-fn")]
@@ -437,6 +433,8 @@
   (when node
     (unmount-node-and-children node)
     (.remove node)))
+
+(declare patch)
 
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
   (let [children-a (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
@@ -530,7 +528,7 @@
 
     :else x))
 
-(defn patch
+(defn- patch
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
@@ -565,7 +563,7 @@
                 (aset dom-a "value" b-value))))
           dom-a))))
 
-(defn modify-dom [normalized-component]
+(defn- modify-dom [normalized-component]
   (remove-watchers-for-component normalized-component)
   (when-let [mounted-info (get @mounted-components normalized-component)]
     (let [{:keys [hiccup dom container base-namespace]} mounted-info
@@ -605,7 +603,7 @@
         (finally
           (swap! render-state assoc :active false))))))
 
-(defn notify-watchers [watchers]
+(defn- notify-watchers [watchers]
   (doseq [watcher @watchers]
     (when watcher
       (if (should-defer-watcher? watcher)
@@ -628,7 +626,7 @@
             dom (hiccup->dom hiccup base-ns render-state)]
         [hiccup dom]))))
 
-(defn unmount-components [container]
+(defn- unmount-components [container]
   (when-let [mounted-component (get @container->mounted-component container)]
     (remove-watchers-for-component mounted-component)
     (rm-watchers mounted-component)
@@ -640,7 +638,7 @@
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
 
-(defn do-render [normalized-component container render-state]
+(defn- do-render [normalized-component container render-state]
   (unmount-components container)
   (swap! render-state assoc :positional-key-counter 0)
   (try
@@ -659,7 +657,7 @@
       (swap! render-state assoc :active false))))
 
 ; mirrored as atom below
-(defn ratom [initial-value]
+(defn- ratom [initial-value]
   (let [a (core-atom initial-value)
         orig-deref (aget a "_deref")
         orig-reset_BANG_ (aget a "_reset_BANG_")
