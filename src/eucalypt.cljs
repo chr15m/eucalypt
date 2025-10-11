@@ -114,6 +114,64 @@
 (defonce positional-key-counter (core-atom 0))
 (defonce all-ratoms (core-atom {}))
 
+(defonce ^:dynamic *rendering-component* nil)
+(defonce pending-watcher-queue (core-atom []))
+(defonce watcher-flush-scheduled? (core-atom false))
+
+(defn- with-rendering-component [component f]
+  (let [previous *rendering-component*]
+    (try
+      (set! *rendering-component* component)
+      (f)
+      (finally
+        (set! *rendering-component* previous)))))
+
+(declare flush-queued-watchers)
+
+(defn- schedule-watcher-flush! []
+  (when-not @watcher-flush-scheduled?
+    (log "schedule-watcher-flush!: scheduling flush for queued watchers")
+    (reset! watcher-flush-scheduled? true)
+    (let [runner (fn []
+                   (flush-queued-watchers))]
+      (if (some? (.-queueMicrotask js/globalThis))
+        (.queueMicrotask js/globalThis runner)
+        (js/setTimeout runner 0)))))
+
+(defn- run-watcher-now [watcher]
+  (log "run-watcher-now: executing watcher for component"
+       (some-> watcher meta* :normalized-component))
+  (let [old-watcher *watcher*]
+    (try
+      (set! *watcher* watcher)
+      (watcher)
+      (finally
+        (set! *watcher* old-watcher)))))
+
+(defn- flush-queued-watchers []
+  (let [queued @pending-watcher-queue]
+    (reset! pending-watcher-queue [])
+    (reset! watcher-flush-scheduled? false)
+    (log "flush-queued-watchers: running" (count queued) "watchers")
+    (doseq [watcher queued]
+      (run-watcher-now watcher))))
+
+(defn- queue-watcher!
+  ([watcher] (queue-watcher! watcher nil))
+  ([watcher reason]
+   (let [new-queue (swap! pending-watcher-queue conj watcher)]
+     (log "queue-watcher!: queued watcher for component"
+          (some-> watcher meta* :normalized-component)
+          "reason:" reason
+          "queue-size:" (count new-queue)))
+   (schedule-watcher-flush!)))
+
+(defn- should-defer-watcher? [watcher]
+  (let [watcher-component (some-> watcher meta* :normalized-component)]
+    (boolean (and watcher-component
+                  *rendering-component*
+                  (= watcher-component *rendering-component*)))))
+
 (defn- with-watcher-bound [normalized-component f]
   (let [old-watcher *watcher*]
     (try
@@ -627,45 +685,50 @@
 
 (defn modify-dom [normalized-component]
   (log "modify-dom called for component:" normalized-component)
-  (remove-watchers-for-component normalized-component)
-  (reset! positional-key-counter 0)
-  (let [mounted-info (get @mounted-components normalized-component)
-        {:keys [hiccup dom container]} mounted-info
-        ; parent-ns (dom->namespace container)
-        new-hiccup-unrendered (with-watcher-bound
-                                normalized-component
-                                (fn [] (component->hiccup normalized-component)))
-        new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)]
-    (if (and (vector? hiccup) (= :<> (first hiccup)))
-      (do
-        (reset! positional-key-counter 0)
-        (patch-children hiccup new-hiccup-rendered container)
-        (swap! mounted-components assoc normalized-component
-               {:hiccup new-hiccup-rendered
-                :dom dom
-                :container container}))
-      (let [_ (reset! positional-key-counter 0)
-            new-dom (patch hiccup new-hiccup-rendered dom)]
-        (log "modify-dom: new DOM" (str new-dom))
-        (swap! mounted-components assoc normalized-component
-               {:hiccup new-hiccup-rendered
-                :dom new-dom
-                :container container})
-        (when (not= dom new-dom)
-          (log "modify-dom: DOM changed, replacing in container")
-          (aset container "innerHTML" "")
-          (.appendChild container new-dom))))))
+  (with-rendering-component
+    normalized-component
+    (fn []
+      (remove-watchers-for-component normalized-component)
+      (reset! positional-key-counter 0)
+      (let [mounted-info (get @mounted-components normalized-component)]
+        (if (nil? mounted-info)
+          (log "modify-dom: skipping update; component not mounted yet")
+          (let [{:keys [hiccup dom container]} mounted-info
+                new-hiccup-unrendered (with-watcher-bound
+                                        normalized-component
+                                        (fn [] (component->hiccup normalized-component)))
+                new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)]
+            (if (and (vector? hiccup) (= :<> (first hiccup)))
+              (do
+                (reset! positional-key-counter 0)
+                (patch-children hiccup new-hiccup-rendered container)
+                (swap! mounted-components assoc normalized-component
+                       {:hiccup new-hiccup-rendered
+                        :dom dom
+                        :container container}))
+              (let [_ (reset! positional-key-counter 0)
+                    new-dom (patch hiccup new-hiccup-rendered dom)]
+                (log "modify-dom: new DOM" (str new-dom))
+                (swap! mounted-components assoc normalized-component
+                       {:hiccup new-hiccup-rendered
+                        :dom new-dom
+                        :container container})
+                (when (not= dom new-dom)
+                  (log "modify-dom: DOM changed, replacing in container")
+                  (aset container "innerHTML" "")
+                  (.appendChild container new-dom))))))))))
 
 (defn notify-watchers [watchers]
   (log "notify-watchers called with" (count @watchers) "watchers")
   (doseq [watcher @watchers]
-    (log "calling watcher")
-    (let [old-watcher *watcher*]
-      (try
-        (set! *watcher* watcher)
-        (watcher)
-        (finally
-          (set! *watcher* old-watcher))))))
+    (when watcher
+      (log "calling watcher")
+      (if (should-defer-watcher? watcher)
+        (do
+          (log "notify-watchers: deferring watcher for component"
+               (some-> watcher meta* :normalized-component))
+          (queue-watcher! watcher "deferred-same-component"))
+        (run-watcher-now watcher)))))
 
 (defn- add-modify-dom-watcher-on-ratom-deref
   "This is where the magic of adding watchers to ratoms happen automatically.
@@ -697,19 +760,21 @@
 (defn do-render [normalized-component container]
   (unmount-components container)
   (reset! positional-key-counter 0)
-
-  (let [container-ns (dom->namespace container)
-        [{:keys [_reagent-render]}
-         & _params] normalized-component
-        [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component container-ns)
-        _ (reset! positional-key-counter 0)
-        hiccup-rendered (fully-render-hiccup hiccup)]
-    (.appendChild container dom)
-    (swap! mounted-components assoc normalized-component
-           {:hiccup hiccup-rendered
-            :dom dom
-            :container container})
-    (swap! container->mounted-component assoc container normalized-component)))
+  (with-rendering-component
+    normalized-component
+    (fn []
+      (let [container-ns (dom->namespace container)
+            [{:keys [_reagent-render]}
+             & _params] normalized-component
+            [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component container-ns)
+            _ (reset! positional-key-counter 0)
+            hiccup-rendered (fully-render-hiccup hiccup)]
+        (.appendChild container dom)
+        (swap! mounted-components assoc normalized-component
+               {:hiccup hiccup-rendered
+                :dom dom
+                :container container})
+        (swap! container->mounted-component assoc container normalized-component)))))
 
 ; mirrored as atom below
 (defn ratom [initial-value]
