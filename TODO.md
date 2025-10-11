@@ -1,4 +1,3 @@
-- [ ] Remove the :^private and defn- nonsense.
 - [ ] Support :onClick as well as :on-click.
 - [ ] Make it reentrant
   - [ ] Add multiple component render test & get it passing
@@ -15,6 +14,7 @@
 
 # Done
 
+- [x] Remove the :^private and defn- nonsense.
 - [x] Create a create script for npm init.
 - [x] Test & Demo JavaScript use of the library. (thx bordude)
 - [x] :div#hi.hello style shorthand
