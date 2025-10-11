@@ -566,7 +566,7 @@
 
       :else
       (do (patch-attributes hiccup-a-realized hiccup-b-realized dom-a)
-          (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)
+          (patch-children hiccup-a-realized hiccup-b-realized dom-a render-state)
           (let [a-attrs (get-attrs hiccup-a-realized)
                 b-attrs (get-attrs hiccup-b-realized)
                 b-value (:value b-attrs)]
