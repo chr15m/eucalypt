@@ -130,11 +130,9 @@
 (defn- schedule-watcher-flush! []
   (when-not @watcher-flush-scheduled?
     (reset! watcher-flush-scheduled? true)
-    (let [runner (fn []
-                   (flush-queued-watchers))]
-      (if (some? (.-queueMicrotask js/globalThis))
-        (.queueMicrotask js/globalThis runner)
-        (js/setTimeout runner 0)))))
+    (if (some? (.-queueMicrotask js/globalThis))
+      (.queueMicrotask js/globalThis flush-queued-watchers)
+      (js/setTimeout flush-queued-watchers 0))))
 
 (defn- queue-watcher!
   [watcher]
@@ -174,10 +172,10 @@
 
 (defn- get-event-name [k tag-name]
   (cond
-    (and (= k :on-change)
+    (and (= :on-change k)
          (#{"INPUT" "TEXTAREA"} tag-name))
     "oninput"
-    (= k :on-double-click)
+    (= :on-double-click k)
     "ondblclick"
     :else
     (.replaceAll k "-" "")))
@@ -264,7 +262,7 @@
       (when-let [child-node (hiccup->dom child new-ns render-state)]
         (.appendChild element child-node)))
     (when (some? value)
-      (if (and (= (.-tagName element) "SELECT") (.-multiple element))
+      (if (and (= "SELECT" (.-tagName element)) (.-multiple element))
         (let [value-set (set value)]
           (doseq [opt (.-options element)]
             (aset opt "selected" (contains? value-set (.-value opt)))))
@@ -279,9 +277,9 @@
       new-id)))
 
 (defn normalize-component [component render-state]
-  (when (sequential? component)
-    (let [first-element (first component)
-          params (rest component)]
+  (when (vector? component)
+    (let [first-element (aget component 0)
+          params (subvec component 1)]
       (cond
         (fn? first-element)
         (let [a-fn first-element
@@ -344,14 +342,9 @@
            (.createTextNode js/document (str hiccup))
 
            (vector? hiccup)
-           (let [[tag & _content] hiccup]
+           (let [tag (aget hiccup 0)]
              (cond
                (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup render-state)) current-ns render-state)
-               (vector? tag) (let [fragment (.createDocumentFragment js/document)]
-                               (doseq [item hiccup]
-                                 (when-let [child-node (hiccup->dom item current-ns render-state)]
-                                   (.appendChild fragment child-node)))
-                               fragment)
                (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
                              (doseq [child (rest hiccup)]
                                (when-let [child-node (hiccup->dom child current-ns render-state)]
@@ -370,10 +363,6 @@
                    (.appendChild fragment child-node))))
              fragment)
 
-           (fn? hiccup)
-           (hiccup->dom (hiccup) current-ns render-state)
-
-           (map? hiccup) (hiccup->dom ((:reagent-render hiccup)) current-ns render-state)
            (or (nil? hiccup) (boolean? hiccup)) nil
 
            :else
