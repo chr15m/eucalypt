@@ -645,7 +645,7 @@
       :else
       (do (log "patch: hiccup not equal, patching children and attributes")
           (patch-attributes hiccup-a-realized hiccup-b-realized dom-a)
-          (patch-children hiccup-a-realized hiccup-b-realized dom-a)
+          (patch-children hiccup-a-realized hiccup-b-rendered dom-a)
           (let [a-attrs (get-attrs hiccup-a-realized)
                 b-attrs (get-attrs hiccup-b-realized)
                 b-value (:value b-attrs)]
@@ -674,6 +674,7 @@
                 new-hiccup-unrendered (with-watcher-bound
                                         normalized-component
                                         (fn [] (component->hiccup normalized-component)))
+                _ (reset! positional-key-counter 0)
                 new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)]
             (if (and (vector? hiccup) (= :<> (first hiccup)))
               (do
@@ -742,6 +743,7 @@
     (fn []
       (let [container-ns (dom->namespace container)
             [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component container-ns)
+            _ (reset! positional-key-counter 0)
             hiccup-rendered (fully-render-hiccup hiccup)]
         (.appendChild container dom)
         (swap! mounted-components assoc normalized-component
