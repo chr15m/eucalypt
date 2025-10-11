@@ -28,34 +28,63 @@
 
 (describe "Re-entrant rendering"
   (fn []
-    (it "should keep child local state when another root renders"
+    (it "should keep child local state when multiple roots render interleaved"
       (fn []
         (let [container-a (.createElement js/document "div")
-              container-b (.createElement js/document "div")]
+              container-b (.createElement js/document "div")
+              container-c (.createElement js/document "div")]
           (.appendChild js/document.body container-a)
           (.appendChild js/document.body container-b)
+          (.appendChild js/document.body container-c)
 
-          (r/render [parent-with-toggle "Alpha"] container-a)
+          (letfn [(count-text [container label]
+                    (.-textContent (.querySelector container (str ".count-" label))))
+                  (inc-btn [container label]
+                    (.querySelector container (str ".inc-" label)))
+                  (toggle-btn [container label]
+                    (.querySelector container (str ".toggle-" label)))]
+            ;; Root A interactions
+            (r/render [parent-with-toggle "Alpha"] container-a)
+            (th/assert-equal (count-text container-a "Alpha") "0")
+            (.click (inc-btn container-a "Alpha"))
+            (th/assert-equal (count-text container-a "Alpha") "1")
+            (.click (toggle-btn container-a "Alpha"))
+            (th/assert-equal (count-text container-a "Alpha") "1")
 
-          (let [count-a #(.-textContent (.querySelector container-a ".count-Alpha"))
-                inc-a (.querySelector container-a ".inc-Alpha")
-                toggle-a (.querySelector container-a ".toggle-Alpha")]
-
-            ;; Initial state
-            (th/assert-equal (count-a) "0")
-
-            ;; Child increments should update its own state
-            (.click inc-a)
-            (th/assert-equal (count-a) "1")
-
-            ;; Parent re-render should not reset the child
-            (.click toggle-a)
-            (th/assert-equal (count-a) "1")
-
-            ;; Render a second root instance elsewhere
+            ;; Mount root B and ensure A retains its state
             (r/render [parent-with-toggle "Beta"] container-b)
+            (th/assert-equal (count-text container-a "Alpha") "1")
+            (th/assert-equal (count-text container-b "Beta") "0")
 
-            ;; Trigger a parent re-render in the first root again.
-            ;; Expectation: child state should remain 1.
-            (.click toggle-a)
-            (th/assert-equal (count-a) "1")))))))
+            ;; Interleave interactions between A and B
+            (.click (inc-btn container-b "Beta"))
+            (th/assert-equal (count-text container-b "Beta") "1")
+            (.click (toggle-btn container-b "Beta"))
+            (th/assert-equal (count-text container-a "Alpha") "1")
+
+            (.click (inc-btn container-a "Alpha"))
+            (th/assert-equal (count-text container-a "Alpha") "2")
+            (.click (toggle-btn container-a "Alpha"))
+            (th/assert-equal (count-text container-a "Alpha") "2")
+            (th/assert-equal (count-text container-b "Beta") "1")
+
+            ;; Mount root C after A and B have active local state
+            (r/render [parent-with-toggle "Gamma"] container-c)
+            (th/assert-equal (count-text container-a "Alpha") "2")
+            (th/assert-equal (count-text container-b "Beta") "1")
+            (th/assert-equal (count-text container-c "Gamma") "0")
+
+            ;; Exercise C while ensuring A and B retain their state
+            (.click (inc-btn container-c "Gamma"))
+            (th/assert-equal (count-text container-c "Gamma") "1")
+            (.click (toggle-btn container-c "Gamma"))
+            (th/assert-equal (count-text container-a "Alpha") "2")
+            (th/assert-equal (count-text container-b "Beta") "1")
+            (th/assert-equal (count-text container-c "Gamma") "1")
+
+            ;; Additional interleaving to ensure stability
+            (.click (inc-btn container-b "Beta"))
+            (th/assert-equal (count-text container-b "Beta") "2")
+            (.click (toggle-btn container-b "Beta"))
+            (th/assert-equal (count-text container-a "Alpha") "2")
+            (th/assert-equal (count-text container-c "Gamma") "1")))))))
