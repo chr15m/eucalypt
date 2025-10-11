@@ -346,14 +346,9 @@
            (.createTextNode js/document (str hiccup))
 
            (vector? hiccup)
-           (let [[tag & _content] hiccup]
+           (let [tag (aget hiccup 0)]
              (cond
                (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup render-state)) current-ns render-state)
-               (vector? tag) (let [fragment (.createDocumentFragment js/document)]
-                               (doseq [item hiccup]
-                                 (when-let [child-node (hiccup->dom item current-ns render-state)]
-                                   (.appendChild fragment child-node)))
-                               fragment)
                (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
                              (doseq [child (rest hiccup)]
                                (when-let [child-node (hiccup->dom child current-ns render-state)]
@@ -372,10 +367,6 @@
                    (.appendChild fragment child-node))))
              fragment)
 
-           (fn? hiccup)
-           (hiccup->dom (hiccup) current-ns render-state)
-
-           (map? hiccup) (hiccup->dom ((:reagent-render hiccup)) current-ns render-state)
            (or (nil? hiccup) (boolean? hiccup)) nil
 
            :else
