@@ -36,7 +36,6 @@
 
 (defonce ^:dynamic *watcher* nil)
 
-(defonce mounted-components (core-atom {}))
 (defonce container->mounted-component (core-atom {}))
 (defonce all-ratoms (core-atom {}))
 
@@ -113,6 +112,16 @@
            (fn [instances]
              (update-fn (or instances {}))))))
 
+(defn- runtime-mounted-info [runtime normalized-component]
+  (when runtime
+    (get (:mounted-components @runtime) normalized-component)))
+
+(defn- assoc-runtime-mounted-info! [runtime normalized-component info]
+  (when runtime
+    (swap! runtime update :mounted-components
+           (fn [components]
+             (assoc (or components {}) normalized-component info)))))
+
 (defn- create-render-state [{:keys [normalized-component container base-namespace runtime]}]
   (let [state {:active true
                :positional-key-counter 0
@@ -174,7 +183,7 @@
 (defn- with-watcher-bound [normalized-component render-state f]
   (let [old-watcher *watcher*
         runtime (render-state-runtime render-state)
-        watcher-fn (with-meta* #(modify-dom normalized-component)
+        watcher-fn (with-meta* #(modify-dom runtime normalized-component)
                      {:normalized-component normalized-component
                       :should-defer? #(boolean (:active @render-state))
                       :runtime runtime})]
@@ -606,10 +615,11 @@
                 (aset dom-a "value" b-value))))
           dom-a))))
 
-(defn- modify-dom [normalized-component]
+(defn- modify-dom [runtime normalized-component]
   (remove-watchers-for-component normalized-component)
-  (when-let [mounted-info (get @mounted-components normalized-component)]
-    (let [{:keys [hiccup dom container base-namespace runtime]} mounted-info
+  (when-let [mounted-info (and runtime
+                               (runtime-mounted-info runtime normalized-component))]
+    (let [{:keys [hiccup dom container base-namespace]} mounted-info
           render-state (create-render-state {:normalized-component normalized-component
                                              :container container
                                              :base-namespace (or base-namespace
@@ -628,21 +638,21 @@
               (swap! render-state assoc :positional-key-counter 0)
               (patch-children hiccup new-hiccup-rendered container render-state)
               (let [base-ns (:base-namespace @render-state)]
-                (swap! mounted-components assoc normalized-component
-                       {:hiccup new-hiccup-rendered
-                        :dom dom
-                        :container container
-                        :base-namespace base-ns
-                        :runtime runtime})))
+                (assoc-runtime-mounted-info! runtime normalized-component
+                  {:hiccup new-hiccup-rendered
+                   :dom dom
+                   :container container
+                   :base-namespace base-ns
+                   :runtime runtime})))
             (let [_ (swap! render-state assoc :positional-key-counter 0)
                   new-dom (patch hiccup new-hiccup-rendered dom render-state)
                   base-ns (:base-namespace @render-state)]
-              (swap! mounted-components assoc normalized-component
-                     {:hiccup new-hiccup-rendered
-                      :dom new-dom
-                      :container container
-                      :base-namespace base-ns
-                      :runtime runtime})
+              (assoc-runtime-mounted-info! runtime normalized-component
+                {:hiccup new-hiccup-rendered
+                 :dom new-dom
+                 :container container
+                 :base-namespace base-ns
+                 :runtime runtime})
               (when (not= dom new-dom)
                 (aset container "innerHTML" "")
                 (.appendChild container new-dom)))))
@@ -673,18 +683,20 @@
         [hiccup dom]))))
 
 (defn- unmount-components [container]
-  (when-let [mounted-component (get @container->mounted-component container)]
-    (remove-watchers-for-component mounted-component)
-    (rm-watchers mounted-component)
-    (when-let [mounted-info (get @mounted-components mounted-component)]
-      (when-let [runtime (:runtime mounted-info)]
-        (swap! runtime
-               (fn [state]
-                 (-> state
-                     (assoc :component-instances {})
-                     (assoc :pending-watchers [])
-                     (assoc :watcher-flush-scheduled? false)))))
-      (swap! mounted-components dissoc mounted-component))
+  (when-let [{:keys [component runtime]} (get @container->mounted-component container)]
+    (remove-watchers-for-component component)
+    (rm-watchers component)
+    (when runtime
+      (swap! runtime
+             (fn [state]
+               (-> state
+                   (update :mounted-components
+                           (fn [components]
+                             (let [existing (or components {})]
+                               (dissoc existing component))))
+                   (assoc :component-instances {})
+                   (assoc :pending-watchers [])
+                   (assoc :watcher-flush-scheduled? false)))))
     (swap! container->mounted-component dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
@@ -699,13 +711,14 @@
           _ (swap! render-state assoc :positional-key-counter 0)
           hiccup-rendered (fully-render-hiccup hiccup render-state)]
       (.appendChild container dom)
-      (swap! mounted-components assoc normalized-component
-             {:hiccup hiccup-rendered
-              :dom dom
-              :container container
-              :base-namespace base-ns
-              :runtime runtime})
-      (swap! container->mounted-component assoc container normalized-component))
+      (assoc-runtime-mounted-info! runtime normalized-component
+        {:hiccup hiccup-rendered
+         :dom dom
+         :container container
+         :base-namespace base-ns
+         :runtime runtime})
+      (swap! container->mounted-component assoc container {:component normalized-component
+                                                           :runtime runtime}))
     (finally
       (swap! render-state assoc :active false))))
 
@@ -781,7 +794,8 @@
 (defn render [component container]
   (let [runtime (core-atom {:component-instances {}
                             :pending-watchers []
-                            :watcher-flush-scheduled? false})
+                            :watcher-flush-scheduled? false
+                            :mounted-components {}})
         base-ns (dom->namespace container)
         render-state (create-render-state {:container container
                                            :base-namespace base-ns
@@ -794,8 +808,11 @@
 (def render-component render)
 
 (defn clear-component-instances! []
-  (doseq [{:keys [runtime]} (vals @mounted-components)]
-    (when runtime
+  (let [runtimes (->> (vals @container->mounted-component)
+                      (map :runtime)
+                      (remove nil?)
+                      (set))]
+    (doseq [runtime runtimes]
       (swap! runtime assoc :component-instances {}))))
 
 ;; Reagent API
