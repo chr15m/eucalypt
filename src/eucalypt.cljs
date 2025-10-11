@@ -83,13 +83,12 @@
                 :when (= (-> w meta* :normalized-component)
                          normalized-component)]
           (swap! watchers (fn [watchers]
-                                         (set (remove #(= w %) watchers)))))))))
+                            (set (remove #(= w %) watchers)))))))))
 
 (declare hiccup->dom)
 (declare modify-dom)
 
 (defonce ^:dynamic *watcher* nil)
-(defonce life-cycle-methods {:component-will-unmount rm-watchers})
 
 (defonce mounted-components (core-atom {}))
 (defonce container->mounted-component (core-atom {}))
@@ -283,7 +282,8 @@
 (defn normalize-component [component render-state]
   (when (sequential? component)
     (let [first-element (first component)
-          params (rest component)]
+          params (rest component)
+          base-lifecycle {}]
       (cond
         (fn? first-element)
         (let [a-fn first-element
@@ -311,18 +311,18 @@
               (if (fn? func-or-hiccup)
                 ;; Form-2 component (stateful)
                 (let [closure func-or-hiccup
-                      instance (merge life-cycle-methods {:reagent-render closure})
+                      instance (assoc base-lifecycle :reagent-render closure)
                       result (into [instance] params-vec)]
                   (swap! component-instances assoc instance-key {:type :form-2 :instance instance})
                   result)
                 ;; Form-1 component (stateless)
-                (let [instance (merge life-cycle-methods {:reagent-render a-fn})
+                (let [instance (assoc base-lifecycle :reagent-render a-fn)
                       result (into [instance] params-vec)]
                   (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
                   result)))))
 
         (string? first-element)
-        (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
+        (into [(assoc base-lifecycle :reagent-render (fn [] component))]
               params)
 
         (map? first-element)
@@ -333,7 +333,7 @@
                                                (let [func2 (get component-as-map k)
                                                      func-func2 (if func2 (comp func2 func) func)]
                                                  [k func-func2]))
-                                             life-cycle-methods))]
+                                             base-lifecycle))]
           (into [comp-with-lifecycle] params))))))
 
 (defn- component->hiccup [normalized-component]
@@ -650,9 +650,8 @@
 (defn unmount-components [container]
   (when-let [mounted-component (get @container->mounted-component container)]
     (remove-watchers-for-component mounted-component)
-    (let [[{:keys [component-will-unmount]} & _params] mounted-component]
-      (component-will-unmount mounted-component)
-      (swap! container->mounted-component dissoc container)))
+    (rm-watchers mounted-component)
+    (swap! container->mounted-component dissoc container))
   ;; Always clear the component cache when unmounting
   ;; This matches Reagent's behavior where component instances
   ;; are destroyed when unmounted
