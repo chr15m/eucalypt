@@ -40,9 +40,6 @@
 (defonce container->mounted-component (core-atom {}))
 (defonce all-ratoms (core-atom {}))
 
-(defonce pending-watcher-queue (core-atom []))
-(defonce watcher-flush-scheduled? (core-atom false))
-
 (defn- namespace-uri [ns-key]
   (or (get-in namespaces [ns-key :uri])
       (get-in namespaces [default-namespace :uri])))
@@ -83,6 +80,13 @@
 (defn- meta* [obj]
   (aget obj "---meta"))
 
+(defn- remove-watcher-from-runtime-queue! [watcher]
+  (when-let [runtime (-> watcher meta* :runtime)]
+    (swap! runtime update :pending-watchers
+           (fn [queue]
+             (let [existing (or queue [])]
+               (into [] (remove #(= watcher %) existing)))))))
+
 (defn- rm-watchers [normalized-component]
   (let [params (rest normalized-component)]
     (doseq [p params
@@ -91,6 +95,7 @@
         (doseq [w @watchers
                 :when (= (-> w meta* :normalized-component)
                          normalized-component)]
+          (remove-watcher-from-runtime-queue! w)
           (swap! watchers (fn [watchers]
                             (set (remove #(= w %) watchers)))))))))
 
@@ -131,24 +136,31 @@
       (finally
         (set! *watcher* old-watcher)))))
 
-(defn- flush-queued-watchers []
-  (let [queued @pending-watcher-queue]
-    (reset! pending-watcher-queue [])
-    (reset! watcher-flush-scheduled? false)
+(defn- flush-queued-watchers [runtime]
+  (let [queued (:pending-watchers @runtime)]
+    (swap! runtime
+           (fn [state]
+             (-> state
+                 (assoc :pending-watchers [])
+                 (assoc :watcher-flush-scheduled? false))))
     (doseq [watcher queued]
       (run-watcher-now watcher))))
 
-(defn- schedule-watcher-flush! []
-  (when-not @watcher-flush-scheduled?
-    (reset! watcher-flush-scheduled? true)
-    (if (some? (.-queueMicrotask js/globalThis))
-      (.queueMicrotask js/globalThis flush-queued-watchers)
-      (js/setTimeout flush-queued-watchers 0))))
+(defn- schedule-watcher-flush! [runtime]
+  (when (and runtime (not (:watcher-flush-scheduled? @runtime)))
+    (swap! runtime assoc :watcher-flush-scheduled? true)
+    (let [flush-fn #(flush-queued-watchers runtime)]
+      (if (some? (.-queueMicrotask js/globalThis))
+        (.queueMicrotask js/globalThis flush-fn)
+        (js/setTimeout flush-fn 0)))))
 
 (defn- queue-watcher!
   [watcher]
-  (swap! pending-watcher-queue conj watcher)
-  (schedule-watcher-flush!))
+  (if-let [runtime (-> watcher meta* :runtime)]
+    (do
+      (swap! runtime update :pending-watchers (fnil conj []) watcher)
+      (schedule-watcher-flush! runtime))
+    (run-watcher-now watcher)))
 
 (defn- should-defer-watcher? [watcher]
   (let [meta-info (meta* watcher)
@@ -161,9 +173,11 @@
 
 (defn- with-watcher-bound [normalized-component render-state f]
   (let [old-watcher *watcher*
+        runtime (render-state-runtime render-state)
         watcher-fn (with-meta* #(modify-dom normalized-component)
                      {:normalized-component normalized-component
-                      :should-defer? #(boolean (:active @render-state))})]
+                      :should-defer? #(boolean (:active @render-state))
+                      :runtime runtime})]
     (try
       (set! *watcher* watcher-fn)
       (f)
@@ -177,7 +191,14 @@
              (fn [watcher-set]
                (set (remove #(= (-> % meta* :normalized-component)
                                 component)
-                            watcher-set)))))))
+                            watcher-set))))))
+  ;; Remove queued watchers for this component across runtimes
+  (doseq [[_ratom-id ratom] @all-ratoms]
+    (when-let [watchers (aget ratom "watchers")]
+      (doseq [w @watchers
+              :when (= (-> w meta* :normalized-component)
+                       component)]
+        (remove-watcher-from-runtime-queue! w)))))
 
 ;; *** hiccup-to-dom implementation ***
 
@@ -572,10 +593,10 @@
         new-node)
 
       :else
-      (do (patch-attributes hiccup-a-realized hiccup-b-realized dom-a)
-          (patch-children hiccup-a-realized hiccup-b-realized dom-a render-state)
+      (do (patch-attributes hiccup-a-realized hiccup-b-rendered dom-a)
+          (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)
           (let [a-attrs (get-attrs hiccup-a-realized)
-                b-attrs (get-attrs hiccup-b-realized)
+                b-attrs (get-attrs hiccup-b-rendered)
                 b-value (:value b-attrs)]
             (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
               (if (and (= "SELECT" (.-tagName dom-a) ) (.-multiple dom-a))
@@ -657,7 +678,12 @@
     (rm-watchers mounted-component)
     (when-let [mounted-info (get @mounted-components mounted-component)]
       (when-let [runtime (:runtime mounted-info)]
-        (swap! runtime assoc :component-instances {}))
+        (swap! runtime
+               (fn [state]
+                 (-> state
+                     (assoc :component-instances {})
+                     (assoc :pending-watchers [])
+                     (assoc :watcher-flush-scheduled? false)))))
       (swap! mounted-components dissoc mounted-component))
     (swap! container->mounted-component dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
@@ -753,7 +779,9 @@
 
 ;; Reagent API
 (defn render [component container]
-  (let [runtime (core-atom {:component-instances {}})
+  (let [runtime (core-atom {:component-instances {}
+                            :pending-watchers []
+                            :watcher-flush-scheduled? false})
         base-ns (dom->namespace container)
         render-state (create-render-state {:container container
                                            :base-namespace base-ns
