@@ -97,17 +97,8 @@
 (defonce positional-key-counter (core-atom 0))
 (defonce all-ratoms (core-atom {}))
 
-(defonce ^:dynamic *rendering-component* nil)
 (defonce pending-watcher-queue (core-atom []))
 (defonce watcher-flush-scheduled? (core-atom false))
-
-(defn- with-rendering-component [component f]
-  (let [previous *rendering-component*]
-    (try
-      (set! *rendering-component* component)
-      (f)
-      (finally
-        (set! *rendering-component* previous)))))
 
 (declare flush-queued-watchers)
 
@@ -140,17 +131,29 @@
   (swap! pending-watcher-queue conj watcher)
   (schedule-watcher-flush!))
 
-(defn- should-defer-watcher? [watcher]
-  (let [watcher-component (some-> watcher meta* :normalized-component)]
-    (boolean (and watcher-component
-                  *rendering-component*
-                  (= watcher-component *rendering-component*)))))
+(defn- create-render-state []
+  (js-obj "active" true))
 
-(defn- with-watcher-bound [normalized-component f]
-  (let [old-watcher *watcher*]
+(defn- render-state-active? [render-state]
+  (boolean (aget render-state "active")))
+
+(defn- mark-render-complete! [render-state]
+  (aset render-state "active" false))
+
+(defn- should-defer-watcher? [watcher]
+  (let [meta-info (meta* watcher)
+        defer-fn (and meta-info (:should-defer? meta-info))]
+    (boolean (and (fn? defer-fn)
+                  (defer-fn)))))
+
+(defn- with-watcher-bound [normalized-component render-state f]
+  (let [old-watcher *watcher*
+        watcher-fn (with-meta* #(modify-dom normalized-component)
+                     {:normalized-component normalized-component
+                      :should-defer? (fn []
+                                       (render-state-active? render-state))})]
     (try
-      (set! *watcher* (with-meta* #(modify-dom normalized-component)
-                        {:normalized-component normalized-component}))
+      (set! *watcher* watcher-fn)
       (f)
       (finally
         (set! *watcher* old-watcher)))))
@@ -579,15 +582,15 @@
           dom-a))))
 
 (defn modify-dom [normalized-component]
-  (with-rendering-component
-    normalized-component
-    (fn []
+  (let [render-state (create-render-state)]
+    (try
       (remove-watchers-for-component normalized-component)
       (reset! positional-key-counter 0)
       (when-let [mounted-info (get @mounted-components normalized-component)]
         (let [{:keys [hiccup dom container]} mounted-info
               new-hiccup-unrendered (with-watcher-bound
                                       normalized-component
+                                      render-state
                                       (fn [] (component->hiccup normalized-component)))
               _ (reset! positional-key-counter 0)
               new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)]
@@ -607,7 +610,9 @@
                       :container container})
               (when (not= dom new-dom)
                 (aset container "innerHTML" "")
-                (.appendChild container new-dom)))))))))
+                (.appendChild container new-dom))))))
+      (finally
+        (mark-render-complete! render-state)))))
 
 (defn notify-watchers [watchers]
   (doseq [watcher @watchers]
@@ -620,9 +625,10 @@
   "This is where the magic of adding watchers to ratoms happen automatically.
   This is achieved by setting the dnymaic var *watcher* then evaluating reagent-render
   which causes the deref of the ratom to trigger adding the watcher to (.-watchers ratom)"
-  [normalized-component base-namespace]
+  [normalized-component base-namespace render-state]
   (with-watcher-bound
     normalized-component
+    render-state
     (fn []
       (let [reagent-render (-> normalized-component first :reagent-render)
             params (rest normalized-component)
@@ -646,11 +652,10 @@
 (defn do-render [normalized-component container]
   (unmount-components container)
   (reset! positional-key-counter 0)
-  (with-rendering-component
-    normalized-component
-    (fn []
+  (let [render-state (create-render-state)]
+    (try
       (let [container-ns (dom->namespace container)
-            [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component container-ns)
+            [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component container-ns render-state)
             _ (reset! positional-key-counter 0)
             hiccup-rendered (fully-render-hiccup hiccup)]
         (.appendChild container dom)
@@ -658,7 +663,9 @@
                {:hiccup hiccup-rendered
                 :dom dom
                 :container container})
-        (swap! container->mounted-component assoc container normalized-component)))))
+        (swap! container->mounted-component assoc container normalized-component))
+      (finally
+        (mark-render-complete! render-state)))))
 
 ; mirrored as atom below
 (defn ratom [initial-value]
