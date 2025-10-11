@@ -266,7 +266,7 @@
       (when-let [child-node (hiccup->dom child new-ns render-state)]
         (.appendChild element child-node)))
     (when (some? value)
-      (if (and (= (.-tagName element) "SELECT") (.-multiple element))
+      (if (and (= "SELECT" (.-tagName element)) (.-multiple element))
         (let [value-set (set value)]
           (doseq [opt (.-options element)]
             (aset opt "selected" (contains? value-set (.-value opt)))))
@@ -281,9 +281,9 @@
       new-id)))
 
 (defn normalize-component [component render-state]
-  (when (sequential? component)
-    (let [first-element (first component)
-          params (rest component)]
+  (when (vector? component)
+    (let [first-element (aget component 0)
+          params (subvec component 1)]
       (cond
         (fn? first-element)
         (let [a-fn first-element
