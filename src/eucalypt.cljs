@@ -117,8 +117,7 @@
 (defn- schedule-watcher-flush! []
   (when-not @watcher-flush-scheduled?
     (reset! watcher-flush-scheduled? true)
-    (let [runner (fn []
-                   (flush-queued-watchers))]
+    (let [runner flush-queued-watchers]
       (if (some? (.-queueMicrotask js/globalThis))
         (.queueMicrotask js/globalThis runner)
         (js/setTimeout runner 0)))))
@@ -176,10 +175,10 @@
 
 (defn- get-event-name [k tag-name]
   (cond
-    (and (= k :on-change)
+    (and (= :on-change k)
          (#{"INPUT" "TEXTAREA"} tag-name))
     "oninput"
-    (= k :on-double-click)
+    (= :on-double-click k)
     "ondblclick"
     :else
     (.replaceAll k "-" "")))
