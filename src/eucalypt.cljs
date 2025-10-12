@@ -86,17 +86,116 @@
              (let [existing (or queue [])]
                (into [] (remove #(= watcher %) existing)))))))
 
-(defn- rm-watchers [normalized-component]
-  (let [params (rest normalized-component)]
-    (doseq [p params
-            :when (and (object? p) (aget p "watchers"))]
-      (let [watchers (aget p "watchers")]
-        (doseq [w @watchers
-                :when (= (-> w meta* :normalized-component)
+(defn- ensure-component-token! [runtime normalized-component]
+  (when (and runtime normalized-component)
+    (let [state @runtime
+          runtime-id (or (:runtime-id state)
+                         (let [new-id (str "runtime-" (random-uuid))]
+                           (swap! runtime assoc :runtime-id new-id)
+                           new-id))
+          existing (get-in state [:component-tokens normalized-component])]
+      (if existing
+        existing
+        (let [token (str runtime-id "-" (random-uuid))]
+          (swap! runtime update :component-tokens
+                 (fn [tokens]
+                   (assoc (or tokens {}) normalized-component token)))
+          token)))))
+
+(defn- get-or-create-watcher-id [watcher]
+  (if-let [id (aget watcher "_eucalypt_watcher_id")]
+    id
+    (let [new-id (str "watcher-" (random-uuid))]
+      (aset watcher "_eucalypt_watcher_id" new-id)
+      new-id)))
+
+(defn- ensure-host-id! [host]
+  (when host
+    (if-let [id (aget host "_eucalypt_host_id")]
+      id
+      (let [new-id (str "host-" (random-uuid))]
+        (aset host "_eucalypt_host_id" new-id)
+        new-id))))
+
+(defn- watcher-entry-key [watcher]
+  (or (-> watcher meta* :subscription-token)
+      (get-or-create-watcher-id watcher)))
+
+(defn- ensure-watcher-storage-map! [watchers-atom]
+  (swap! watchers-atom
+         (fn [current]
+           (cond
+             (map? current) current
+             (set? current)
+             (into {}
+                   (map (fn [watcher]
+                          [(watcher-entry-key watcher) watcher])
+                        current))
+             (sequential? current)
+             (into {}
+                   (map (fn [watcher]
+                          [(watcher-entry-key watcher) watcher])
+                        current))
+             (nil? current) {}
+             :else current))))
+
+(defn- drop-watcher-entry [current watcher-key watcher]
+  (cond
+    (map? current)
+    (let [key (or watcher-key (watcher-entry-key watcher))]
+      (dissoc current key))
+
+    (set? current)
+    (set (remove #(= watcher %) current))
+
+    (sequential? current)
+    (into (empty current) (remove #(= watcher %) current))
+
+    (nil? current) current
+
+    :else current))
+
+(defn- register-watcher-with-host! [host watchers-atom watcher watcher-key]
+  (let [meta-info (meta* watcher)
+        runtime (:runtime meta-info)
+        token (:subscription-token meta-info)
+        host-id (ensure-host-id! host)]
+    (when (and runtime token host-id)
+      (swap! runtime
+             (fn [state]
+               (let [existing (get-in state [:subscriptions token host-id])]
+                 (if (= watcher (:watcher existing))
+                   state
+                   (let [subs (or (:subscriptions state) {})
+                         token-map (or (get subs token) {})
+                         entry {:host host
+                                :host-id host-id
+                                :watchers-atom watchers-atom
+                                :watcher watcher
+                                :watcher-key watcher-key}
+                         new-token-map (assoc token-map host-id entry)
+                         new-subs (assoc subs token new-token-map)]
+                     (assoc state :subscriptions new-subs)))))))))
+
+(defn- legacy-remove-watchers-for-component [normalized-component]
+  (doseq [[_ratom-id ratom] @all-ratoms]
+    (when-let [watchers (aget ratom "watchers")]
+      (when-not (map? @watchers)
+        (ensure-watcher-storage-map! watchers))
+      (let [current @watchers
+            entries (if (map? current)
+                      current
+                      (map (fn [watcher] [nil watcher]) current))]
+        (doseq [[key watcher] entries
+                :when (= (-> watcher meta* :normalized-component)
                          normalized-component)]
-          (remove-watcher-from-runtime-queue! w)
-          (swap! watchers (fn [watchers]
-                            (set (remove #(= w %) watchers)))))))))
+          (remove-watcher-from-runtime-queue! watcher)
+          (swap! watchers
+                 (fn [state]
+                   (drop-watcher-entry state key watcher))))))))
+
+(defn- rm-watchers [normalized-component]
+  (legacy-remove-watchers-for-component normalized-component))
 
 (defn- render-state-runtime [render-state]
   (when render-state
@@ -183,31 +282,50 @@
 (defn- with-watcher-bound [normalized-component render-state f]
   (let [old-watcher *watcher*
         runtime (render-state-runtime render-state)
+        token (ensure-component-token! runtime normalized-component)
         watcher-fn (with-meta* #(modify-dom runtime normalized-component)
                      {:normalized-component normalized-component
                       :should-defer? #(boolean (:active @render-state))
-                      :runtime runtime})]
+                      :runtime runtime
+                      :subscription-token token})]
     (try
       (set! *watcher* watcher-fn)
       (f)
       (finally
         (set! *watcher* old-watcher)))))
 
-(defn- remove-watchers-for-component [component]
-  (doseq [[_ratom-id ratom] @all-ratoms]
-    (when-let [watchers (aget ratom "watchers")]
-      (swap! watchers
-             (fn [watcher-set]
-               (set (remove #(= (-> % meta* :normalized-component)
-                                component)
-                            watcher-set))))))
-  ;; Remove queued watchers for this component across runtimes
-  (doseq [[_ratom-id ratom] @all-ratoms]
-    (when-let [watchers (aget ratom "watchers")]
-      (doseq [w @watchers
-              :when (= (-> w meta* :normalized-component)
-                       component)]
-        (remove-watcher-from-runtime-queue! w)))))
+(defn- remove-watchers-for-component [runtime normalized-component]
+  (let [runtime-state (when runtime @runtime)
+        token (get-in runtime-state [:component-tokens normalized-component])
+        subscriptions (get-in runtime-state [:subscriptions token])]
+    (if (and runtime token)
+      (do
+        (when (seq subscriptions)
+          (doseq [{:keys [watchers-atom watcher watcher-key]} (vals subscriptions)]
+            (remove-watcher-from-runtime-queue! watcher)
+            (when watchers-atom
+              (swap! watchers-atom
+                     (fn [state]
+                       (drop-watcher-entry state watcher-key watcher))))))
+        (swap! runtime
+               (fn [state]
+                 (let [subs (or (:subscriptions state) {})
+                       tokens (or (:component-tokens state) {})
+                       new-subs (dissoc subs token)
+                       new-tokens (dissoc tokens normalized-component)]
+                   (assoc state
+                          :subscriptions new-subs
+                          :component-tokens new-tokens))))
+        true)
+      (do
+        (legacy-remove-watchers-for-component normalized-component)
+        false))))
+
+(defn- remove-all-runtime-watchers! [runtime]
+  (when runtime
+    (let [components (keys (or (:component-tokens @runtime) {}))]
+      (doseq [component components]
+        (remove-watchers-for-component runtime component)))))
 
 ;; *** hiccup-to-dom implementation ***
 
@@ -616,7 +734,7 @@
           dom-a))))
 
 (defn- modify-dom [runtime normalized-component]
-  (remove-watchers-for-component normalized-component)
+  (remove-watchers-for-component runtime normalized-component)
   (when-let [mounted-info (and runtime
                                (runtime-mounted-info runtime normalized-component))]
     (let [{:keys [hiccup dom container base-namespace]} mounted-info
@@ -660,11 +778,12 @@
           (swap! render-state assoc :active false))))))
 
 (defn- notify-watchers [watchers]
-  (doseq [watcher @watchers]
-    (when watcher
-      (if (should-defer-watcher? watcher)
-        (queue-watcher! watcher)
-        (run-watcher-now watcher)))))
+  (let [current (or @watchers {})]
+    (doseq [watcher (if (map? current) (vals current) current)]
+      (when watcher
+        (if (should-defer-watcher? watcher)
+          (queue-watcher! watcher)
+          (run-watcher-now watcher))))))
 
 (defn- add-modify-dom-watcher-on-ratom-deref
   "This is where the magic of adding watchers to ratoms happen automatically.
@@ -684,19 +803,20 @@
 
 (defn- unmount-components [container]
   (when-let [{:keys [component runtime]} (get @roots container)]
-    (remove-watchers-for-component component)
-    (rm-watchers component)
+    (when runtime
+      (remove-all-runtime-watchers! runtime))
+    (when component
+      (rm-watchers component))
     (when runtime
       (swap! runtime
              (fn [state]
                (-> state
-                   (update :mounted-components
-                           (fn [components]
-                             (let [existing (or components {})]
-                               (dissoc existing component))))
+                   (assoc :mounted-components {})
                    (assoc :component-instances {})
                    (assoc :pending-watchers [])
-                   (assoc :watcher-flush-scheduled? false)))))
+                   (assoc :watcher-flush-scheduled? false)
+                   (assoc :subscriptions {})
+                   (assoc :component-tokens {})))))
     (swap! roots dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
@@ -729,11 +849,20 @@
         orig-reset_BANG_ (aget a "_reset_BANG_")
         ratom-id (str "ratom-" (random-uuid))]
     (aset a "ratom-id" ratom-id)
-    (aset a "watchers" (core-atom #{}))
+    (aset a "watchers" (core-atom {}))
     (aset a "cursors" (core-atom #{}))
     (aset a "_deref" (fn []
                       (when *watcher*
-                        (swap! (aget a "watchers") conj *watcher*))
+                        (let [watchers (aget a "watchers")]
+                          (when-not (map? @watchers)
+                            (ensure-watcher-storage-map! watchers))
+                          (let [current @watchers
+                                watcher-key (watcher-entry-key *watcher*)]
+                            (when-not (contains? current watcher-key)
+                              (swap! watchers
+                                     (fn [state]
+                                       (assoc (or state {}) watcher-key *watcher*))))
+                            (register-watcher-with-host! a watchers *watcher* watcher-key))))
                       (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
                              (let [res (.call orig-reset_BANG_ a new-val)]
@@ -751,25 +880,35 @@
   (let [cursors (aget the-ratom "cursors")
         found-cursor (some (fn [c] (when (= path (aget c "path")) c)) @cursors)]
     (if (nil? found-cursor)
-      (let [watchers (core-atom #{})
-            this-cursor (js-obj
-                         "_deref" (fn []
-                                   (when *watcher*
-                                     (swap! watchers conj *watcher*))
-                                   (let [old-watcher *watcher*]
-                                     (try
-                                       (set! *watcher* nil)
-                                       (get-in @the-ratom path)
-                                       (finally
-                                         (set! *watcher* old-watcher)))))
-                         "_swap" (fn [f & args]
-                                  (swap! the-ratom
-                                    (fn [current-state]
-                                      (let [current-cursor-value (get-in current-state path)
-                                            new-cursor-value (apply f current-cursor-value args)]
-                                        (assoc-in current-state path new-cursor-value)))))
-                         "watchers" watchers
-                         "path" path)]
+      (let [watchers (core-atom {})
+            this-cursor (js-obj)]
+        (aset this-cursor "_deref"
+              (fn []
+                (when *watcher*
+                  (when-not (map? @watchers)
+                    (ensure-watcher-storage-map! watchers))
+                  (let [current @watchers
+                        watcher-key (watcher-entry-key *watcher*)]
+                    (when-not (contains? current watcher-key)
+                      (swap! watchers
+                             (fn [state]
+                               (assoc (or state {}) watcher-key *watcher*))))
+                    (register-watcher-with-host! this-cursor watchers *watcher* watcher-key)))
+                (let [old-watcher *watcher*]
+                  (try
+                    (set! *watcher* nil)
+                    (get-in @the-ratom path)
+                    (finally
+                      (set! *watcher* old-watcher))))))
+        (aset this-cursor "_swap"
+              (fn [f & args]
+                (swap! the-ratom
+                  (fn [current-state]
+                    (let [current-cursor-value (get-in current-state path)
+                          new-cursor-value (apply f current-cursor-value args)]
+                      (assoc-in current-state path new-cursor-value))))))
+        (aset this-cursor "watchers" watchers)
+        (aset this-cursor "path" path)
         (swap! cursors conj this-cursor)
         this-cursor)
       found-cursor)))
@@ -792,10 +931,13 @@
 
 ;; Reagent API
 (defn render [component container]
-  (let [runtime (core-atom {:component-instances {}
+  (let [runtime (core-atom {:runtime-id (str "runtime-" (random-uuid))
+                            :component-instances {}
                             :pending-watchers []
                             :watcher-flush-scheduled? false
-                            :mounted-components {}})
+                            :mounted-components {}
+                            :subscriptions {}
+                            :component-tokens {}})
         base-ns (dom->namespace container)
         render-state (create-render-state {:container container
                                            :base-namespace base-ns
