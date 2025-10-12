@@ -120,41 +120,7 @@
   (or (-> watcher meta* :subscription-token)
       (get-or-create-watcher-id watcher)))
 
-(defn- ensure-watcher-storage-map! [watchers-atom]
-  (swap! watchers-atom
-         (fn [current]
-           (cond
-             (map? current) current
-             (set? current)
-             (into {}
-                   (map (fn [watcher]
-                          [(watcher-entry-key watcher) watcher])
-                        current))
-             (sequential? current)
-             (into {}
-                   (map (fn [watcher]
-                          [(watcher-entry-key watcher) watcher])
-                        current))
-             (nil? current) {}
-             :else current))))
-
-(defn- drop-watcher-entry [current watcher-key watcher]
-  (cond
-    (map? current)
-    (let [key (or watcher-key (watcher-entry-key watcher))]
-      (dissoc current key))
-
-    (set? current)
-    (set (remove #(= watcher %) current))
-
-    (sequential? current)
-    (into (empty current) (remove #(= watcher %) current))
-
-    (nil? current) current
-
-    :else current))
-
-(defn- register-watcher-with-host! [host watchers-atom watcher watcher-key]
+(defn- register-watcher-with-host! [host watchers-atom watcher]
   (let [meta-info (meta* watcher)
         runtime (:runtime meta-info)
         token (:subscription-token meta-info)
@@ -170,8 +136,7 @@
                          entry {:host host
                                 :host-id host-id
                                 :watchers-atom watchers-atom
-                                :watcher watcher
-                                :watcher-key watcher-key}
+                                :watcher watcher}
                          new-token-map (assoc token-map host-id entry)
                          new-subs (assoc subs token new-token-map)]
                      (assoc state :subscriptions new-subs)))))))))
@@ -279,13 +244,13 @@
         subscriptions (get-in runtime-state [:subscriptions token])]
     (when (and runtime token)
       (when (seq subscriptions)
-        (doseq [{:keys [watchers-atom watcher watcher-key]} (vals subscriptions)]
+        (doseq [{:keys [watchers-atom watcher]} (vals subscriptions)]
           (remove-watcher-from-runtime-queue! watcher)
-          (when watchers-atom
-            (ensure-watcher-storage-map! watchers-atom)
-            (swap! watchers-atom
-                   (fn [state]
-                     (drop-watcher-entry state watcher-key watcher))))))
+          (when (and watchers-atom watcher)
+            (let [key (watcher-entry-key watcher)]
+              (swap! watchers-atom
+                     (fn [state]
+                       (dissoc (or state {}) key))))))))
       (swap! runtime
              (fn [state]
                (let [subs (or (:subscriptions state) {})
@@ -295,7 +260,7 @@
                  (assoc state
                         :subscriptions new-subs
                         :component-tokens new-tokens)))))
-    nil))
+    nil)
 
 (defn- remove-all-runtime-watchers! [runtime]
   (when runtime
@@ -754,12 +719,11 @@
           (swap! render-state assoc :active false))))))
 
 (defn- notify-watchers [watchers]
-  (let [current (or @watchers {})]
-    (doseq [watcher (if (map? current) (vals current) current)]
-      (when watcher
-        (if (should-defer-watcher? watcher)
-          (queue-watcher! watcher)
-          (run-watcher-now watcher))))))
+  (doseq [watcher (vals (or @watchers {}))]
+    (when watcher
+      (if (should-defer-watcher? watcher)
+        (queue-watcher! watcher)
+        (run-watcher-now watcher)))))
 
 (defn- add-modify-dom-watcher-on-ratom-deref
   "This is where the magic of adding watchers to ratoms happen automatically.
@@ -824,17 +788,15 @@
     (aset a "watchers" (core-atom {}))
     (aset a "cursors" (core-atom #{}))
     (aset a "_deref" (fn []
-                      (when *watcher*
-                        (let [watchers (aget a "watchers")]
-                          (when-not (map? @watchers)
-                            (ensure-watcher-storage-map! watchers))
-                          (let [current @watchers
-                                watcher-key (watcher-entry-key *watcher*)]
-                            (when-not (contains? current watcher-key)
-                              (swap! watchers
-                                     (fn [state]
-                                       (assoc (or state {}) watcher-key *watcher*))))
-                            (register-watcher-with-host! a watchers *watcher* watcher-key))))
+                       (when *watcher*
+                         (let [watchers (aget a "watchers")
+                               current @watchers
+                               watcher-key (watcher-entry-key *watcher*)]
+                           (when-not (contains? current watcher-key)
+                             (swap! watchers
+                                    (fn [state]
+                                      (assoc (or state {}) watcher-key *watcher*))))
+                           (register-watcher-with-host! a watchers *watcher*)))
                       (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
                              (let [res (.call orig-reset_BANG_ a new-val)]
@@ -856,15 +818,13 @@
         (aset this-cursor "_deref"
               (fn []
                 (when *watcher*
-                  (when-not (map? @watchers)
-                    (ensure-watcher-storage-map! watchers))
                   (let [current @watchers
                         watcher-key (watcher-entry-key *watcher*)]
                     (when-not (contains? current watcher-key)
                       (swap! watchers
                              (fn [state]
                                (assoc (or state {}) watcher-key *watcher*))))
-                    (register-watcher-with-host! this-cursor watchers *watcher* watcher-key)))
+                    (register-watcher-with-host! this-cursor watchers *watcher*)))
                 (let [old-watcher *watcher*]
                   (try
                     (set! *watcher* nil)
