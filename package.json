@@ -1,6 +1,6 @@
 {
   "name": "eucalypt",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "exports": "./eucalypt.mjs",
   "description": "Reagent compatible-ish Squint-cljs library with no React. Builds tiny frontends.",
   "type": "module",
