@@ -37,7 +37,6 @@
 (defonce ^:dynamic *watcher* nil)
 
 (defonce roots (core-atom {})) ; roots created by r/render and mounted in DOM
-(defonce all-ratoms (core-atom {}))
 
 (defn- namespace-uri [ns-key]
   (or (get-in namespaces [ns-key :uri])
@@ -177,26 +176,6 @@
                          new-subs (assoc subs token new-token-map)]
                      (assoc state :subscriptions new-subs)))))))))
 
-(defn- legacy-remove-watchers-for-component [normalized-component]
-  (doseq [[_ratom-id ratom] @all-ratoms]
-    (when-let [watchers (aget ratom "watchers")]
-      (when-not (map? @watchers)
-        (ensure-watcher-storage-map! watchers))
-      (let [current @watchers
-            entries (if (map? current)
-                      current
-                      (map (fn [watcher] [nil watcher]) current))]
-        (doseq [[key watcher] entries
-                :when (= (-> watcher meta* :normalized-component)
-                         normalized-component)]
-          (remove-watcher-from-runtime-queue! watcher)
-          (swap! watchers
-                 (fn [state]
-                   (drop-watcher-entry state key watcher))))))))
-
-(defn- rm-watchers [normalized-component]
-  (legacy-remove-watchers-for-component normalized-component))
-
 (defn- render-state-runtime [render-state]
   (when render-state
     (:runtime @render-state)))
@@ -298,28 +277,25 @@
   (let [runtime-state (when runtime @runtime)
         token (get-in runtime-state [:component-tokens normalized-component])
         subscriptions (get-in runtime-state [:subscriptions token])]
-    (if (and runtime token)
-      (do
-        (when (seq subscriptions)
-          (doseq [{:keys [watchers-atom watcher watcher-key]} (vals subscriptions)]
-            (remove-watcher-from-runtime-queue! watcher)
-            (when watchers-atom
-              (swap! watchers-atom
-                     (fn [state]
-                       (drop-watcher-entry state watcher-key watcher))))))
-        (swap! runtime
-               (fn [state]
-                 (let [subs (or (:subscriptions state) {})
-                       tokens (or (:component-tokens state) {})
-                       new-subs (dissoc subs token)
-                       new-tokens (dissoc tokens normalized-component)]
-                   (assoc state
-                          :subscriptions new-subs
-                          :component-tokens new-tokens))))
-        true)
-      (do
-        (legacy-remove-watchers-for-component normalized-component)
-        false))))
+    (when (and runtime token)
+      (when (seq subscriptions)
+        (doseq [{:keys [watchers-atom watcher watcher-key]} (vals subscriptions)]
+          (remove-watcher-from-runtime-queue! watcher)
+          (when watchers-atom
+            (ensure-watcher-storage-map! watchers-atom)
+            (swap! watchers-atom
+                   (fn [state]
+                     (drop-watcher-entry state watcher-key watcher))))))
+      (swap! runtime
+             (fn [state]
+               (let [subs (or (:subscriptions state) {})
+                     tokens (or (:component-tokens state) {})
+                     new-subs (dissoc subs token)
+                     new-tokens (dissoc tokens normalized-component)]
+                 (assoc state
+                        :subscriptions new-subs
+                        :component-tokens new-tokens)))))
+    nil))
 
 (defn- remove-all-runtime-watchers! [runtime]
   (when runtime
@@ -802,11 +778,9 @@
         [hiccup dom]))))
 
 (defn- unmount-components [container]
-  (when-let [{:keys [component runtime]} (get @roots container)]
+  (when-let [{:keys [runtime]} (get @roots container)]
     (when runtime
       (remove-all-runtime-watchers! runtime))
-    (when component
-      (rm-watchers component))
     (when runtime
       (swap! runtime
              (fn [state]
@@ -846,9 +820,7 @@
 (defn- ratom [initial-value]
   (let [a (core-atom initial-value)
         orig-deref (aget a "_deref")
-        orig-reset_BANG_ (aget a "_reset_BANG_")
-        ratom-id (str "ratom-" (random-uuid))]
-    (aset a "ratom-id" ratom-id)
+        orig-reset_BANG_ (aget a "_reset_BANG_")]
     (aset a "watchers" (core-atom {}))
     (aset a "cursors" (core-atom #{}))
     (aset a "_deref" (fn []
@@ -870,7 +842,6 @@
                                (doseq [c @(aget a "cursors")]
                                  (notify-watchers (aget c "watchers")))
                                res)))
-    (swap! all-ratoms assoc ratom-id a)
     a))
 
 ; *** Reagent API functions *** ;
