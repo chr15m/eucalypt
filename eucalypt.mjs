@@ -164,6 +164,20 @@ return new_id3;
 };
 
 };
+var ensure_container_id_BANG_ = function (container) {
+if (squint_core.truth_(container)) {
+const temp__22727__auto__1 = container["_eucalypt_container_id"];
+if (squint_core.truth_(temp__22727__auto__1)) {
+const id2 = temp__22727__auto__1;
+return id2;
+} else {
+const new_id3 = squint_core.str("container-", squint_core.random_uuid());
+(container["_eucalypt_container_id"] = new_id3);
+return new_id3;
+};
+};
+
+};
 var watcher_entry_key = function (watcher) {
 const or__23145__auto__1 = squint_core.get(meta_STAR_(watcher), "subscription-token");
 if (squint_core.truth_(or__23145__auto__1)) {
@@ -1184,39 +1198,43 @@ return [hiccup3, dom5];
 
 };
 var unmount_components = function (container) {
-const temp__22795__auto__1 = squint_core.get(squint_core.deref(roots), container);
-if (squint_core.truth_(temp__22795__auto__1)) {
-const map__23 = temp__22795__auto__1;
-const runtime4 = squint_core.get(map__23, "runtime");
-if (squint_core.truth_(runtime4)) {
-remove_all_runtime_watchers_BANG_(runtime4)};
-if (squint_core.truth_(runtime4)) {
-squint_core.swap_BANG_(runtime4, (function (state) {
+const container_id1 = ensure_container_id_BANG_(container);
+const temp__22795__auto__2 = ((squint_core.truth_(container_id1)) ? (squint_core.get(squint_core.deref(roots), container_id1)) : (null));
+if (squint_core.truth_(temp__22795__auto__2)) {
+const map__34 = temp__22795__auto__2;
+const runtime5 = squint_core.get(map__34, "runtime");
+if (squint_core.truth_(runtime5)) {
+remove_all_runtime_watchers_BANG_(runtime5)};
+if (squint_core.truth_(runtime5)) {
+squint_core.swap_BANG_(runtime5, (function (state) {
 return squint_core.assoc(squint_core.assoc(squint_core.assoc(squint_core.assoc(squint_core.assoc(squint_core.assoc(state, "mounted-components", ({  })), "component-instances", ({  })), "pending-watchers", []), "watcher-flush-scheduled?", false), "subscriptions", ({  })), "component-tokens", ({  }));
 
 }))};
-squint_core.swap_BANG_(roots, squint_core.dissoc, container)};
-for (let G__5 of squint_core.iterable(squint_core.vec(container["childNodes"]))) {
-const child6 = G__5;
-remove_node_and_unmount_BANG_(child6)
+squint_core.swap_BANG_(roots, squint_core.dissoc, container_id1)};
+for (let G__6 of squint_core.iterable(squint_core.vec(container["childNodes"]))) {
+const child7 = G__6;
+remove_node_and_unmount_BANG_(child7)
 }return null;
 
 };
 var do_render = function (normalized_component, container, render_state) {
 unmount_components(container);
 squint_core.swap_BANG_(render_state, squint_core.assoc, "positional-key-counter", 0);
+const container_id1 = ensure_container_id_BANG_(container);
 return (() => {
 try{
-const runtime4 = render_state_runtime(render_state);
-const base_ns5 = squint_core.get(squint_core.deref(render_state), "base-namespace");
-const vec__16 = add_modify_dom_watcher_on_ratom_deref(normalized_component, render_state);
-const hiccup7 = squint_core.nth(vec__16, 0, null);
-const dom8 = squint_core.nth(vec__16, 1, null);
-const _9 = squint_core.swap_BANG_(render_state, squint_core.assoc, "positional-key-counter", 0);
-const hiccup_rendered10 = fully_render_hiccup(hiccup7, render_state);
-container.appendChild(dom8);
-assoc_runtime_mounted_info_BANG_(runtime4, normalized_component, ({ "hiccup": hiccup_rendered10, "dom": dom8, "container": container, "base-namespace": base_ns5, "runtime": runtime4 }));
-return squint_core.swap_BANG_(roots, squint_core.assoc, container, ({ "component": normalized_component, "runtime": runtime4 }));
+const runtime5 = render_state_runtime(render_state);
+const base_ns6 = squint_core.get(squint_core.deref(render_state), "base-namespace");
+const vec__27 = add_modify_dom_watcher_on_ratom_deref(normalized_component, render_state);
+const hiccup8 = squint_core.nth(vec__27, 0, null);
+const dom9 = squint_core.nth(vec__27, 1, null);
+const _10 = squint_core.swap_BANG_(render_state, squint_core.assoc, "positional-key-counter", 0);
+const hiccup_rendered11 = fully_render_hiccup(hiccup8, render_state);
+container.appendChild(dom9);
+assoc_runtime_mounted_info_BANG_(runtime5, normalized_component, ({ "hiccup": hiccup_rendered11, "dom": dom9, "container": container, "base-namespace": base_ns6, "runtime": runtime5 }));
+if (squint_core.truth_(container_id1)) {
+return squint_core.swap_BANG_(roots, squint_core.assoc, container_id1, ({ "container": container, "component": normalized_component, "runtime": runtime5 }));
+};
 }
 finally{
 squint_core.swap_BANG_(render_state, squint_core.assoc, "active", false)}
