@@ -36,7 +36,7 @@
 
 (defonce ^:dynamic *watcher* nil)
 
-(defonce container->mounted-component (core-atom {}))
+(defonce roots (core-atom {})) ; roots created by r/render and mounted in DOM
 (defonce all-ratoms (core-atom {}))
 
 (defn- namespace-uri [ns-key]
@@ -683,7 +683,7 @@
         [hiccup dom]))))
 
 (defn- unmount-components [container]
-  (when-let [{:keys [component runtime]} (get @container->mounted-component container)]
+  (when-let [{:keys [component runtime]} (get @roots container)]
     (remove-watchers-for-component component)
     (rm-watchers component)
     (when runtime
@@ -697,7 +697,7 @@
                    (assoc :component-instances {})
                    (assoc :pending-watchers [])
                    (assoc :watcher-flush-scheduled? false)))))
-    (swap! container->mounted-component dissoc container))
+    (swap! roots dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
 
@@ -717,8 +717,8 @@
          :container container
          :base-namespace base-ns
          :runtime runtime})
-      (swap! container->mounted-component assoc container {:component normalized-component
-                                                           :runtime runtime}))
+      (swap! roots assoc container {:component normalized-component
+                                    :runtime runtime}))
     (finally
       (swap! render-state assoc :active false))))
 
@@ -808,7 +808,7 @@
 (def render-component render)
 
 (defn clear-component-instances! []
-  (let [runtimes (->> (vals @container->mounted-component)
+  (let [runtimes (->> (vals @roots)
                       (map :runtime)
                       (remove nil?)
                       (set))]
