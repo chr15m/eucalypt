@@ -17,22 +17,15 @@
           :boundary-tags #{"annotation-xml"}}})
 
 (def entry-tag->namespace
-  (reduce-kv
-    (fn [acc ns {:keys [entry-tags]}]
-      (reduce (fn [m tag] (assoc m tag ns))
-              acc
-              (or entry-tags #{})))
-    {}
-    namespaces))
+  (->> namespaces
+       (mapcat (fn [[ns {:keys [entry-tags]}]]
+                 (map (fn [tag] [tag ns]) entry-tags)))
+       (into {})))
 
 (def uri->namespace
-  (reduce-kv
-    (fn [acc ns {:keys [uri]}]
-      (if uri
-        (assoc acc uri ns)
-        acc))
-    {}
-    namespaces))
+  (->> namespaces
+       (keep (fn [[ns {:keys [uri]}]] (when uri [uri ns])))
+       (into {})))
 
 (defonce ^:dynamic *watcher* nil)
 
