@@ -9,8 +9,7 @@
 (afterEach
   (fn []
     (reset! app-state {:page :home})
-    (set! (.-innerHTML js/document.body) "")
-    (r/clear-component-instances!)))
+    (set! (.-innerHTML js/document.body) "")))
 
 (defn sleep [ms]
   (js/Promise. (fn [resolve] (js/setTimeout resolve ms))))
