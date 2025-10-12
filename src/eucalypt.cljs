@@ -920,14 +920,6 @@
 ;; Reagent API
 (def render-component render)
 
-(defn clear-component-instances! []
-  (let [runtimes (->> (vals @roots)
-                      (map :runtime)
-                      (remove nil?)
-                      (set))]
-    (doseq [runtime runtimes]
-      (swap! runtime assoc :component-instances {}))))
-
 ;; Reagent API
 #_:clj-kondo/ignore
 (def atom ratom)

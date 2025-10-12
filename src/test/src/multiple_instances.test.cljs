@@ -1,11 +1,7 @@
 (ns multiple-instances.test
-  (:require ["vitest" :refer [describe it afterEach beforeEach]]
+  (:require ["vitest" :refer [describe it afterEach]]
             [eucalypt :as r]
             [helpers :as th]))
-
-(beforeEach
- (fn []
-   (r/clear-component-instances!)))
 
 (afterEach
   (fn []

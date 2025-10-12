@@ -69,7 +69,6 @@
         (reset! page-state :fragments)
         (reset! clock-ratom 0)
         (reset! list-component-state {:show? true})
-        (r/clear-component-instances!)
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (th/log "--- Test start ---")
