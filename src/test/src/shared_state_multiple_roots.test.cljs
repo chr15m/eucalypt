@@ -1,5 +1,5 @@
 (ns shared-state-multiple-roots.test
-  (:require ["vitest" :refer [describe it afterEach]]
+  (:require ["vitest" :refer [describe it]]
             [eucalypt :as r]
             [helpers :as th]))
 
@@ -12,11 +12,6 @@
    [:pre (js/JSON.stringify @state)]
    [:button {:on-click #(swap! state update :counter (fnil inc 0))} "inc"]
    [:button {:on-click #(swap! state update :counter (fnil dec 0))} "dec"]])
-
-(afterEach
-  (fn []
-    (reset! state {:counter 0 :other [:foo :bar]})
-    (set! (.-innerHTML js/document.body) "")))
 
 (describe "Shared state across multiple roots"
   (fn []
