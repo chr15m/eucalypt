@@ -5,23 +5,6 @@
 
 (def ^:private core-atom squint/atom)
 
-(def log
-  (try
-    (cond
-      (some-> js/globalThis (aget "process") (aget "env") (aget "DEBUG"))
-      ; (fn [& args] (js/console.dir args {:depth nil}))
-      js/console.log
-      (some-> js/globalThis (aget "localStorage") (.getItem "debug")
-              (.startsWith "eucalypt:"))
-      js/console.log
-      :else
-      identity)
-    (catch :default _
-      ;; ignore if localStorage is not available
-      identity)))
-
-(log "eucalypt.cljs loading...")
-
 (def default-namespace :html)
 
 (def namespaces
@@ -34,22 +17,19 @@
           :boundary-tags #{"annotation-xml"}}})
 
 (def entry-tag->namespace
-  (reduce-kv
-    (fn [acc ns {:keys [entry-tags]}]
-      (reduce (fn [m tag] (assoc m tag ns))
-              acc
-              (or entry-tags #{})))
-    {}
-    namespaces))
+  (->> namespaces
+       (mapcat (fn [[ns {:keys [entry-tags]}]]
+                 (map (fn [tag] [tag ns]) entry-tags)))
+       (into {})))
 
 (def uri->namespace
-  (reduce-kv
-    (fn [acc ns {:keys [uri]}]
-      (if uri
-        (assoc acc uri ns)
-        acc))
-    {}
-    namespaces))
+  (->> namespaces
+       (keep (fn [[ns {:keys [uri]}]] (when uri [uri ns])))
+       (into {})))
+
+(defonce ^:dynamic *watcher* nil)
+
+(defonce roots (core-atom {})) ; roots created by r/render and mounted in DOM
 
 (defn- namespace-uri [ns-key]
   (or (get-in namespaces [ns-key :uri])
@@ -91,60 +71,210 @@
 (defn- meta* [obj]
   (aget obj "---meta"))
 
-(defn- rm-watchers [normalized-component]
-  (let [params (rest normalized-component)]
-    (doseq [p params
-            :when (and (object? p) (aget p "watchers"))]
-      (let [watchers (aget p "watchers")]
-        (doseq [w @watchers
-                :when (= (-> w meta* :normalized-component)
-                         normalized-component)]
-          (swap! watchers (fn [watchers]
-                                         (set (remove #(= w %) watchers)))))))))
+(defn- remove-watcher-from-runtime-queue! [watcher]
+  (when-let [runtime (-> watcher meta* :runtime)]
+    (swap! runtime update :pending-watchers
+           (fn [queue]
+             (let [existing (or queue [])]
+               (into [] (remove #(= watcher %) existing)))))))
+
+(defn- ensure-component-token! [runtime normalized-component]
+  (when (and runtime normalized-component)
+    (let [state @runtime
+          runtime-id (or (:runtime-id state)
+                         (let [new-id (str "runtime-" (random-uuid))]
+                           (swap! runtime assoc :runtime-id new-id)
+                           new-id))
+          existing (get-in state [:component-tokens normalized-component])]
+      (if existing
+        existing
+        (let [token (str runtime-id "-" (random-uuid))]
+          (swap! runtime update :component-tokens
+                 (fn [tokens]
+                   (assoc (or tokens {}) normalized-component token)))
+          token)))))
+
+(defn- get-or-create-watcher-id [watcher]
+  (if-let [id (aget watcher "_eucalypt_watcher_id")]
+    id
+    (let [new-id (str "watcher-" (random-uuid))]
+      (aset watcher "_eucalypt_watcher_id" new-id)
+      new-id)))
+
+(defn- ensure-host-id! [host]
+  (when host
+    (if-let [id (aget host "_eucalypt_host_id")]
+      id
+      (let [new-id (str "host-" (random-uuid))]
+        (aset host "_eucalypt_host_id" new-id)
+        new-id))))
+
+(defn- watcher-entry-key [watcher]
+  (or (-> watcher meta* :subscription-token)
+      (get-or-create-watcher-id watcher)))
+
+(defn- register-watcher-with-host! [host watchers-atom watcher]
+  (let [meta-info (meta* watcher)
+        runtime (:runtime meta-info)
+        token (:subscription-token meta-info)
+        host-id (ensure-host-id! host)]
+    (when (and runtime token host-id)
+      (swap! runtime
+             (fn [state]
+               (let [existing (get-in state [:subscriptions token host-id])]
+                 (if (= watcher (:watcher existing))
+                   state
+                   (let [subs (or (:subscriptions state) {})
+                         token-map (or (get subs token) {})
+                         entry {:host host
+                                :host-id host-id
+                                :watchers-atom watchers-atom
+                                :watcher watcher}
+                         new-token-map (assoc token-map host-id entry)
+                         new-subs (assoc subs token new-token-map)]
+                     (assoc state :subscriptions new-subs)))))))))
+
+(defn- render-state-runtime [render-state]
+  (when render-state
+    (:runtime @render-state)))
+
+(defn- runtime-component-cache [runtime]
+  (when runtime
+    (:component-instances @runtime)))
+
+(defn- update-component-cache! [runtime update-fn]
+  (when runtime
+    (swap! runtime update :component-instances
+           (fn [instances]
+             (update-fn (or instances {}))))))
+
+(defn- runtime-mounted-info [runtime normalized-component]
+  (when runtime
+    (get (:mounted-components @runtime) normalized-component)))
+
+(defn- assoc-runtime-mounted-info! [runtime normalized-component info]
+  (when runtime
+    (swap! runtime update :mounted-components
+           (fn [components]
+             (assoc (or components {}) normalized-component info)))))
+
+(defn- create-render-state [{:keys [normalized-component container base-namespace runtime]}]
+  (let [state {:active true
+               :positional-key-counter 0
+               :base-namespace (normalize-namespace base-namespace)}
+        state (cond-> state
+                normalized-component (assoc :normalized-component normalized-component)
+                container (assoc :container container)
+                runtime (assoc :runtime runtime))]
+    (core-atom state)))
+
+(defn- next-positional-key! [render-state]
+  (let [next-val (inc (:positional-key-counter @render-state))]
+    (swap! render-state assoc :positional-key-counter next-val)
+    next-val))
+
+(defn- run-watcher-now [watcher]
+  (let [old-watcher *watcher*]
+    (try
+      (set! *watcher* watcher)
+      (watcher)
+      (finally
+        (set! *watcher* old-watcher)))))
+
+(defn- flush-queued-watchers [runtime]
+  (let [queued (:pending-watchers @runtime)]
+    (swap! runtime
+           (fn [state]
+             (-> state
+                 (assoc :pending-watchers [])
+                 (assoc :watcher-flush-scheduled? false))))
+    (doseq [watcher queued]
+      (run-watcher-now watcher))))
+
+(defn- schedule-watcher-flush! [runtime]
+  (when (and runtime (not (:watcher-flush-scheduled? @runtime)))
+    (swap! runtime assoc :watcher-flush-scheduled? true)
+    (let [flush-fn #(flush-queued-watchers runtime)]
+      (if (some? (.-queueMicrotask js/globalThis))
+        (.queueMicrotask js/globalThis flush-fn)
+        (js/setTimeout flush-fn 0)))))
+
+(defn- queue-watcher!
+  [watcher]
+  (if-let [runtime (-> watcher meta* :runtime)]
+    (do
+      (swap! runtime update :pending-watchers (fnil conj []) watcher)
+      (schedule-watcher-flush! runtime))
+    (run-watcher-now watcher)))
+
+(defn- should-defer-watcher? [watcher]
+  (let [meta-info (meta* watcher)
+        defer-fn (and meta-info (:should-defer? meta-info))]
+    (boolean (and (fn? defer-fn)
+                  (defer-fn)))))
 
 (declare hiccup->dom)
 (declare modify-dom)
 
-(defonce ^:dynamic *watcher* nil)
-(defonce life-cycle-methods {:component-will-unmount rm-watchers})
-
-(defonce mounted-components (core-atom {}))
-(defonce container->mounted-component (core-atom {}))
-(defonce component-instances (core-atom {}))
-(defonce positional-key-counter (core-atom 0))
-(defonce all-ratoms (core-atom {}))
-
-(defn- with-watcher-bound [normalized-component f]
-  (let [old-watcher *watcher*]
+(defn- with-watcher-bound [normalized-component render-state f]
+  (let [old-watcher *watcher*
+        runtime (render-state-runtime render-state)
+        token (ensure-component-token! runtime normalized-component)
+        watcher-fn (with-meta* #(modify-dom runtime normalized-component)
+                     {:normalized-component normalized-component
+                      :should-defer? #(boolean (:active @render-state))
+                      :runtime runtime
+                      :subscription-token token})]
     (try
-      (set! *watcher* (with-meta* #(modify-dom normalized-component)
-                        {:normalized-component normalized-component}))
+      (set! *watcher* watcher-fn)
       (f)
       (finally
         (set! *watcher* old-watcher)))))
 
-(defn- remove-watchers-for-component [component]
-  (doseq [[_ratom-id ratom] @all-ratoms]
-    (when-let [watchers (aget ratom "watchers")]
-      (swap! watchers
-             (fn [watcher-set]
-               (set (remove #(= (-> % meta* :normalized-component)
-                                component)
-                            watcher-set)))))))
+(defn- remove-watchers-for-component [runtime normalized-component]
+  (let [runtime-state (when runtime @runtime)
+        token (get-in runtime-state [:component-tokens normalized-component])
+        subscriptions (get-in runtime-state [:subscriptions token])]
+    (when (and runtime token)
+      (when (seq subscriptions)
+        (doseq [{:keys [watchers-atom watcher]} (vals subscriptions)]
+          (remove-watcher-from-runtime-queue! watcher)
+          (when (and watchers-atom watcher)
+            (let [key (watcher-entry-key watcher)]
+              (swap! watchers-atom
+                     (fn [state]
+                       (dissoc (or state {}) key))))))))
+      (swap! runtime
+             (fn [state]
+               (let [subs (or (:subscriptions state) {})
+                     tokens (or (:component-tokens state) {})
+                     new-subs (dissoc subs token)
+                     new-tokens (dissoc tokens normalized-component)]
+                 (assoc state
+                        :subscriptions new-subs
+                        :component-tokens new-tokens)))))
+    nil)
+
+(defn- remove-all-runtime-watchers! [runtime]
+  (when runtime
+    (let [components (keys (or (:component-tokens @runtime) {}))]
+      (doseq [component components]
+        (remove-watchers-for-component runtime component)))))
 
 ;; *** hiccup-to-dom implementation ***
 
 (defn- style-map->css-str [style-map]
   (apply str (map (fn [[k v]] (str k ":" v ";")) style-map)))
 
-(def ^:private event-name-map
-  {:on-double-click "ondblclick"})
-
 (defn- get-event-name [k tag-name]
-  (if (and (= k :on-change)
-           (#{"INPUT" "TEXTAREA"} tag-name))
+  (cond
+    (and (= :on-change k)
+         (#{"INPUT" "TEXTAREA"} tag-name))
     "oninput"
-    (get event-name-map k (.replaceAll k "-" ""))))
+    (= :on-double-click k)
+    "ondblclick"
+    :else
+    (.replaceAll k "-" "")))
 
 (defn- set-attributes! [element attrs]
   (doseq [[k v] attrs]
@@ -217,7 +347,7 @@
      :attrs final-attrs
      :content final-content}))
 
-(defn- create-element [hiccup current-ns]
+(defn- create-element [hiccup current-ns render-state]
   (let [{:keys [tag-name attrs content]} (parse-hiccup hiccup)
         value (:value attrs)
         attrs-without-value (dissoc attrs :value)
@@ -225,10 +355,10 @@
         element (.createElementNS js/document new-ns tag-name)]
     (set-attributes! element attrs-without-value)
     (doseq [child content]
-      (when-let [child-node (hiccup->dom child new-ns)]
+      (when-let [child-node (hiccup->dom child new-ns render-state)]
         (.appendChild element child-node)))
     (when (some? value)
-      (if (and (= (.-tagName element) "SELECT") (.-multiple element))
+      (if (and (= "SELECT" (.-tagName element)) (.-multiple element))
         (let [value-set (set value)]
           (doseq [opt (.-options element)]
             (aset opt "selected" (contains? value-set (.-value opt)))))
@@ -242,147 +372,106 @@
       (aset f "_eucalypt_id" new-id)
       new-id)))
 
-(defn normalize-component [component]
-  (log "normalize-component called with:" component)
-  (log "normalize-component: component metadata:" (meta component))
-  (when (sequential? component)
-    (let [first-element (first component)
-          params (rest component)]
-      (cond (fn? first-element)
-            (let [a-fn first-element
-                  params-vec (vec params)
-                  component-meta (meta component)
-                  fn-id (get-or-create-fn-id a-fn)
-                  ;; Form-2 components are stateful and need a unique key per instance.
-                  ;; Form-1 components are stateless and can be shared, using just the fn-id as a key.
-                  instance-key (cond
-                                 (contains? component-meta :key)
-                                 (str fn-id "_key_" (:key component-meta))
-                                 :else
-                                 (str fn-id "_pos_" (swap! positional-key-counter inc)))
-                  shared-key fn-id
-                  cached-instance (get @component-instances instance-key)
-                  cached-shared (get @component-instances shared-key)]
-              (cond
-                cached-instance
-                (do (log "normalize-component: using cached instance for key:" instance-key)
-                    (into [(:instance cached-instance)] params-vec))
+(defn- normalize-component [component render-state]
+  (when (vector? component)
+    (let [first-element (aget component 0)
+          params (subvec component 1)]
+      (cond
+        (fn? first-element)
+        (let [a-fn first-element
+              params-vec (vec params)
+              component-meta (meta component)
+              fn-id (get-or-create-fn-id a-fn)
+              runtime (render-state-runtime render-state)
+              component-cache (runtime-component-cache runtime)
+              instance-key (if (contains? component-meta :key)
+                             (str fn-id "_key_" (:key component-meta))
+                             (str fn-id "_pos_"
+                                  (if render-state
+                                    (next-positional-key! render-state)
+                                    (random-uuid))))
+              shared-key fn-id
+              cached-instance (when component-cache (get component-cache instance-key))
+              cached-shared (when component-cache (get component-cache shared-key))]
+          (cond
+            cached-instance
+            (into [(:instance cached-instance)] params-vec)
 
-                cached-shared
-                (do (log "normalize-component: using cached shared for key:" shared-key)
-                    (into [(:instance cached-shared)] params-vec))
+            cached-shared
+            (into [(:instance cached-shared)] params-vec)
 
-                :else
-                (let [_ (log "normalize-component: cache miss for keys:" instance-key "and" shared-key)
-                      func-or-hiccup (apply a-fn params-vec)]
-                  (if (fn? func-or-hiccup)
-                    ;; Form-2 component (stateful)
-                    (let [closure func-or-hiccup
-                          instance (merge life-cycle-methods {:reagent-render closure})
-                          result (into [instance] params-vec)]
-                      (log "normalize-component: Form-2, caching with key:" instance-key)
-                      (swap! component-instances assoc instance-key {:type :form-2 :instance instance})
-                      result)
-                    ;; Form-1 component (stateless)
-                    (let [instance (merge life-cycle-methods {:reagent-render a-fn})
-                          result (into [instance] params-vec)]
-                      (log "normalize-component: Form-1, caching with key:" shared-key)
-                      (swap! component-instances assoc shared-key {:type :form-1 :instance instance})
-                      result)))))
+            :else
+            (let [func-or-hiccup (apply a-fn params-vec)]
+              (if (fn? func-or-hiccup)
+                ;; Form-2 component (stateful)
+                (let [closure func-or-hiccup
+                      instance {:reagent-render closure}
+                      result (into [instance] params-vec)]
+                  (update-component-cache! runtime
+                                           (fn [cache]
+                                             (assoc cache instance-key {:type :form-2
+                                                                        :instance instance})))
+                  result)
+                ;; Form-1 component (stateless)
+                (let [instance {:reagent-render a-fn}
+                      result (into [instance] params-vec)]
+                  (update-component-cache! runtime
+                                           (fn [cache]
+                                             (assoc cache shared-key {:type :form-1
+                                                                      :instance instance})))
+                  result)))))
 
-            (string? first-element)
-            (into [(assoc life-cycle-methods :reagent-render (fn [] component))]
-                  params)
+        (string? first-element)
+        (into [{:reagent-render (fn [] component)}]
+              params)
 
-            (map? first-element)
-            (let [component-as-map first-element
-                  render-fn (:reagent-render component-as-map)
-                  comp-with-lifecycle (into {:reagent-render render-fn}
-                                            (map (fn [[k func]]
-                                                   (let [func2 (get component-as-map k)
-                                                         func-func2 (if func2 (comp func2 func) func)]
-                                                     [k func-func2]))
-                                                 life-cycle-methods))]
-              (into [comp-with-lifecycle] params))))))
+        (map? first-element)
+        (let [component-as-map first-element
+              render-fn (:reagent-render component-as-map)
+              comp-with-lifecycle {:reagent-render render-fn}]
+          (into [comp-with-lifecycle] params))))))
 
 (defn- component->hiccup [normalized-component]
   (let [[config & params] normalized-component
         reagent-render (:reagent-render config)]
-    (log "component->hiccup: calling reagent-render with params:" params)
-    (let [result (apply reagent-render params)]
-      (log "component->hiccup: reagent-render returned:"
-           (some-> result .toString))
-      result)))
+    (apply reagent-render params)))
 
-(defn hiccup->dom
-  ([hiccup]
-   (hiccup->dom hiccup (namespace-uri default-namespace)))
-  ([hiccup current-ns]
-   (log "hiccup->dom called with:" hiccup)
-    (let [result
-          (cond
-            (or (string? hiccup) (number? hiccup))
-            (.createTextNode js/document (str hiccup))
+(defn- hiccup->dom
+  ([hiccup render-state]
+   (hiccup->dom hiccup (namespace-uri default-namespace) render-state))
+  ([hiccup current-ns render-state]
+   (let [result
+         (cond
+           (or (string? hiccup) (number? hiccup))
+           (.createTextNode js/document (str hiccup))
 
-            (vector? hiccup)
-            (let [[tag & _content] hiccup]
-              (cond
-                (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup)) current-ns)
-                (vector? tag) (let [fragment (.createDocumentFragment js/document)]
-                                (doseq [item hiccup]
-                                  (when-let [child-node (hiccup->dom item current-ns)]
-                                    (.appendChild fragment child-node)))
-                                fragment)
-                (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
-                              (doseq [child (rest hiccup)]
-                                (when-let [child-node (hiccup->dom child current-ns)]
-                                  (.appendChild fragment child-node)))
-                              fragment)
-                :else (create-element hiccup current-ns)))
+           (vector? hiccup)
+           (let [tag (aget hiccup 0)]
+             (cond
+               (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup render-state)) current-ns render-state)
+               (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
+                             (doseq [child (rest hiccup)]
+                               (when-let [child-node (hiccup->dom child current-ns render-state)]
+                                 (.appendChild fragment child-node)))
+                             fragment)
+               :else (create-element hiccup current-ns render-state)))
 
-            (seq? hiccup)
-            (let [fragment (.createDocumentFragment js/document)]
-              (doseq [item hiccup]
-                ;; Preserve metadata when processing sequences
-                (let [item-with-meta (if (and (vector? item) (meta item))
-                                       (with-meta item (meta item))
-                                       item)]
-                  (when-let [child-node (hiccup->dom item-with-meta current-ns)]
-                    (.appendChild fragment child-node))))
-              fragment)
+           (seq? hiccup)
+           (let [fragment (.createDocumentFragment js/document)]
+             (doseq [item hiccup]
+               ;; Preserve metadata when processing sequences
+               (let [item-with-meta (if (and (vector? item) (meta item))
+                                      (with-meta item (meta item))
+                                      item)]
+                 (when-let [child-node (hiccup->dom item-with-meta current-ns render-state)]
+                   (.appendChild fragment child-node))))
+             fragment)
 
-            (fn? hiccup)
-            (hiccup->dom (hiccup) current-ns)
+           (or (nil? hiccup) (boolean? hiccup)) nil
 
-            (map? hiccup) (hiccup->dom ((:reagent-render hiccup)) current-ns)
-            (or (nil? hiccup) (boolean? hiccup)) nil
-
-            :else
-            (.createTextNode js/document (str hiccup)))]
-      (log "hiccup->dom returning:" (some-> result .toString))
-      result)))
-
-(defn hiccup-eq? [hiccup-a hiccup-b]
-  (let [result (= hiccup-a hiccup-b)]
-    (log "hiccup-eq?:" result)
-    (when (not result)
-      (log "hiccup-eq? details: a:" hiccup-a "b:" hiccup-b))
-    result))
-
-(defn- is-sequence-of-hiccup-elements? [x]
-  (log "is-sequence-of-hiccup-elements? checking:" x)
-  (let [result (and (sequential? x)
-                    (not (string? x))
-                    (seq x)
-                    (every? (fn [item]
-                              (or (nil? item)
-                                  (vector? item)))
-                            x))]
-    (log "is-sequence-of-hiccup-elements? result:" result)
-    result))
-
-(declare fully-render-hiccup)
-(declare patch)
+           :else
+           (.createTextNode js/document (str hiccup)))]
+     result)))
 
 (defn- get-hiccup-children [hiccup]
   (let [content (rest hiccup)]
@@ -390,74 +479,55 @@
       (rest content)
       content)))
 
-(defn- fully-render-hiccup [hiccup]
-  (log "fully-render-hiccup called with:" hiccup)
+(defn- hiccup-seq? [x]
+  (and (seq? x)
+       (not (string? x))
+       (not (vector? x))))
+
+(defn- fully-render-hiccup [hiccup render-state]
   (let [result
         (cond
-          (nil? hiccup)
-          nil
-
-          (fn? hiccup)
-          (fully-render-hiccup (hiccup))
-
-          (is-sequence-of-hiccup-elements? hiccup)
-          (mapv fully-render-hiccup hiccup)
-
-          (and (some? (aget hiccup js/Symbol.iterator))
-               (not (vector? hiccup))
-               (not (string? hiccup)))
-          (mapv fully-render-hiccup hiccup)
+          (nil? hiccup) nil
+          (hiccup-seq? hiccup)
+          (mapv #(fully-render-hiccup % render-state) hiccup)
 
           (vector? hiccup)
           (let [tag (first hiccup)]
             (if (fn? tag)
-              (fully-render-hiccup (component->hiccup (normalize-component hiccup)))
-
-              (let [attrs (when (map? (second hiccup)) (second hiccup))
-                    children (if attrs (drop 2 hiccup) (rest hiccup))
-                    head (if attrs [(first hiccup) attrs] [(first hiccup)])]
+              (fully-render-hiccup (component->hiccup (normalize-component hiccup render-state)) render-state)
+              (let [attrs (let [?attrs (aget hiccup 1)]
+                            (when (map? ?attrs)
+                              ?attrs))
+                    children (if attrs (subvec hiccup 2) (subvec hiccup 1))
+                    head (if attrs [(aget hiccup 0) attrs] [(aget hiccup 0)])]
                 (into head
                       (reduce (fn [acc child]
-                                (let [processed (fully-render-hiccup child)]
-                                  (log "fully-render-hiccup reduce: processing child, processed="
-                                       (str processed))
-                                  (if (and (sequential? processed) (not (string? processed)) (empty? processed))
-                                    acc
-                                    (let [is-seq (is-sequence-of-hiccup-elements? processed)]
-                                      (log "fully-render-hiccup reduce: is-sequence-of-hiccup-elements?=" is-seq)
-                                      (cond
-                                        ;; Unpack fragments
-                                        (and (vector? processed) (= :<> (first processed)))
-                                        (do
-                                          (log "fully-render-hiccup reduce: unpacking fragment")
-                                          (into acc (get-hiccup-children processed)))
+                                (let [processed (fully-render-hiccup child render-state)]
+                                  (cond
+                                    (nil? processed) acc
 
-                                        ;; Unpack sequences of hiccup elements (but not single hiccup vectors)
-                                        is-seq
-                                        (do
-                                          (log "fully-render-hiccup reduce: unpacking sequence of hiccup elements")
-                                          (into acc processed))
+                                    ;; Unpack fragments
+                                    (and (vector? processed) (= :<> (aget processed 0)))
+                                    (into acc (subvec processed 1))
 
-                                        ;; Append a single child (including single hiccup vectors)
-                                        :else
-                                        (do
-                                          (log "fully-render-hiccup reduce: appending single child")
-                                          (conj acc processed)))))))
+                                    ;; Unnest hiccup children
+                                    (hiccup-seq? child)
+                                    (into acc processed)
+
+                                    ;; Single child
+                                    :else (conj acc processed))))
                               [] children)))))
 
           (map? hiccup)
           ;; This is a map component directly in the hiccup tree
-          (fully-render-hiccup ((:reagent-render hiccup)))
-
+          (fully-render-hiccup ((:reagent-render hiccup)) render-state)
           :else
           hiccup)]
-    (log "fully-render-hiccup returning:" (str result))
     result))
 
 (defn- unmount-node-and-children [node]
   (when node
     (when-let [ref-fn (aget node "---ref-fn")]
-      (log "unmount-node-and-children: calling ref-fn for node" (str ref-fn))
       (ref-fn nil)
       (aset node "---ref-fn" nil))
     (doseq [child (vec (aget node "childNodes"))]
@@ -468,32 +538,29 @@
     (unmount-node-and-children node)
     (.remove node)))
 
-(defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "--- patch-children start for dom:" (some-> dom-a .toString))
+(declare patch)
+
+(defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
   (let [children-a (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
         children-b (vec (remove nil? (get-hiccup-children hiccup-b-rendered)))
         dom-nodes (core-atom (vec (aget dom-a "childNodes")))
         len-a (count children-a)
         len-b (count children-b)
-        len-dom (count @dom-nodes)
         parent-ns (dom->namespace dom-a)]
-    (log "patch-children: len-a:" len-a "len-b:" len-b "len-dom:" len-dom)
-    (log "patch-children: children-a:" (str children-a))
-    (log "patch-children: children-b:" (str children-b))
     ;; Patch or replace existing nodes
     (loop [i 0]
       (when (< i (min len-a len-b))
         (let [child-a (nth children-a i)
               child-b (nth children-b i)
               dom-node (nth @dom-nodes i)
-              new-dom-node (patch child-a child-b dom-node)]
+              new-dom-node (patch child-a child-b dom-node render-state)]
           (when (not= dom-node new-dom-node)
             (swap! dom-nodes assoc i new-dom-node)))
         (recur (inc i))))
     ;; Add new nodes
     (when (> len-b len-a)
       (doseq [i (range len-a len-b)]
-        (when-let [new-child (hiccup->dom (nth children-b i) parent-ns)]
+        (when-let [new-child (hiccup->dom (nth children-b i) parent-ns render-state)]
           (.appendChild dom-a new-child))))
     ;; Remove surplus nodes
     (when (> len-a len-b)
@@ -501,29 +568,20 @@
         (remove-node-and-unmount! (.-lastChild dom-a))))))
 
 (defn- get-attrs [hiccup]
-  (log "get-attrs called on hiccup:" hiccup)
   (let [s (second hiccup)]
     (if (map? s) s {})))
 
 (defn- patch-attributes [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "patch-attributes called with hiccup-a:" hiccup-a-rendered
-       "hiccup-b:" hiccup-b-rendered)
   (let [a-attrs (get-attrs hiccup-a-rendered)
         b-attrs (get-attrs hiccup-b-rendered)
         a-ref (get a-attrs :ref)
         b-ref (get b-attrs :ref)
         tag-name (.-tagName dom-a)]
-    (log "patch-attributes: a-attrs:" a-attrs "b-attrs:" b-attrs)
-    (log "patch-attributes: a-ref:" a-ref "b-ref:" b-ref)
-
     ;; Handle :ref lifecycle
-    (log "patch-attributes: about to compare refs. are they equal?" (= a-ref b-ref) "a-ref:" a-ref "b-ref:" b-ref)
     (when (not (= a-ref b-ref))
-      (log "patch-attributes: refs are different, handling lifecycle")
       (when a-ref (a-ref nil))
       (when b-ref (b-ref dom-a))
       (aset dom-a "---ref-fn" b-ref))
-
     ;; Remove attributes from a that are not in b
     (doseq [[k _] a-attrs]
       (when (and (not (contains? b-attrs k)) (not= k :ref) (not= k :xmlns))
@@ -537,8 +595,6 @@
           (if (.startsWith k "on-")
             (aset dom-a (get-event-name k tag-name) v)
             (when (not= v old-v)
-              (log "patch-attributes: updating attribute" k "from" old-v "to" v
-                   "on" (str dom-a))
               (cond
                 (= :value k) nil ;; handled in patch
                 (= :class k)
@@ -559,7 +615,7 @@
                 :else
                 (if (nil? v)
                   (.removeAttribute dom-a k)
-                  (let [val-str (if (= k :style)
+                  (let [val-str (if (= :style k)
                                     (style-map->css-str v)
                                     v)]
                     (.setAttributeNS dom-a nil k val-str)))))))))))
@@ -576,21 +632,15 @@
 
     :else x))
 
-(defn patch
+(defn- patch
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
-  [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (log "patch: hiccup-a-rendered" (str hiccup-a-rendered)
-       "hiccup-b-rendered" (str hiccup-b-rendered)
-       "dom-a" (str dom-a))
+  [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
   (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
-        hiccup-b-realized (realize-deep hiccup-b-rendered)
-        are-equal (hiccup-eq? hiccup-a-realized hiccup-b-realized)]
-    (log "patch: are-equal is" are-equal "(type" (js/typeof are-equal) ")")
+        hiccup-b-realized (realize-deep hiccup-b-rendered)]
     (cond
-      are-equal
-      (do (log "patch: hiccup is equal, doing nothing")
-          dom-a)
+      (= hiccup-a-realized hiccup-b-realized)
+      dom-a
 
       (or (not (vector? hiccup-a-realized))
           (not (vector? hiccup-b-realized))
@@ -598,141 +648,155 @@
                 (first hiccup-b-realized)))
       (let [parent (.-parentNode dom-a)
             parent-ns (dom->namespace parent)
-            new-node (hiccup->dom hiccup-b-realized parent-ns)]
-        (log "patch: replacing node. dom-a:" (str dom-a)
-             "new-node:" (str new-node))
-        (when dom-a
-          (log "patch: replacing node. dom-a.textContent:" (.-textContent dom-a) "new-node.textContent:" (.-textContent new-node)))
+            new-node (hiccup->dom hiccup-b-realized parent-ns render-state)]
         (unmount-node-and-children dom-a)
         (.replaceWith dom-a new-node)
         new-node)
 
       :else
-      (do (log "patch: hiccup not equal, patching children and attributes")
-          (patch-attributes hiccup-a-realized hiccup-b-realized dom-a)
-          (patch-children hiccup-a-realized hiccup-b-realized dom-a)
+      (do (patch-attributes hiccup-a-realized hiccup-b-rendered dom-a)
+          (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)
           (let [a-attrs (get-attrs hiccup-a-realized)
-                b-attrs (get-attrs hiccup-b-realized)
+                b-attrs (get-attrs hiccup-b-rendered)
                 b-value (:value b-attrs)]
             (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
-              (log "patch: value changed from" (:value a-attrs)
-                   "to" b-value
-                   "on" (str dom-a))
-              (if (and (= (.-tagName dom-a) "SELECT") (.-multiple dom-a))
+              (if (and (= "SELECT" (.-tagName dom-a) ) (.-multiple dom-a))
                 (let [value-set (set b-value)]
                   (doseq [opt (.-options dom-a)]
                     (aset opt "selected" (contains? value-set (.-value opt)))))
                 (aset dom-a "value" b-value))))
           dom-a))))
 
-(defn modify-dom [normalized-component]
-  (log "modify-dom called for component:" normalized-component)
-  (remove-watchers-for-component normalized-component)
-  (reset! positional-key-counter 0)
-  (let [mounted-info (get @mounted-components normalized-component)
-        {:keys [hiccup dom container]} mounted-info
-        ; parent-ns (dom->namespace container)
-        new-hiccup-unrendered (with-watcher-bound
-                                normalized-component
-                                (fn [] (component->hiccup normalized-component)))
-        new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered)]
-    (if (and (vector? hiccup) (= :<> (first hiccup)))
-      (do
-        (reset! positional-key-counter 0)
-        (patch-children hiccup new-hiccup-rendered container)
-        (swap! mounted-components assoc normalized-component
-               {:hiccup new-hiccup-rendered
-                :dom dom
-                :container container}))
-      (let [_ (reset! positional-key-counter 0)
-            new-dom (patch hiccup new-hiccup-rendered dom)]
-        (log "modify-dom: new DOM" (str new-dom))
-        (swap! mounted-components assoc normalized-component
-               {:hiccup new-hiccup-rendered
-                :dom new-dom
-                :container container})
-        (when (not= dom new-dom)
-          (log "modify-dom: DOM changed, replacing in container")
-          (aset container "innerHTML" "")
-          (.appendChild container new-dom))))))
-
-(defn notify-watchers [watchers]
-  (log "notify-watchers called with" (count @watchers) "watchers")
-  (doseq [watcher @watchers]
-    (log "calling watcher")
-    (let [old-watcher *watcher*]
+(defn- modify-dom [runtime normalized-component]
+  (remove-watchers-for-component runtime normalized-component)
+  (when-let [mounted-info (and runtime
+                               (runtime-mounted-info runtime normalized-component))]
+    (let [{:keys [hiccup dom container base-namespace]} mounted-info
+          render-state (create-render-state {:normalized-component normalized-component
+                                             :container container
+                                             :base-namespace (or base-namespace
+                                                                 (dom->namespace container))
+                                             :runtime runtime})]
       (try
-        (set! *watcher* watcher)
-        (watcher)
+        (swap! render-state assoc :positional-key-counter 0)
+        (let [new-hiccup-unrendered (with-watcher-bound
+                                      normalized-component
+                                      render-state
+                                      (fn [] (component->hiccup normalized-component)))
+              _ (swap! render-state assoc :positional-key-counter 0)
+              new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
+          (if (and (vector? hiccup) (= :<> (first hiccup)))
+            (do
+              (swap! render-state assoc :positional-key-counter 0)
+              (patch-children hiccup new-hiccup-rendered container render-state)
+              (let [base-ns (:base-namespace @render-state)]
+                (assoc-runtime-mounted-info! runtime normalized-component
+                  {:hiccup new-hiccup-rendered
+                   :dom dom
+                   :container container
+                   :base-namespace base-ns
+                   :runtime runtime})))
+            (let [_ (swap! render-state assoc :positional-key-counter 0)
+                  new-dom (patch hiccup new-hiccup-rendered dom render-state)
+                  base-ns (:base-namespace @render-state)]
+              (assoc-runtime-mounted-info! runtime normalized-component
+                {:hiccup new-hiccup-rendered
+                 :dom new-dom
+                 :container container
+                 :base-namespace base-ns
+                 :runtime runtime})
+              (when (not= dom new-dom)
+                (aset container "innerHTML" "")
+                (.appendChild container new-dom)))))
         (finally
-          (set! *watcher* old-watcher))))))
+          (swap! render-state assoc :active false))))))
+
+(defn- notify-watchers [watchers]
+  (doseq [watcher (vals (or @watchers {}))]
+    (when watcher
+      (if (should-defer-watcher? watcher)
+        (queue-watcher! watcher)
+        (run-watcher-now watcher)))))
 
 (defn- add-modify-dom-watcher-on-ratom-deref
   "This is where the magic of adding watchers to ratoms happen automatically.
   This is achieved by setting the dnymaic var *watcher* then evaluating reagent-render
   which causes the deref of the ratom to trigger adding the watcher to (.-watchers ratom)"
-  [normalized-component base-namespace]
+  [normalized-component render-state]
   (with-watcher-bound
     normalized-component
+    render-state
     (fn []
       (let [reagent-render (-> normalized-component first :reagent-render)
             params (rest normalized-component)
             hiccup (apply reagent-render params)
-            dom (hiccup->dom hiccup (normalize-namespace base-namespace))]
+            base-ns (:base-namespace @render-state)
+            dom (hiccup->dom hiccup base-ns render-state)]
         [hiccup dom]))))
 
-(defn unmount-components [container]
-  (when-let [mounted-component (get @container->mounted-component container)]
-    (remove-watchers-for-component mounted-component)
-    (let [[{:keys [component-will-unmount]} & _params] mounted-component]
-      (component-will-unmount mounted-component)
-      (swap! container->mounted-component dissoc container)))
-  ;; Always clear the component cache when unmounting
-  ;; This matches Reagent's behavior where component instances
-  ;; are destroyed when unmounted
-  (reset! component-instances {})
+(defn- unmount-components [container]
+  (when-let [{:keys [runtime]} (get @roots container)]
+    (when runtime
+      (remove-all-runtime-watchers! runtime))
+    (when runtime
+      (swap! runtime
+             (fn [state]
+               (-> state
+                   (assoc :mounted-components {})
+                   (assoc :component-instances {})
+                   (assoc :pending-watchers [])
+                   (assoc :watcher-flush-scheduled? false)
+                   (assoc :subscriptions {})
+                   (assoc :component-tokens {})))))
+    (swap! roots dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
 
-(defn do-render [normalized-component container]
+(defn- do-render [normalized-component container render-state]
   (unmount-components container)
-  (reset! positional-key-counter 0)
-
-  (let [container-ns (dom->namespace container)
-        [{:keys [_reagent-render]}
-         & _params] normalized-component
-        [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component container-ns)
-        _ (reset! positional-key-counter 0)
-        hiccup-rendered (fully-render-hiccup hiccup)]
-    (.appendChild container dom)
-    (swap! mounted-components assoc normalized-component
-           {:hiccup hiccup-rendered
-            :dom dom
-            :container container})
-    (swap! container->mounted-component assoc container normalized-component)))
+  (swap! render-state assoc :positional-key-counter 0)
+  (try
+    (let [runtime (render-state-runtime render-state)
+          base-ns (:base-namespace @render-state)
+          [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component render-state)
+          _ (swap! render-state assoc :positional-key-counter 0)
+          hiccup-rendered (fully-render-hiccup hiccup render-state)]
+      (.appendChild container dom)
+      (assoc-runtime-mounted-info! runtime normalized-component
+        {:hiccup hiccup-rendered
+         :dom dom
+         :container container
+         :base-namespace base-ns
+         :runtime runtime})
+      (swap! roots assoc container {:component normalized-component
+                                    :runtime runtime}))
+    (finally
+      (swap! render-state assoc :active false))))
 
 ; mirrored as atom below
-(defn ratom [initial-value]
+(defn- ratom [initial-value]
   (let [a (core-atom initial-value)
         orig-deref (aget a "_deref")
-        orig-reset_BANG_ (aget a "_reset_BANG_")
-        ratom-id (str "ratom-" (random-uuid))]
-    (aset a "ratom-id" ratom-id)
-    (aset a "watchers" (core-atom #{}))
+        orig-reset_BANG_ (aget a "_reset_BANG_")]
+    (aset a "watchers" (core-atom {}))
     (aset a "cursors" (core-atom #{}))
     (aset a "_deref" (fn []
-                      (when *watcher*
-                        (log "ratom deref: watcher found, adding to set.")
-                        (swap! (aget a "watchers") conj *watcher*))
+                       (when *watcher*
+                         (let [watchers (aget a "watchers")
+                               current @watchers
+                               watcher-key (watcher-entry-key *watcher*)]
+                           (when-not (contains? current watcher-key)
+                             (swap! watchers
+                                    (fn [state]
+                                      (assoc (or state {}) watcher-key *watcher*))))
+                           (register-watcher-with-host! a watchers *watcher*)))
                       (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
-                             (log "ratom _reset_BANG_ called with" new-val)
                              (let [res (.call orig-reset_BANG_ a new-val)]
                                (notify-watchers (aget a "watchers"))
                                (doseq [c @(aget a "cursors")]
                                  (notify-watchers (aget c "watchers")))
                                res)))
-    (swap! all-ratoms assoc ratom-id a)
     a))
 
 ; *** Reagent API functions *** ;
@@ -742,25 +806,33 @@
   (let [cursors (aget the-ratom "cursors")
         found-cursor (some (fn [c] (when (= path (aget c "path")) c)) @cursors)]
     (if (nil? found-cursor)
-      (let [watchers (core-atom #{})
-            this-cursor (js-obj
-                         "_deref" (fn []
-                                   (when *watcher*
-                                     (swap! watchers conj *watcher*))
-                                   (let [old-watcher *watcher*]
-                                     (try
-                                       (set! *watcher* nil)
-                                       (get-in @the-ratom path)
-                                       (finally
-                                         (set! *watcher* old-watcher)))))
-                         "_swap" (fn [f & args]
-                                  (swap! the-ratom
-                                    (fn [current-state]
-                                      (let [current-cursor-value (get-in current-state path)
-                                            new-cursor-value (apply f current-cursor-value args)]
-                                        (assoc-in current-state path new-cursor-value)))))
-                         "watchers" watchers
-                         "path" path)]
+      (let [watchers (core-atom {})
+            this-cursor (js-obj)]
+        (aset this-cursor "_deref"
+              (fn []
+                (when *watcher*
+                  (let [current @watchers
+                        watcher-key (watcher-entry-key *watcher*)]
+                    (when-not (contains? current watcher-key)
+                      (swap! watchers
+                             (fn [state]
+                               (assoc (or state {}) watcher-key *watcher*))))
+                    (register-watcher-with-host! this-cursor watchers *watcher*)))
+                (let [old-watcher *watcher*]
+                  (try
+                    (set! *watcher* nil)
+                    (get-in @the-ratom path)
+                    (finally
+                      (set! *watcher* old-watcher))))))
+        (aset this-cursor "_swap"
+              (fn [f & args]
+                (swap! the-ratom
+                  (fn [current-state]
+                    (let [current-cursor-value (get-in current-state path)
+                          new-cursor-value (apply f current-cursor-value args)]
+                      (assoc-in current-state path new-cursor-value))))))
+        (aset this-cursor "watchers" watchers)
+        (aset this-cursor "path" path)
         (swap! cursors conj this-cursor)
         this-cursor)
       found-cursor)))
@@ -783,16 +855,23 @@
 
 ;; Reagent API
 (defn render [component container]
-  (log "render called with component:" component "and container:" (str container))
-  (let [normalized-component (normalize-component component)]
-    (log "render: normalized-component is" normalized-component)
-    (do-render normalized-component container)))
+  (let [runtime (core-atom {:runtime-id (str "runtime-" (random-uuid))
+                            :component-instances {}
+                            :pending-watchers []
+                            :watcher-flush-scheduled? false
+                            :mounted-components {}
+                            :subscriptions {}
+                            :component-tokens {}})
+        base-ns (dom->namespace container)
+        render-state (create-render-state {:container container
+                                           :base-namespace base-ns
+                                           :runtime runtime})
+        normalized (normalize-component component render-state)]
+    (swap! render-state assoc :normalized-component normalized)
+    (do-render normalized container render-state)))
 
 ;; Reagent API
 (def render-component render)
-
-(defn clear-component-instances! []
-  (reset! component-instances {}))
 
 ;; Reagent API
 #_:clj-kondo/ignore

@@ -1,9 +1,4 @@
-- [ ] Remove the :^private and defn- nonsense.
 - [ ] Support :onClick as well as :on-click.
-- [ ] Make it reentrant
-  - [ ] Add multiple component render test & get it passing
-  - [ ] Remove ^:dynamic defs
-  - [ ] Remove clear-component-instances! from tests
 - [ ] Remove circularity and `declare`'s
 
 - [ ] Tests for r/cursor and r/reaction
@@ -11,10 +6,15 @@
 - [ ] Support top level component that isn't a function.
 - [ ] r/with-let
 - [ ] Re-export stuff to make interop with JS better?
-- [ ] Implement remaining lifecycle stuff
+- [ ] Implement remaining lifecycle hooks from Reagent/React
 
 # Done
 
+- [x] Make it reentrant
+  - [x] Add multiple component render test & get it passing
+  - [x] Remove ^:dynamic defs
+  - [x] Remove clear-component-instances! from tests
+- [x] Remove the :^private and defn- nonsense.
 - [x] Create a create script for npm init.
 - [x] Test & Demo JavaScript use of the library. (thx bordude)
 - [x] :div#hi.hello style shorthand

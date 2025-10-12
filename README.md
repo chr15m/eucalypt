@@ -13,7 +13,7 @@ Eucalypt is itself very small and fits in a single cljs file.
 
 <!-- end-about -->
 
-- **[Try the demo](https://chr15m.github.io/eucalypt/)** - a single HTML file artifact gzipped to ~16k.
+- **[Try the demo](https://chr15m.github.io/eucalypt/)** - a single HTML file artifact gzipped to ~15k.
 - [See the demo source code for examples](https://github.com/chr15m/eucalypt/tree/main/src/demo/).
 - [![Latest test Results](https://raw.githubusercontent.com/chr15m/eucalypt/build/test-badge.svg)](https://github.com/chr15m/eucalypt/blob/build/test-results.md) [Tests source code](https://github.com/chr15m/eucalypt/tree/main/src/test/src/)
 - Note: Eucalypt was [slop-coded with AI and low human oversight](#use-of-ai) so please be careful.
@@ -108,21 +108,23 @@ Some things to watch out for when using Squint, which I ran into building this:
 
 ## Dev
 
+We are using `pnpm` for dev. You don't have to but it will probably help.
+
 ```shell
 pnpm i
-npm run dev
+pnpm watch
 ```
 
 ## Tests
 
 ```shell
-npm run test
+pnpm test
 ```
 
 ## Build
 
 ```shell
-npm run build
+pnpm build
 ```
 
 ## Use of AI
