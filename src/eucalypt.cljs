@@ -887,8 +887,5 @@
     (do-render normalized container render-state)))
 
 ;; Reagent API
-(def render-component render)
-
-;; Reagent API
 #_:clj-kondo/ignore
 (def atom ratom)
