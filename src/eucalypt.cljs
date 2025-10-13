@@ -112,13 +112,6 @@
         (aset host "_eucalypt_host_id" new-id)
         new-id))))
 
-(defn- ensure-container-id! [container]
-  (when container
-    (if-let [id (aget container "_eucalypt_container_id")]
-      id
-      (let [new-id (str "container-" (random-uuid))]
-        (aset container "_eucalypt_container_id" new-id)
-        new-id))))
 
 (defn- watcher-entry-key [watcher]
   (or (-> watcher meta* :subscription-token)
@@ -746,51 +739,49 @@
         [hiccup dom]))))
 
 (defn- unmount-components [container]
-  (let [container-id (ensure-container-id! container)]
-    (when-let [{:keys [runtime]} (when container-id (get @roots container-id))]
-      (when runtime
-        (remove-all-runtime-watchers! runtime))
-      (when runtime
-        (swap! runtime
-               (fn [state]
-                 (-> state
-                     (assoc :mounted-components (empty-js-map))
-                     (assoc :component-instances (empty-js-map))
-                     (assoc :pending-watchers [])
-                     (assoc :watcher-flush-scheduled? false)
-                     (assoc :subscriptions (empty-js-map))
-                     (assoc :component-tokens (empty-js-map))))))
-      (swap! roots dissoc container-id)))
+  (when-let [{:keys [runtime]} (get @roots container)]
+    (when runtime
+      (remove-all-runtime-watchers! runtime))
+    (when runtime
+      (swap! runtime
+             (fn [state]
+               (-> state
+                   (assoc :mounted-components (empty-js-map))
+                   (assoc :component-instances (empty-js-map))
+                   (assoc :pending-watchers [])
+                   (assoc :watcher-flush-scheduled? false)
+                   (assoc :subscriptions (empty-js-map))
+                   (assoc :component-tokens (empty-js-map))))))
+    (swap! roots dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
 
 (defn- do-render [normalized-component container render-state]
   (unmount-components container)
   (swap! render-state assoc :positional-key-counter 0)
-  (let [container-id (ensure-container-id! container)]
-    (try
-      (let [runtime (render-state-runtime render-state)
-            base-ns (:base-namespace @render-state)
-            [hiccup dom]
-            (add-modify-dom-watcher-on-ratom-deref
-              normalized-component
-              render-state)
-            _ (swap! render-state assoc :positional-key-counter 0)
-            hiccup-rendered (fully-render-hiccup hiccup render-state)]
-        (.appendChild container dom)
-        (assoc-runtime-mounted-info! runtime normalized-component
-                                     {:hiccup hiccup-rendered
-                                      :dom dom
-                                      :container container
-                                      :base-namespace base-ns
-                                      :runtime runtime})
-        (when container-id
-          (swap! roots assoc container-id
-                 {:container container
-                  :component normalized-component
-                  :runtime runtime})))
-      (finally
-        (swap! render-state assoc :active false)))))
+  (try
+    (let [runtime (render-state-runtime render-state)
+          base-ns (:base-namespace @render-state)
+          [hiccup dom]
+          (add-modify-dom-watcher-on-ratom-deref
+            normalized-component
+            render-state)
+          _ (swap! render-state assoc :positional-key-counter 0)
+          hiccup-rendered (fully-render-hiccup hiccup render-state)]
+      (.appendChild container dom)
+      (assoc-runtime-mounted-info! runtime normalized-component
+                                   {:hiccup hiccup-rendered
+                                    :dom dom
+                                    :container container
+                                    :base-namespace base-ns
+                                    :runtime runtime})
+      (when container
+        (swap! roots assoc container
+               {:container container
+                :component normalized-component
+                :runtime runtime})))
+    (finally
+      (swap! render-state assoc :active false))))
 
 ; mirrored as atom below
 (defn- ratom [initial-value]
