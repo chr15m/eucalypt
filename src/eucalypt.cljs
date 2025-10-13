@@ -81,29 +81,6 @@
              (let [existing (or queue [])]
                (into [] (remove #(= watcher %) existing)))))))
 
-(defn- ensure-component-token! [runtime normalized-component]
-  (when (and runtime normalized-component)
-    (let [state @runtime
-          runtime-id (or (:runtime-id state)
-                         (let [new-id (str "runtime-" (random-uuid))]
-                           (swap! runtime assoc :runtime-id new-id)
-                           new-id))
-          existing (get-in state [:component-tokens normalized-component])]
-      (if existing
-        existing
-        (let [token (str runtime-id "-" (random-uuid))]
-          (swap! runtime update :component-tokens
-                 (fn [tokens]
-                   (assoc (or tokens (empty-js-map)) normalized-component token)))
-          token)))))
-
-(defn- get-or-create-watcher-id [watcher]
-  (if-let [id (aget watcher "_eucalypt_watcher_id")]
-    id
-    (let [new-id (str "watcher-" (random-uuid))]
-      (aset watcher "_eucalypt_watcher_id" new-id)
-      new-id)))
-
 (defn- ensure-host-id! [host]
   (when host
     (if-let [id (aget host "_eucalypt_host_id")]
@@ -114,28 +91,28 @@
 
 
 (defn- watcher-entry-key [watcher]
-  (or (-> watcher meta* :subscription-token)
-      (get-or-create-watcher-id watcher)))
+  (or (-> watcher meta* :normalized-component)
+      watcher))
 
 (defn- register-watcher-with-host! [host watchers-atom watcher]
   (let [meta-info (meta* watcher)
         runtime (:runtime meta-info)
-        token (:subscription-token meta-info)
+        component-key (:normalized-component meta-info)
         host-id (ensure-host-id! host)]
-    (when (and runtime token host-id)
+    (when (and runtime component-key host-id)
       (swap! runtime
              (fn [state]
-               (let [existing (get-in state [:subscriptions token host-id])]
+               (let [existing (get-in state [:subscriptions component-key host-id])]
                  (if (= watcher (:watcher existing))
                    state
                    (let [subs (or (:subscriptions state) (empty-js-map))
-                         token-map (or (get subs token) (empty-js-map))
+                         component-map (or (get subs component-key) (empty-js-map))
                          entry {:host host
                                 :host-id host-id
                                 :watchers-atom watchers-atom
                                 :watcher watcher}
-                         new-token-map (assoc token-map host-id entry)
-                         new-subs (assoc subs token new-token-map)]
+                         new-component-map (assoc component-map host-id entry)
+                         new-subs (assoc subs component-key new-component-map)]
                      (assoc state :subscriptions new-subs)))))))))
 
 (defn- render-state-runtime [render-state]
@@ -223,12 +200,10 @@
 (defn- with-watcher-bound [normalized-component render-state f]
   (let [old-watcher *watcher*
         runtime (render-state-runtime render-state)
-        token (ensure-component-token! runtime normalized-component)
         watcher-fn (with-meta* #(modify-dom runtime normalized-component)
                      {:normalized-component normalized-component
                       :should-defer? #(boolean (:active @render-state))
-                      :runtime runtime
-                      :subscription-token token})]
+                      :runtime runtime})]
     (try
       (set! *watcher* watcher-fn)
       (f)
@@ -237,9 +212,8 @@
 
 (defn- remove-watchers-for-component [runtime normalized-component]
   (let [runtime-state (when runtime @runtime)
-        token (get-in runtime-state [:component-tokens normalized-component])
-        subscriptions (get-in runtime-state [:subscriptions token])]
-    (when (and runtime token)
+        subscriptions (get-in runtime-state [:subscriptions normalized-component])]
+    (when (and runtime normalized-component)
       (when (seq subscriptions)
         (doseq [{:keys [watchers-atom watcher]} (vals subscriptions)]
           (remove-watcher-from-runtime-queue! watcher)
@@ -251,17 +225,13 @@
       (swap! runtime
              (fn [state]
                (let [subs (or (:subscriptions state) (empty-js-map))
-                     tokens (or (:component-tokens state) (empty-js-map))
-                     new-subs (dissoc subs token)
-                     new-tokens (dissoc tokens normalized-component)]
-                 (assoc state
-                        :subscriptions new-subs
-                        :component-tokens new-tokens)))))
+                     new-subs (dissoc subs normalized-component)]
+                 (assoc state :subscriptions new-subs)))))
     nil)
 
 (defn- remove-all-runtime-watchers! [runtime]
   (when runtime
-    (let [components (keys (or (:component-tokens @runtime) (empty-js-map)))]
+    (let [components (keys (or (:subscriptions @runtime) (empty-js-map)))]
       (doseq [component components]
         (remove-watchers-for-component runtime component)))))
 
@@ -746,8 +716,7 @@
                    (assoc :component-instances (empty-js-map))
                    (assoc :pending-watchers [])
                    (assoc :watcher-flush-scheduled? false)
-                   (assoc :subscriptions (empty-js-map))
-                   (assoc :component-tokens (empty-js-map))))))
+                   (assoc :subscriptions (empty-js-map))))))
     (swap! roots dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
@@ -866,8 +835,7 @@
                             :pending-watchers []
                             :watcher-flush-scheduled? false
                             :mounted-components (empty-js-map)
-                            :subscriptions (empty-js-map)
-                            :component-tokens (empty-js-map)})
+                            :subscriptions (empty-js-map)})
         base-ns (dom->namespace container)
         render-state (create-render-state {:container container
                                            :base-namespace base-ns
