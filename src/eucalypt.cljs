@@ -5,6 +5,9 @@
 
 (def ^:private core-atom squint/atom)
 
+(defn- empty-js-map []
+  (js/Map.))
+
 (def default-namespace :html)
 
 (def namespaces
@@ -29,7 +32,7 @@
 
 (defonce ^:dynamic *watcher* nil)
 
-(defonce roots (core-atom {})) ; roots created by r/render and mounted in DOM
+(defonce roots (core-atom (empty-js-map))) ; roots created by r/render and mounted in DOM
 
 (defn- namespace-uri [ns-key]
   (or (get-in namespaces [ns-key :uri])
@@ -91,7 +94,7 @@
         (let [token (str runtime-id "-" (random-uuid))]
           (swap! runtime update :component-tokens
                  (fn [tokens]
-                   (assoc (or tokens {}) normalized-component token)))
+                   (assoc (or tokens (empty-js-map)) normalized-component token)))
           token)))))
 
 (defn- get-or-create-watcher-id [watcher]
@@ -132,8 +135,8 @@
                (let [existing (get-in state [:subscriptions token host-id])]
                  (if (= watcher (:watcher existing))
                    state
-                   (let [subs (or (:subscriptions state) {})
-                         token-map (or (get subs token) {})
+                   (let [subs (or (:subscriptions state) (empty-js-map))
+                         token-map (or (get subs token) (empty-js-map))
                          entry {:host host
                                 :host-id host-id
                                 :watchers-atom watchers-atom
@@ -154,7 +157,7 @@
   (when runtime
     (swap! runtime update :component-instances
            (fn [instances]
-             (update-fn (or instances {}))))))
+             (update-fn (or instances (empty-js-map)))))))
 
 (defn- runtime-mounted-info [runtime normalized-component]
   (when runtime
@@ -164,7 +167,7 @@
   (when runtime
     (swap! runtime update :mounted-components
            (fn [components]
-             (assoc (or components {}) normalized-component info)))))
+             (assoc (or components (empty-js-map)) normalized-component info)))))
 
 (defn- create-render-state [{:keys [normalized-component container base-namespace runtime]}]
   (let [state {:active true
@@ -251,11 +254,11 @@
             (let [key (watcher-entry-key watcher)]
               (swap! watchers-atom
                      (fn [state]
-                       (dissoc (or state {}) key))))))))
+                       (dissoc (or state (empty-js-map)) key))))))))
       (swap! runtime
              (fn [state]
-               (let [subs (or (:subscriptions state) {})
-                     tokens (or (:component-tokens state) {})
+               (let [subs (or (:subscriptions state) (empty-js-map))
+                     tokens (or (:component-tokens state) (empty-js-map))
                      new-subs (dissoc subs token)
                      new-tokens (dissoc tokens normalized-component)]
                  (assoc state
@@ -265,7 +268,7 @@
 
 (defn- remove-all-runtime-watchers! [runtime]
   (when runtime
-    (let [components (keys (or (:component-tokens @runtime) {}))]
+    (let [components (keys (or (:component-tokens @runtime) (empty-js-map)))]
       (doseq [component components]
         (remove-watchers-for-component runtime component)))))
 
@@ -720,7 +723,7 @@
           (swap! render-state assoc :active false))))))
 
 (defn- notify-watchers [watchers]
-  (doseq [watcher (vals (or @watchers {}))]
+  (doseq [watcher (vals (or @watchers (empty-js-map)))]
     (when watcher
       (if (should-defer-watcher? watcher)
         (queue-watcher! watcher)
@@ -751,12 +754,12 @@
         (swap! runtime
                (fn [state]
                  (-> state
-                     (assoc :mounted-components {})
-                     (assoc :component-instances {})
+                     (assoc :mounted-components (empty-js-map))
+                     (assoc :component-instances (empty-js-map))
                      (assoc :pending-watchers [])
                      (assoc :watcher-flush-scheduled? false)
-                     (assoc :subscriptions {})
-                     (assoc :component-tokens {})))))
+                     (assoc :subscriptions (empty-js-map))
+                     (assoc :component-tokens (empty-js-map))))))
       (swap! roots dissoc container-id)))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
@@ -794,7 +797,7 @@
   (let [a (core-atom initial-value)
         orig-deref (aget a "_deref")
         orig-reset_BANG_ (aget a "_reset_BANG_")]
-    (aset a "watchers" (core-atom {}))
+    (aset a "watchers" (core-atom (empty-js-map)))
     (aset a "cursors" (core-atom #{}))
     (aset a "_deref" (fn []
                        (when *watcher*
@@ -804,7 +807,7 @@
                            (when-not (contains? current watcher-key)
                              (swap! watchers
                                     (fn [state]
-                                      (assoc (or state {}) watcher-key *watcher*))))
+                                      (assoc (or state (empty-js-map)) watcher-key *watcher*))))
                            (register-watcher-with-host! a watchers *watcher*)))
                       (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
@@ -822,7 +825,7 @@
   (let [cursors (aget the-ratom "cursors")
         found-cursor (some (fn [c] (when (= path (aget c "path")) c)) @cursors)]
     (if (nil? found-cursor)
-      (let [watchers (core-atom {})
+      (let [watchers (core-atom (empty-js-map))
             this-cursor (js-obj)]
         (aset this-cursor "_deref"
               (fn []
@@ -832,7 +835,7 @@
                     (when-not (contains? current watcher-key)
                       (swap! watchers
                              (fn [state]
-                               (assoc (or state {}) watcher-key *watcher*))))
+                               (assoc (or state (empty-js-map)) watcher-key *watcher*))))
                     (register-watcher-with-host! this-cursor watchers *watcher*)))
                 (let [old-watcher *watcher*]
                   (try
@@ -872,12 +875,12 @@
 ;; Reagent API
 (defn render [component container]
   (let [runtime (core-atom {:runtime-id (str "runtime-" (random-uuid))
-                            :component-instances {}
+                            :component-instances (empty-js-map)
                             :pending-watchers []
                             :watcher-flush-scheduled? false
-                            :mounted-components {}
-                            :subscriptions {}
-                            :component-tokens {}})
+                            :mounted-components (empty-js-map)
+                            :subscriptions (empty-js-map)
+                            :component-tokens (empty-js-map)})
         base-ns (dom->namespace container)
         render-state (create-render-state {:container container
                                            :base-namespace base-ns
