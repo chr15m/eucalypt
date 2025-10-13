@@ -369,12 +369,6 @@
         (aset element "value" value)))
     element))
 
-(defn- get-or-create-fn-id [f]
-  (if-let [id (aget f "_eucalypt_id")]
-    id
-    (let [new-id (str "fn_" (random-uuid))]
-      (aset f "_eucalypt_id" new-id)
-      new-id)))
 
 (defn- normalize-component [component render-state]
   (when (vector? component)
@@ -385,24 +379,22 @@
         (let [a-fn first-element
               params-vec (vec params)
               component-meta (meta component)
-              fn-id (get-or-create-fn-id a-fn)
               runtime (render-state-runtime render-state)
               component-cache (runtime-component-cache runtime)
+              fn-cache (when component-cache (get component-cache a-fn))
+              cached-form1-instance (when fn-cache (get fn-cache :form-1-instance))
               instance-key (if (contains? component-meta :key)
-                             (str fn-id "_key_" (:key component-meta))
-                             (str fn-id "_pos_"
-                                  (if render-state
-                                    (next-positional-key! render-state)
-                                    (random-uuid))))
-              shared-key fn-id
-              cached-instance (when component-cache (get component-cache instance-key))
-              cached-shared (when component-cache (get component-cache shared-key))]
+                             (:key component-meta)
+                             (if render-state
+                               (next-positional-key! render-state)
+                               (random-uuid)))
+              cached-form2-instance (when fn-cache (get fn-cache instance-key))]
           (cond
-            cached-instance
-            (into [(:instance cached-instance)] params-vec)
+            cached-form2-instance
+            (into [(:instance cached-form2-instance)] params-vec)
 
-            cached-shared
-            (into [(:instance cached-shared)] params-vec)
+            cached-form1-instance
+            (into [(:instance cached-form1-instance)] params-vec)
 
             :else
             (let [func-or-hiccup (apply a-fn params-vec)]
@@ -413,16 +405,20 @@
                       result (into [instance] params-vec)]
                   (update-component-cache! runtime
                                            (fn [cache]
-                                             (assoc cache instance-key {:type :form-2
-                                                                        :instance instance})))
+                                             (let [fn-cache (or (get cache a-fn) (empty-js-map))
+                                                   new-fn-cache (assoc fn-cache instance-key {:type :form-2
+                                                                                             :instance instance})]
+                                               (assoc cache a-fn new-fn-cache))))
                   result)
                 ;; Form-1 component (stateless)
                 (let [instance {:reagent-render a-fn}
                       result (into [instance] params-vec)]
                   (update-component-cache! runtime
                                            (fn [cache]
-                                             (assoc cache shared-key {:type :form-1
-                                                                      :instance instance})))
+                                             (let [fn-cache (or (get cache a-fn) (empty-js-map))
+                                                   new-fn-cache (assoc fn-cache :form-1-instance {:type :form-1
+                                                                                                  :instance instance})]
+                                               (assoc cache a-fn new-fn-cache))))
                   result)))))
 
         (string? first-element)
