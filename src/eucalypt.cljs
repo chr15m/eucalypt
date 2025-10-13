@@ -81,15 +81,6 @@
              (let [existing (or queue [])]
                (into [] (remove #(= watcher %) existing)))))))
 
-(defn- ensure-host-id! [host]
-  (when host
-    (if-let [id (aget host "_eucalypt_host_id")]
-      id
-      (let [new-id (str "host-" (random-uuid))]
-        (aset host "_eucalypt_host_id" new-id)
-        new-id))))
-
-
 (defn- watcher-entry-key [watcher]
   (or (-> watcher meta* :normalized-component)
       watcher))
@@ -97,21 +88,19 @@
 (defn- register-watcher-with-host! [host watchers-atom watcher]
   (let [meta-info (meta* watcher)
         runtime (:runtime meta-info)
-        component-key (:normalized-component meta-info)
-        host-id (ensure-host-id! host)]
-    (when (and runtime component-key host-id)
+        component-key (:normalized-component meta-info)]
+    (when (and runtime component-key host)
       (swap! runtime
              (fn [state]
-               (let [existing (get-in state [:subscriptions component-key host-id])]
+               (let [existing (get-in state [:subscriptions component-key host])]
                  (if (= watcher (:watcher existing))
                    state
                    (let [subs (or (:subscriptions state) (empty-js-map))
                          component-map (or (get subs component-key) (empty-js-map))
                          entry {:host host
-                                :host-id host-id
                                 :watchers-atom watchers-atom
                                 :watcher watcher}
-                         new-component-map (assoc component-map host-id entry)
+                         new-component-map (assoc component-map host entry)
                          new-subs (assoc subs component-key new-component-map)]
                      (assoc state :subscriptions new-subs)))))))))
 
