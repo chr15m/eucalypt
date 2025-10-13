@@ -15,8 +15,8 @@ importers:
         specifier: 14.12.3
         version: 14.12.3
       squint-cljs:
-        specifier: 0.8.158
-        version: 0.8.158
+        specifier: 0.8.159
+        version: 0.8.159
       vite:
         specifier: 7.1.2
         version: 7.1.2(terser@5.44.0)
@@ -605,8 +605,8 @@ packages:
   spawn-command@0.0.2:
     resolution: {integrity: sha512-zC8zGoGkmc8J9ndvml8Xksr1Amk9qBujgbF0JAIWO7kXr43w0h/0GJNM/Vustixu+YE8N/MTrQ7N31FvHUACxQ==}
 
-  squint-cljs@0.8.158:
-    resolution: {integrity: sha512-Pw0cfnShvHN7a4GgMZTaMF0Wk41iuHTBaM0DwLsu6GJGAuMhDIBf3LUvkOFqpS8dwYYoJqBzrxVTr0PcQ64Bww==}
+  squint-cljs@0.8.159:
+    resolution: {integrity: sha512-tSo9DfzjNvcCjNWk9/N+j0BBJdF56n/LNYfQcuDrEiogGbGDHRBnGW1PGlIH3kTDTmUdT8aaS/5tdLUaCGD+pg==}
     hasBin: true
 
   stackback@0.0.2:
@@ -1273,7 +1273,7 @@ snapshots:
 
   spawn-command@0.0.2: {}
 
-  squint-cljs@0.8.158:
+  squint-cljs@0.8.159:
     dependencies:
       chokidar: 4.0.3
 
