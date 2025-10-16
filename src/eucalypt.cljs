@@ -650,7 +650,8 @@
             parent-ns (dom->namespace parent)
             new-node (hiccup->dom hiccup-b-realized parent-ns render-state)]
         (unmount-node-and-children dom-a)
-        (.replaceWith dom-a new-node)
+        (when-not (instance? js/DocumentFragment dom-a)
+          (.replaceWith dom-a new-node))
         new-node)
 
       :else
