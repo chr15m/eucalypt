@@ -108,6 +108,12 @@
 (defn- derived-text [container label]
   (.-textContent (.querySelector container (str ".derived-state-" label))))
 
+(defn- switch-btn [container label]
+  (.querySelector container (str ".switch-" label)))
+
+(defn- mode-text [container label]
+  (.-textContent (.querySelector container (str ".mode-" label))))
+
 (describe "Re-entrant rendering"
   (fn []
     (it "should keep child local state when multiple roots render interleaved"
@@ -244,5 +250,34 @@
           (.click (bump-btn container-b "Beta"))
           (th/assert-equal (derived-text container-a "Alpha") "Derived: 2")
           (th/assert-equal (derived-text container-b "Beta") "Derived: 2")
+          (th/assert-equal (count-text container-a "Alpha") "1")
+          (th/assert-equal (count-text container-b "Beta") "1"))))
+
+    (it "should keep child state when switching fragment and non-fragment roots"
+      (fn []
+        (let [container-a (.createElement js/document "div")
+              container-b (.createElement js/document "div")]
+          (.appendChild js/document.body container-a)
+          (.appendChild js/document.body container-b)
+
+          (r/render [fragment-parent "Alpha"] container-a)
+          (r/render [parent-with-toggle "Beta"] container-b)
+
+          (th/assert-equal (count-text container-a "Alpha") "0")
+          (th/assert-equal (count-text container-b "Beta") "0")
+          (th/assert-equal (mode-text container-a "Alpha") "Fragment layout")
+
+          (.click (inc-btn container-a "Alpha"))
+          (.click (inc-btn container-b "Beta"))
+          (th/assert-equal (count-text container-a "Alpha") "1")
+          (th/assert-equal (count-text container-b "Beta") "1")
+
+          (.click (switch-btn container-a "Alpha"))
+          (th/assert-equal (mode-text container-a "Alpha") "Element layout")
+          (th/assert-equal (count-text container-a "Alpha") "1")
+          (th/assert-equal (count-text container-b "Beta") "1")
+
+          (.click (switch-btn container-a "Alpha"))
+          (th/assert-equal (mode-text container-a "Alpha") "Fragment layout")
           (th/assert-equal (count-text container-a "Alpha") "1")
           (th/assert-equal (count-text container-b "Beta") "1"))))))
