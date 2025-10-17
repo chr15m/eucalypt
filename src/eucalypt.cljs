@@ -322,56 +322,37 @@
         reagent-render (:reagent-render config)]
     (apply reagent-render params)))
 
+(defn- fetch-or-create-component-instance [a-fn params-vec component-meta render-state]
+  (let [runtime (render-state-runtime render-state)
+        component-cache (runtime-component-cache runtime)
+        fn-cache (when component-cache (get component-cache a-fn))
+        instance-key (if (contains? component-meta :key)
+                       (:key component-meta)
+                       (if render-state
+                         (next-positional-key! render-state)
+                         (random-uuid)))
+        cached-instance (or (get-in fn-cache [instance-key :instance])
+                            (get-in fn-cache [:form-1-instance :instance]))]
+    (or cached-instance
+        (let [func-or-hiccup (apply a-fn params-vec)
+              [instance cache-key type] (if (fn? func-or-hiccup)
+                                          [{:reagent-render func-or-hiccup} instance-key :form-2]
+                                          [{:reagent-render a-fn} :form-1-instance :form-1])]
+          (update-component-cache! runtime
+                                   (fn [cache]
+                                     (let [fn-cache (or (get cache a-fn) (empty-js-map))
+                                           new-fn-cache (assoc fn-cache cache-key {:type type :instance instance})]
+                                       (assoc cache a-fn new-fn-cache))))
+          instance))))
+
 (defn- normalize-component [component render-state]
   (when (vector? component)
     (let [first-element (aget component 0)
           params (subvec component 1)]
       (cond
         (fn? first-element)
-        (let [a-fn first-element
-              params-vec (vec params)
-              component-meta (meta component)
-              runtime (render-state-runtime render-state)
-              component-cache (runtime-component-cache runtime)
-              fn-cache (when component-cache (get component-cache a-fn))
-              cached-form1-instance (when fn-cache (get fn-cache :form-1-instance))
-              instance-key (if (contains? component-meta :key)
-                             (:key component-meta)
-                             (if render-state
-                               (next-positional-key! render-state)
-                               (random-uuid)))
-              cached-form2-instance (when fn-cache (get fn-cache instance-key))]
-          (cond
-            cached-form2-instance
-            (into [(:instance cached-form2-instance)] params-vec)
-
-            cached-form1-instance
-            (into [(:instance cached-form1-instance)] params-vec)
-
-            :else
-            (let [func-or-hiccup (apply a-fn params-vec)]
-              (if (fn? func-or-hiccup)
-                ;; Form-2 component (stateful)
-                (let [closure func-or-hiccup
-                      instance {:reagent-render closure}
-                      result (into [instance] params-vec)]
-                  (update-component-cache! runtime
-                                           (fn [cache]
-                                             (let [fn-cache (or (get cache a-fn) (empty-js-map))
-                                                   new-fn-cache (assoc fn-cache instance-key {:type :form-2
-                                                                                             :instance instance})]
-                                               (assoc cache a-fn new-fn-cache))))
-                  result)
-                ;; Form-1 component (stateless)
-                (let [instance {:reagent-render a-fn}
-                      result (into [instance] params-vec)]
-                  (update-component-cache! runtime
-                                           (fn [cache]
-                                             (let [fn-cache (or (get cache a-fn) (empty-js-map))
-                                                   new-fn-cache (assoc fn-cache :form-1-instance {:type :form-1
-                                                                                                  :instance instance})]
-                                               (assoc cache a-fn new-fn-cache))))
-                  result)))))
+        (let [instance (fetch-or-create-component-instance first-element (vec params) (meta component) render-state)]
+          (into [instance] params))
 
         (string? first-element)
         (into [{:reagent-render (fn [] component)}]
