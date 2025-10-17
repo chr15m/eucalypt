@@ -43,11 +43,6 @@
     (th/assert-not-nil link)
     (.click link)))
 
-(defn log-dom! [label container]
-  (let [html (.-innerHTML container)]
-    (js/console.log (str label " DOM:") html)
-    (th/log label html)))
-
 (defn single-state [container]
   (let [pre-values (texts-by-selector container "pre.app-state")]
     (th/assert-equal (count pre-values) 1)
@@ -74,7 +69,6 @@
 (defn fail-case-b []
   (let [interval-id (r/atom nil)
         ref-fn (fn [el]
-                 (js/console.log "ref" (str el))
                  (if el
                    (when (nil? @interval-id)
                      (reset! interval-id (js/setInterval fail-tick 200)))
@@ -92,7 +86,6 @@
 (defn fail-case-a []
   (let [interval-id (r/atom nil)
         ref-fn (fn [el]
-                 (js/console.log "ref" (str el))
                  (if el
                    (when (nil? @interval-id)
                      (reset! interval-id (js/setInterval fail-tick 200)))
@@ -147,7 +140,6 @@
                 (let [flow (-> (sleep 20)
                                (.then
                                  (fn []
-                                   (log-dom! "Step 1: Initial render" container)
                                    (th/assert-equal (.-textContent (.querySelector container "h1"))
                                                     "Test")
                                    (th/assert-equal (.-textContent (.querySelector container "p"))
@@ -157,12 +149,10 @@
                                    nil))
                                (.then
                                  (fn []
-                                   (th/log "Step 2: Navigate to fail case (Mode A)")
                                    (click-nav! container 2)
                                    (sleep 40)))
                                (.then
                                  (fn []
-                                   (log-dom! "Step 3: After switching to Mode A" container)
                                    (let [modes (mode-texts container)
                                          a-btn (button-with-text container "A button")
                                          p-texts (texts-by-selector container "p")
@@ -176,12 +166,10 @@
                                    nil))
                                (.then
                                  (fn []
-                                   (th/log "Step 4: Switch to Mode B via button")
                                    (.click (button-with-text container "A button"))
                                    (sleep 80)))
                                (.then
                                  (fn []
-                                   (log-dom! "Step 5: After switching to Mode B" container)
                                    (let [modes (mode-texts container)
                                          b-btn (button-with-text container "B button")
                                          state (single-state container)]
@@ -194,23 +182,19 @@
                                    (sleep 250)))
                                (.then
                                  (fn []
-                                   (th/log "Step 6: Navigate to fail case pre")
                                    (click-nav! container 1)
                                    (sleep 40)))
                                (.then
                                  (fn []
-                                   (log-dom! "Step 7: On fail case pre page" container)
                                    (th/assert-equal (texts-by-selector container "p") ["Wat"])
                                    (th/assert-equal (count (mode-texts container)) 0)
                                    nil))
                                (.then
                                  (fn []
-                                   (th/log "Step 8: Navigate back to fail case (should remain Mode B)")
                                    (click-nav! container 2)
                                    (sleep 80)))
                                (.then
                                  (fn []
-                                   (log-dom! "Step 9: Back on fail case (expected Mode B)" container)
                                    (let [modes (mode-texts container)
                                          b-btn (button-with-text container "B button")
                                          state (single-state container)]
@@ -224,12 +208,10 @@
                                    nil))
                                (.then
                                  (fn []
-                                   (th/log "Step 10: Toggle back to Mode A")
                                    (.click (button-with-text container "B button"))
                                    (sleep 80)))
                                (.then
                                  (fn []
-                                   (log-dom! "Step 11: After toggling back to Mode A" container)
                                    (let [modes (mode-texts container)
                                          a-btn (button-with-text container "A button")
                                          p-texts (texts-by-selector container "p")
@@ -244,12 +226,10 @@
                                    nil))
                                (.then
                                  (fn []
-                                   (th/log "Step 12: Navigate home to ensure unmount clears interval")
                                    (click-nav! container 0)
                                    (sleep 40)))
                                (.then
                                  (fn []
-                                   (log-dom! "Step 13: Final home view" container)
                                    (th/assert-equal (.-textContent (.querySelector container "h1"))
                                                     "Test")
                                    (th/assert-equal (.-textContent (.querySelector container "p"))
