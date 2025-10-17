@@ -547,37 +547,39 @@
   "transform dom-a to dom representation of hiccup-b.
   if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b."
   [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
-  (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
-        hiccup-b-realized (realize-deep hiccup-b-rendered)]
-    (cond
-      (= hiccup-a-realized hiccup-b-realized)
-      dom-a
+  (if (identical? hiccup-a-rendered hiccup-b-rendered)
+    dom-a
+    (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
+          hiccup-b-realized (realize-deep hiccup-b-rendered)]
+      (cond
+        (= hiccup-a-realized hiccup-b-realized)
+        dom-a
 
-      (or (not (vector? hiccup-a-realized))
-          (not (vector? hiccup-b-realized))
-          (not= (first hiccup-a-realized)
-                (first hiccup-b-realized)))
-      (let [parent (.-parentNode dom-a)
-            parent-ns (dom->namespace parent)
-            new-node (hiccup->dom hiccup-b-realized parent-ns render-state)]
-        (unmount-node-and-children dom-a)
-        (when-not (instance? js/DocumentFragment dom-a)
-          (.replaceWith dom-a new-node))
-        new-node)
+        (or (not (vector? hiccup-a-realized))
+            (not (vector? hiccup-b-realized))
+            (not= (first hiccup-a-realized)
+                  (first hiccup-b-realized)))
+        (let [parent (.-parentNode dom-a)
+              parent-ns (dom->namespace parent)
+              new-node (hiccup->dom hiccup-b-realized parent-ns render-state)]
+          (unmount-node-and-children dom-a)
+          (when-not (instance? js/DocumentFragment dom-a)
+            (.replaceWith dom-a new-node))
+          new-node)
 
-      :else
-      (do (patch-attributes hiccup-a-realized hiccup-b-rendered dom-a)
-          (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)
-          (let [a-attrs (get-attrs hiccup-a-realized)
-                b-attrs (get-attrs hiccup-b-rendered)
-                b-value (:value b-attrs)]
-            (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
-              (if (and (= "SELECT" (.-tagName dom-a) ) (.-multiple dom-a))
-                (let [value-set (set b-value)]
-                  (doseq [opt (.-options dom-a)]
-                    (aset opt "selected" (contains? value-set (.-value opt)))))
-                (aset dom-a "value" b-value))))
-          dom-a))))
+        :else
+        (do (patch-attributes hiccup-a-realized hiccup-b-rendered dom-a)
+            (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)
+            (let [a-attrs (get-attrs hiccup-a-realized)
+                  b-attrs (get-attrs hiccup-b-rendered)
+                  b-value (:value b-attrs)]
+              (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
+                (if (and (= "SELECT" (.-tagName dom-a) ) (.-multiple dom-a))
+                  (let [value-set (set b-value)]
+                    (doseq [opt (.-options dom-a)]
+                      (aset opt "selected" (contains? value-set (.-value opt)))))
+                  (aset dom-a "value" b-value))))
+            dom-a)))))
 
 (defn- modify-dom [runtime normalized-component]
   (if (contains? (:rendering-components @runtime) normalized-component)
