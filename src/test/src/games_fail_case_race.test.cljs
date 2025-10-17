@@ -49,7 +49,7 @@
     (th/log label html)))
 
 (defn single-state [container]
-  (let [pre-values (texts-by-selector container "pre")]
+  (let [pre-values (texts-by-selector container "pre.app-state")]
     (th/assert-equal (count pre-values) 1)
     (js/JSON.parse (first pre-values))))
 
@@ -83,7 +83,7 @@
                      (reset! interval-id nil))))]
     (fn []
       [:div {:ref ref-fn}
-       [:pre (pr-str (:fail-tick @app-state))]
+       [:pre {:class "timer-state"} (pr-str (:fail-tick @app-state))]
        [:p "Mode B"]
        [:p
         [:button {:on-click #(swap! app-state dissoc :fail-case)}
@@ -101,7 +101,7 @@
                      (reset! interval-id nil))))]
     (fn []
       [:div {:ref ref-fn}
-       [:pre (pr-str (:fail-tick @app-state))]
+       [:pre {:class "timer-state"} (pr-str (:fail-tick @app-state))]
        [:p "Mode A"]
        [:p
         [:button {:on-click #(swap! app-state assoc :fail-case true)}
@@ -124,7 +124,7 @@
       [nav-link :fail-case-pre "Fail case pre"]
       [nav-link :fail-case "Fail case"]]
      [:hr]
-     [:pre (pr-str @app-state)]
+     [:pre {:class "app-state"} (pr-str @app-state)]
      (case page
        :home [home-page]
        :fail-case-pre [fail-case-pre]
