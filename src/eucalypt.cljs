@@ -263,16 +263,29 @@
       (.removeAttribute element "class")
       (.setAttribute element "class" normalized))))
 
+(defn- apply-ref-change [element old-ref new-ref]
+  (when (not= old-ref new-ref)
+    (when old-ref (old-ref nil))
+    (when new-ref (new-ref element))
+    (aset element "---ref-fn" new-ref)))
+
+(defn- set-or-remove-attribute! [element k v]
+  (cond
+    (.startsWith k "on-") (assign-event! element k v)
+    (= :style k) (apply-style! element v)
+    (= :class k) (apply-class! element v)
+    (or (= :checked k) (= :selected k)) (aset element k v)
+    :else (if (nil? v)
+            (.removeAttribute element k)
+            (.setAttributeNS element nil k v))))
+
 (defn- set-attributes! [element attrs]
+  (apply-ref-change element nil (:ref attrs))
   (doseq [[k v] attrs]
-    (cond
-      (= :xmlns k) nil
-      (= :ref k) (when (some? v) (aset element "---ref-fn" v) (v element))
-      (.startsWith k "on-") (assign-event! element k v)
-      (= :style k) (apply-style! element v)
-      (= :class k) (apply-class! element v)
-      (or (= :checked k) (= :selected k)) (aset element k v)
-      :else (when (some? v) (.setAttributeNS element nil k v)))))
+    (when (not= k :ref)
+      (cond
+        (= :xmlns k) nil
+        :else (set-or-remove-attribute! element k v)))))
 
 (defn- parse-tag [tag]
   (let [tag-str (str tag)
@@ -511,29 +524,15 @@
 
 (defn- patch-attributes [hiccup-a-rendered hiccup-b-rendered dom-a]
   (let [a-attrs (get-attrs hiccup-a-rendered)
-        b-attrs (get-attrs hiccup-b-rendered)
-        a-ref (get a-attrs :ref)
-        b-ref (get b-attrs :ref)]
-    ;; Handle :ref lifecycle
-    (when (not (= a-ref b-ref))
-      (when a-ref (a-ref nil))
-      (when b-ref (b-ref dom-a))
-      (aset dom-a "---ref-fn" b-ref))
-
+        b-attrs (get-attrs hiccup-b-rendered)]
+    (apply-ref-change dom-a (:ref a-attrs) (:ref b-attrs))
     (let [all-keys (set (concat (keys a-attrs) (keys b-attrs)))]
       (doseq [k all-keys]
         (when (and (not= k :ref) (not= k :xmlns) (not= k :value))
           (let [old-v (get a-attrs k)
                 new-v (get b-attrs k)]
             (when (not= old-v new-v)
-              (cond
-                (.startsWith k "on-") (assign-event! dom-a k new-v)
-                (= :style k) (apply-style! dom-a new-v)
-                (= :class k) (apply-class! dom-a new-v)
-                (or (= :checked k) (= :selected k)) (aset dom-a k new-v)
-                :else (if (nil? new-v)
-                        (.removeAttribute dom-a k)
-                        (.setAttributeNS dom-a nil k new-v))))))))))
+              (set-or-remove-attribute! dom-a k new-v))))))))
 
 (defn- realize-deep [x]
   (cond
