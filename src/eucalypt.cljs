@@ -710,16 +710,6 @@
   (when-let [{:keys [runtime]} (get @roots container)]
     (when runtime
       (remove-all-runtime-watchers! runtime))
-    (when runtime
-      (swap! runtime
-             (fn [state]
-               (-> state
-                   (assoc :mounted-components (empty-js-map))
-                   (assoc :component-instances (empty-js-map))
-                   (assoc :pending-watchers [])
-                   (assoc :watcher-flush-scheduled? false)
-                   (assoc :subscriptions (empty-js-map))
-                   (assoc :rendering-components #{})))))
     (swap! roots dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
