@@ -104,6 +104,13 @@
                          new-subs (assoc subs component-key new-component-map)]
                      (assoc state :subscriptions new-subs)))))))))
 
+(defn- ensure-watcher-registered! [host watchers-atom]
+  (when *watcher*
+    (let [watcher-key (watcher-entry-key *watcher*)]
+      (when-not (contains? @watchers-atom watcher-key)
+        (swap! watchers-atom assoc watcher-key *watcher*)))
+    (register-watcher-with-host! host watchers-atom *watcher*)))
+
 (defn- render-state-runtime [render-state]
   (when render-state
     (:runtime @render-state)))
@@ -698,16 +705,8 @@
     (aset a "watchers" (core-atom (empty-js-map)))
     (aset a "cursors" (core-atom #{}))
     (aset a "_deref" (fn []
-                       (when *watcher*
-                         (let [watchers (aget a "watchers")
-                               current @watchers
-                               watcher-key (watcher-entry-key *watcher*)]
-                           (when-not (contains? current watcher-key)
-                             (swap! watchers
-                                    (fn [state]
-                                      (assoc (or state (empty-js-map)) watcher-key *watcher*))))
-                           (register-watcher-with-host! a watchers *watcher*)))
-                      (.call orig-deref a)))
+                       (ensure-watcher-registered! a (aget a "watchers"))
+                       (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
                              (let [res (.call orig-reset_BANG_ a new-val)]
                                (notify-watchers (aget a "watchers"))
@@ -727,14 +726,7 @@
             this-cursor (js-obj)]
         (aset this-cursor "_deref"
               (fn []
-                (when *watcher*
-                  (let [current @watchers
-                        watcher-key (watcher-entry-key *watcher*)]
-                    (when-not (contains? current watcher-key)
-                      (swap! watchers
-                             (fn [state]
-                               (assoc (or state (empty-js-map)) watcher-key *watcher*))))
-                    (register-watcher-with-host! this-cursor watchers *watcher*)))
+                (ensure-watcher-registered! this-cursor watchers)
                 (let [old-watcher *watcher*]
                   (try
                     (set! *watcher* nil)
