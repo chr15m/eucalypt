@@ -239,44 +239,33 @@
     :else
     (.replaceAll k "-" "")))
 
+(defn- assign-event! [element event-key handler]
+  (let [event-name (get-event-name event-key (.-tagName element))]
+    (aset element event-name handler)))
+
+(defn- apply-style! [element style-map]
+  (if (not-empty style-map)
+    (.setAttribute element "style" (style-map->css-str style-map))
+    (.removeAttribute element "style")))
+
+(defn- apply-class! [element class-val]
+  (let [normalized (if (and (sequential? class-val) (not (string? class-val)))
+                     (.join (vec (remove nil? class-val)) " ")
+                     class-val)]
+    (if (or (nil? normalized) (= "" normalized))
+      (.removeAttribute element "class")
+      (.setAttribute element "class" normalized))))
+
 (defn- set-attributes! [element attrs]
   (doseq [[k v] attrs]
     (cond
-      (= :xmlns k)
-      nil ;; The namespace is set by createElementNS
-
-      (= :ref k)
-      (when (some? v)
-        (aset element "---ref-fn" v)
-        (v element))
-
-      (.startsWith k "on-")
-      (when (some? v)
-        (let [event-name (get-event-name k (.-tagName element))]
-          (aset element event-name v)))
-
-      (= :style k)
-      (when (some? v)
-        (let [css (style-map->css-str v)]
-          (if (seq css)
-            (.setAttribute element "style" css)
-            (.removeAttribute element "style"))))
-
-      (= :class k)
-      (let [class-val (if (and (sequential? v) (not (string? v)))
-                        (.join (vec (remove nil? v)) " ")
-                        v)]
-        (if (or (nil? class-val) (= "" class-val))
-          (.removeAttribute element "class")
-          (.setAttribute element "class" class-val)))
-
-      (or (= :checked k) (= :selected k))
-      (when (some? v)
-        (aset element k v))
-
-      :else
-      (when (some? v)
-        (.setAttributeNS element nil k v)))))
+      (= :xmlns k) nil
+      (= :ref k) (when (some? v) (aset element "---ref-fn" v) (v element))
+      (.startsWith k "on-") (assign-event! element k v)
+      (= :style k) (apply-style! element v)
+      (= :class k) (apply-class! element v)
+      (or (= :checked k) (= :selected k)) (aset element k v)
+      :else (when (some? v) (.setAttributeNS element nil k v)))))
 
 (defn- parse-tag [tag]
   (let [tag-str (str tag)
@@ -539,50 +528,27 @@
   (let [a-attrs (get-attrs hiccup-a-rendered)
         b-attrs (get-attrs hiccup-b-rendered)
         a-ref (get a-attrs :ref)
-        b-ref (get b-attrs :ref)
-        tag-name (.-tagName dom-a)]
+        b-ref (get b-attrs :ref)]
     ;; Handle :ref lifecycle
     (when (not (= a-ref b-ref))
       (when a-ref (a-ref nil))
       (when b-ref (b-ref dom-a))
       (aset dom-a "---ref-fn" b-ref))
-    ;; Remove attributes from a that are not in b
-    (doseq [[k _] a-attrs]
-      (when (and (not (contains? b-attrs k)) (not= k :ref) (not= k :xmlns))
-        (if (.startsWith k "on-")
-          (aset dom-a (get-event-name k tag-name) nil)
-          (.removeAttribute dom-a k))))
-    ;; Add/update attributes from b
-    (doseq [[k v] b-attrs]
-      (when (and (not= k :ref) (not= k :xmlns))
-        (let [old-v (get a-attrs k)]
-          (if (.startsWith k "on-")
-            (aset dom-a (get-event-name k tag-name) v)
-            (when (not= v old-v)
-              (cond
-                (= :value k) nil ;; handled in patch
-                (= :class k)
-                (let [class-val (if (and (sequential? v) (not (string? v)))
-                                  (.join (vec (remove nil? v)) " ")
-                                  v)]
-                  (if (or (nil? class-val) (= "" class-val))
-                    (.removeAttribute dom-a "class")
-                    (.setAttribute dom-a "class" class-val)))
-                (= :style k)
-                (let [css (style-map->css-str v)]
-                  (if (seq css)
-                    (.setAttribute dom-a "style" css)
-                    (.removeAttribute dom-a "style")))
-                (or (= :checked k) (= :selected k))
-                (aset dom-a k v)
 
-                :else
-                (if (nil? v)
-                  (.removeAttribute dom-a k)
-                  (let [val-str (if (= :style k)
-                                    (style-map->css-str v)
-                                    v)]
-                    (.setAttributeNS dom-a nil k val-str)))))))))))
+    (let [all-keys (set (concat (keys a-attrs) (keys b-attrs)))]
+      (doseq [k all-keys]
+        (when (and (not= k :ref) (not= k :xmlns) (not= k :value))
+          (let [old-v (get a-attrs k)
+                new-v (get b-attrs k)]
+            (when (not= old-v new-v)
+              (cond
+                (.startsWith k "on-") (assign-event! dom-a k new-v)
+                (= :style k) (apply-style! dom-a new-v)
+                (= :class k) (apply-class! dom-a new-v)
+                (or (= :checked k) (= :selected k)) (aset dom-a k new-v)
+                :else (if (nil? new-v)
+                        (.removeAttribute dom-a k)
+                        (.setAttributeNS dom-a nil k new-v))))))))))
 
 (defn- realize-deep [x]
   (cond
