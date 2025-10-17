@@ -154,6 +154,16 @@ return squint_core.assoc(state, "subscriptions", new_subs13);
 };
 
 };
+var ensure_watcher_registered_BANG_ = function (host, watchers_atom) {
+if (squint_core.truth_(_STAR_watcher_STAR_)) {
+const watcher_key1 = watcher_entry_key(_STAR_watcher_STAR_);
+if (squint_core.truth_(squint_core.contains_QMARK_(squint_core.deref(watchers_atom), watcher_key1))) {
+} else {
+squint_core.swap_BANG_(watchers_atom, squint_core.assoc, watcher_key1, _STAR_watcher_STAR_)};
+return register_watcher_with_host_BANG_(host, watchers_atom, _STAR_watcher_STAR_);
+};
+
+};
 var render_state_runtime = function (render_state) {
 if (squint_core.truth_(render_state)) {
 return squint_core.get(squint_core.deref(render_state), "runtime");
@@ -412,57 +422,80 @@ return k.replaceAll("-", "")} else {
 return null}}};
 
 };
+var assign_event_BANG_ = function (element, event_key, handler) {
+const event_name1 = get_event_name(event_key, element.tagName);
+return (element[event_name1] = handler);
+
+};
+var apply_style_BANG_ = function (element, style_map) {
+if (squint_core.truth_(squint_core.not_empty(style_map))) {
+return element.setAttribute("style", style_map__GT_css_str(style_map))} else {
+return element.removeAttribute("style")};
+
+};
+var apply_class_BANG_ = function (element, class_val) {
+const normalized1 = ((squint_core.truth_((() => {
+const and__23153__auto__2 = squint_core.sequential_QMARK_(class_val);
+if (squint_core.truth_(and__23153__auto__2)) {
+return squint_core.not(squint_core.string_QMARK_(class_val))} else {
+return and__23153__auto__2};
+
+})())) ? (squint_core.vec(squint_core.remove(squint_core.nil_QMARK_, class_val)).join(" ")) : (class_val));
+if (squint_core.truth_((() => {
+const or__23141__auto__3 = (normalized1 == null);
+if (or__23141__auto__3) {
+return or__23141__auto__3} else {
+return ("" === normalized1)};
+
+})())) {
+return element.removeAttribute("class")} else {
+return element.setAttribute("class", normalized1)};
+
+};
+var apply_ref_change = function (element, old_ref, new_ref) {
+if (squint_core.truth_(squint_core.not_EQ_(old_ref, new_ref))) {
+if (squint_core.truth_(old_ref)) {
+old_ref(null)};
+if (squint_core.truth_(new_ref)) {
+new_ref(element)};
+return (element["---ref-fn"] = new_ref);
+};
+
+};
+var set_or_remove_attribute_BANG_ = function (element, k, v) {
+if (squint_core.truth_(k.startsWith("on-"))) {
+return assign_event_BANG_(element, k, v)} else {
+if (squint_core.truth_(("style" === k))) {
+return apply_style_BANG_(element, v)} else {
+if (squint_core.truth_(("class" === k))) {
+return apply_class_BANG_(element, v)} else {
+if (squint_core.truth_((() => {
+const or__23141__auto__1 = ("checked" === k);
+if (squint_core.truth_(or__23141__auto__1)) {
+return or__23141__auto__1} else {
+return ("selected" === k)};
+
+})())) {
+return (element[k] = v)} else {
+if ("else") {
+if ((v == null)) {
+return element.removeAttribute(k)} else {
+return element.setAttributeNS(null, k, v)}} else {
+return null}}}}};
+
+};
 var set_attributes_BANG_ = function (element, attrs) {
+apply_ref_change(element, null, squint_core.get(attrs, "ref"));
 for (let G__1 of squint_core.iterable(attrs)) {
 const vec__25 = G__1;
 const k6 = squint_core.nth(vec__25, 0, null);
 const v7 = squint_core.nth(vec__25, 1, null);
+if (squint_core.truth_(squint_core.not_EQ_(k6, "ref"))) {
 if (squint_core.truth_(("xmlns" === k6))) {
 } else {
-if (squint_core.truth_(("ref" === k6))) {
-if (squint_core.truth_(squint_core.some_QMARK_(v7))) {
-(element["---ref-fn"] = v7);
-v7(element)}} else {
-if (squint_core.truth_(k6.startsWith("on-"))) {
-if (squint_core.truth_(squint_core.some_QMARK_(v7))) {
-const event_name8 = get_event_name(k6, element.tagName);
-(element[event_name8] = v7)}} else {
-if (squint_core.truth_(("style" === k6))) {
-if (squint_core.truth_(squint_core.some_QMARK_(v7))) {
-const css9 = style_map__GT_css_str(v7);
-if (squint_core.truth_(squint_core.seq(css9))) {
-element.setAttribute("style", css9)} else {
-element.removeAttribute("style")}}} else {
-if (squint_core.truth_(("class" === k6))) {
-const class_val10 = ((squint_core.truth_((() => {
-const and__23153__auto__11 = squint_core.sequential_QMARK_(v7);
-if (squint_core.truth_(and__23153__auto__11)) {
-return squint_core.not(squint_core.string_QMARK_(v7))} else {
-return and__23153__auto__11};
-
-})())) ? (squint_core.vec(squint_core.remove(squint_core.nil_QMARK_, v7)).join(" ")) : (v7));
-if (squint_core.truth_((() => {
-const or__23141__auto__12 = (class_val10 == null);
-if (or__23141__auto__12) {
-return or__23141__auto__12} else {
-return ("" === class_val10)};
-
-})())) {
-element.removeAttribute("class")} else {
-element.setAttribute("class", class_val10)}} else {
-if (squint_core.truth_((() => {
-const or__23141__auto__13 = ("checked" === k6);
-if (squint_core.truth_(or__23141__auto__13)) {
-return or__23141__auto__13} else {
-return ("selected" === k6)};
-
-})())) {
-if (squint_core.truth_(squint_core.some_QMARK_(v7))) {
-(element[k6] = v7)}} else {
 if ("else") {
-if (squint_core.truth_(squint_core.some_QMARK_(v7))) {
-element.setAttributeNS(null, k6, v7)}} else {
-}}}}}}}
+set_or_remove_attribute_BANG_(element, k6, v7)} else {
+}}}
 }return null;
 
 };
@@ -569,78 +602,6 @@ const opt17 = G__16;
 return element9;
 
 };
-var normalize_component = function (component, render_state) {
-if (squint_core.truth_(squint_core.vector_QMARK_(component))) {
-const first_element1 = component[0];
-const params2 = squint_core.subvec(component, 1);
-if (squint_core.truth_(squint_core.fn_QMARK_(first_element1))) {
-const a_fn3 = first_element1;
-const params_vec4 = squint_core.vec(params2);
-const component_meta5 = squint_core.meta(component);
-const runtime6 = render_state_runtime(render_state);
-const component_cache7 = runtime_component_cache(runtime6);
-const fn_cache8 = ((squint_core.truth_(component_cache7)) ? (squint_core.get(component_cache7, a_fn3)) : (null));
-const cached_form1_instance9 = ((squint_core.truth_(fn_cache8)) ? (squint_core.get(fn_cache8, "form-1-instance")) : (null));
-const instance_key10 = ((squint_core.truth_(squint_core.contains_QMARK_(component_meta5, "key"))) ? (squint_core.get(component_meta5, "key")) : (((squint_core.truth_(render_state)) ? (next_positional_key_BANG_(render_state)) : (squint_core.random_uuid()))));
-const cached_form2_instance11 = ((squint_core.truth_(fn_cache8)) ? (squint_core.get(fn_cache8, instance_key10)) : (null));
-if (squint_core.truth_(cached_form2_instance11)) {
-return squint_core.into([squint_core.get(cached_form2_instance11, "instance")], params_vec4)} else {
-if (squint_core.truth_(cached_form1_instance9)) {
-return squint_core.into([squint_core.get(cached_form1_instance9, "instance")], params_vec4)} else {
-if ("else") {
-const func_or_hiccup12 = squint_core.apply(a_fn3, params_vec4);
-if (squint_core.truth_(squint_core.fn_QMARK_(func_or_hiccup12))) {
-const closure13 = func_or_hiccup12;
-const instance14 = ({ "reagent-render": closure13 });
-const result15 = squint_core.into([instance14], params_vec4);
-update_component_cache_BANG_(runtime6, (function (cache) {
-const fn_cache16 = (() => {
-const or__23141__auto__17 = squint_core.get(cache, a_fn3);
-if (squint_core.truth_(or__23141__auto__17)) {
-return or__23141__auto__17} else {
-return empty_js_map()};
-
-})();
-const new_fn_cache18 = squint_core.assoc(fn_cache16, instance_key10, ({ "type": "form-2", "instance": instance14 }));
-return squint_core.assoc(cache, a_fn3, new_fn_cache18);
-
-}));
-return result15;
-} else {
-const instance19 = ({ "reagent-render": a_fn3 });
-const result20 = squint_core.into([instance19], params_vec4);
-update_component_cache_BANG_(runtime6, (function (cache) {
-const fn_cache21 = (() => {
-const or__23141__auto__22 = squint_core.get(cache, a_fn3);
-if (squint_core.truth_(or__23141__auto__22)) {
-return or__23141__auto__22} else {
-return empty_js_map()};
-
-})();
-const new_fn_cache23 = squint_core.assoc(fn_cache21, "form-1-instance", ({ "type": "form-1", "instance": instance19 }));
-return squint_core.assoc(cache, a_fn3, new_fn_cache23);
-
-}));
-return result20;
-};
-} else {
-return null}}};
-} else {
-if (squint_core.truth_(squint_core.string_QMARK_(first_element1))) {
-return squint_core.into([({ "reagent-render": (function () {
-return component;
-
-}) })], params2)} else {
-if (squint_core.truth_(squint_core.map_QMARK_(first_element1))) {
-const component_as_map24 = first_element1;
-const render_fn25 = squint_core.get(component_as_map24, "reagent-render");
-const comp_with_lifecycle26 = ({ "reagent-render": render_fn25 });
-return squint_core.into([comp_with_lifecycle26], params2);
-} else {
-return null}}};
-};
-
-};
 var component__GT_hiccup = function (normalized_component) {
 const vec__14 = normalized_component;
 const seq__25 = squint_core.seq(vec__14);
@@ -650,6 +611,98 @@ const config8 = first__36;
 const params9 = seq__27;
 const reagent_render10 = squint_core.get(config8, "reagent-render");
 return squint_core.apply(reagent_render10, params9);
+
+};
+var fetch_or_create_component_instance = function (a_fn, params_vec, component_meta, render_state) {
+const runtime1 = render_state_runtime(render_state);
+const component_cache2 = runtime_component_cache(runtime1);
+const fn_cache3 = ((squint_core.truth_(component_cache2)) ? (squint_core.get(component_cache2, a_fn)) : (null));
+const instance_key4 = ((squint_core.truth_(squint_core.contains_QMARK_(component_meta, "key"))) ? (squint_core.get(component_meta, "key")) : (((squint_core.truth_(render_state)) ? (next_positional_key_BANG_(render_state)) : (squint_core.random_uuid()))));
+const cached_instance5 = (() => {
+const or__23141__auto__6 = squint_core.get_in(fn_cache3, [instance_key4, "instance"]);
+if (squint_core.truth_(or__23141__auto__6)) {
+return or__23141__auto__6} else {
+return squint_core.get_in(fn_cache3, ["form-1-instance", "instance"])};
+
+})();
+const or__23141__auto__7 = cached_instance5;
+if (squint_core.truth_(or__23141__auto__7)) {
+return or__23141__auto__7} else {
+const func_or_hiccup11 = squint_core.apply(a_fn, params_vec);
+const vec__812 = ((squint_core.truth_(squint_core.fn_QMARK_(func_or_hiccup11))) ? ([({ "reagent-render": func_or_hiccup11 }), instance_key4, "form-2"]) : ([({ "reagent-render": a_fn }), "form-1-instance", "form-1"]));
+const instance13 = squint_core.nth(vec__812, 0, null);
+const cache_key14 = squint_core.nth(vec__812, 1, null);
+const type15 = squint_core.nth(vec__812, 2, null);
+update_component_cache_BANG_(runtime1, (function (cache) {
+const fn_cache16 = (() => {
+const or__23141__auto__17 = squint_core.get(cache, a_fn);
+if (squint_core.truth_(or__23141__auto__17)) {
+return or__23141__auto__17} else {
+return empty_js_map()};
+
+})();
+const new_fn_cache18 = squint_core.assoc(fn_cache16, cache_key14, ({ "type": type15, "instance": instance13 }));
+return squint_core.assoc(cache, a_fn, new_fn_cache18);
+
+}));
+return instance13;
+};
+
+};
+var normalize_component = function (component, render_state) {
+if (squint_core.truth_(squint_core.vector_QMARK_(component))) {
+const first_element1 = component[0];
+const params2 = squint_core.subvec(component, 1);
+if (squint_core.truth_(squint_core.fn_QMARK_(first_element1))) {
+const instance3 = fetch_or_create_component_instance(first_element1, squint_core.vec(params2), squint_core.meta(component), render_state);
+return squint_core.into([instance3], params2);
+} else {
+if (squint_core.truth_(squint_core.string_QMARK_(first_element1))) {
+return squint_core.into([({ "reagent-render": (function () {
+return component;
+
+}) })], params2)} else {
+if (squint_core.truth_(squint_core.map_QMARK_(first_element1))) {
+const component_as_map4 = first_element1;
+const render_fn5 = squint_core.get(component_as_map4, "reagent-render");
+const comp_with_lifecycle6 = ({ "reagent-render": render_fn5 });
+return squint_core.into([comp_with_lifecycle6], params2);
+} else {
+return null}}};
+};
+
+};
+var expand_hiccup = function (hiccup, render_state) {
+let hiccup_SINGLEQUOTE_1 = hiccup;
+while(true){
+if (squint_core.truth_((() => {
+const and__23153__auto__2 = squint_core.vector_QMARK_(hiccup_SINGLEQUOTE_1);
+if (squint_core.truth_(and__23153__auto__2)) {
+return squint_core.fn_QMARK_(squint_core.first(hiccup_SINGLEQUOTE_1))} else {
+return and__23153__auto__2};
+
+})())) {
+let G__3 = component__GT_hiccup(normalize_component(hiccup_SINGLEQUOTE_1, render_state));
+hiccup_SINGLEQUOTE_1 = G__3;
+continue;
+} else {
+if (squint_core.truth_((() => {
+const and__23153__auto__4 = squint_core.map_QMARK_(hiccup_SINGLEQUOTE_1);
+if (squint_core.truth_(and__23153__auto__4)) {
+return squint_core.get(hiccup_SINGLEQUOTE_1, "reagent-render")} else {
+return and__23153__auto__4};
+
+})())) {
+let G__5 = squint_core.get(hiccup_SINGLEQUOTE_1, "reagent-render")();
+hiccup_SINGLEQUOTE_1 = G__5;
+continue;
+} else {
+if ("else") {
+return hiccup_SINGLEQUOTE_1} else {
+return null}}};
+;break;
+}
+;
 
 };
 var hiccup__GT_dom = (() => {
@@ -672,57 +725,54 @@ return hiccup__GT_dom(hiccup, namespace_uri(default_namespace), render_state);
 
 });
 f24.cljs$core$IFn$_invoke$arity$3 = (function (hiccup, current_ns, render_state) {
-const result3 = ((squint_core.truth_((() => {
-const or__23141__auto__4 = squint_core.string_QMARK_(hiccup);
-if (squint_core.truth_(or__23141__auto__4)) {
-return or__23141__auto__4} else {
-return squint_core.number_QMARK_(hiccup)};
+const hiccup3 = expand_hiccup(hiccup, render_state);
+const result4 = ((squint_core.truth_((() => {
+const or__23141__auto__5 = squint_core.string_QMARK_(hiccup3);
+if (squint_core.truth_(or__23141__auto__5)) {
+return or__23141__auto__5} else {
+return squint_core.number_QMARK_(hiccup3)};
 
-})())) ? (document.createTextNode(squint_core.str(hiccup))) : (((squint_core.truth_(squint_core.vector_QMARK_(hiccup))) ? ((() => {
-const tag5 = hiccup[0];
-if (squint_core.truth_(squint_core.fn_QMARK_(tag5))) {
-return hiccup__GT_dom(component__GT_hiccup(normalize_component(hiccup, render_state)), current_ns, render_state)} else {
-if (squint_core.truth_(("<>" === tag5))) {
-const fragment6 = document.createDocumentFragment();
-for (let G__7 of squint_core.iterable(squint_core.rest(hiccup))) {
-const child8 = G__7;
-const temp__22756__auto__9 = hiccup__GT_dom(child8, current_ns, render_state);
-if (squint_core.truth_(temp__22756__auto__9)) {
-const child_node10 = temp__22756__auto__9;
-fragment6.appendChild(child_node10)}
+})())) ? (document.createTextNode(squint_core.str(hiccup3))) : (((squint_core.truth_(squint_core.vector_QMARK_(hiccup3))) ? ((() => {
+const tag6 = hiccup3[0];
+if (squint_core.truth_(("<>" === tag6))) {
+const fragment7 = document.createDocumentFragment();
+for (let G__8 of squint_core.iterable(squint_core.rest(hiccup3))) {
+const child9 = G__8;
+const temp__22756__auto__10 = hiccup__GT_dom(child9, current_ns, render_state);
+if (squint_core.truth_(temp__22756__auto__10)) {
+const child_node11 = temp__22756__auto__10;
+fragment7.appendChild(child_node11)}
 };
-return fragment6;
+return fragment7;
 } else {
-if ("else") {
-return create_element(hiccup, current_ns, render_state)} else {
-return null}}};
+return create_element(hiccup3, current_ns, render_state)};
 
-})()) : (((squint_core.truth_(squint_core.seq_QMARK_(hiccup))) ? ((() => {
-const fragment11 = document.createDocumentFragment();
-for (let G__12 of squint_core.iterable(hiccup)) {
-const item13 = G__12;
-const item_with_meta14 = ((squint_core.truth_((() => {
-const and__23153__auto__15 = squint_core.vector_QMARK_(item13);
-if (squint_core.truth_(and__23153__auto__15)) {
-return squint_core.meta(item13)} else {
-return and__23153__auto__15};
+})()) : (((squint_core.truth_(squint_core.seq_QMARK_(hiccup3))) ? ((() => {
+const fragment12 = document.createDocumentFragment();
+for (let G__13 of squint_core.iterable(hiccup3)) {
+const item14 = G__13;
+const item_with_meta15 = ((squint_core.truth_((() => {
+const and__23153__auto__16 = squint_core.vector_QMARK_(item14);
+if (squint_core.truth_(and__23153__auto__16)) {
+return squint_core.meta(item14)} else {
+return and__23153__auto__16};
 
-})())) ? (squint_core.with_meta(item13, squint_core.meta(item13))) : (item13));
-const temp__22756__auto__16 = hiccup__GT_dom(item_with_meta14, current_ns, render_state);
-if (squint_core.truth_(temp__22756__auto__16)) {
-const child_node17 = temp__22756__auto__16;
-fragment11.appendChild(child_node17)}
+})())) ? (squint_core.with_meta(item14, squint_core.meta(item14))) : (item14));
+const temp__22756__auto__17 = hiccup__GT_dom(item_with_meta15, current_ns, render_state);
+if (squint_core.truth_(temp__22756__auto__17)) {
+const child_node18 = temp__22756__auto__17;
+fragment12.appendChild(child_node18)}
 };
-return fragment11;
+return fragment12;
 
 })()) : (((squint_core.truth_((() => {
-const or__23141__auto__18 = (hiccup == null);
-if (or__23141__auto__18) {
-return or__23141__auto__18} else {
-return squint_core.boolean_QMARK_(hiccup)};
+const or__23141__auto__19 = (hiccup3 == null);
+if (or__23141__auto__19) {
+return or__23141__auto__19} else {
+return squint_core.boolean_QMARK_(hiccup3)};
 
-})())) ? (null) : ((("else") ? (document.createTextNode(squint_core.str(hiccup))) : (null))))))))));
-return result3;
+})())) ? (null) : ((("else") ? (document.createTextNode(squint_core.str(hiccup3))) : (null))))))))));
+return result4;
 
 });
 f24.cljs$lang$maxFixedArity = 3;
@@ -748,22 +798,20 @@ return and__23153__auto__1};
 
 };
 var fully_render_hiccup = function (hiccup, render_state) {
-const result1 = (((hiccup == null)) ? (null) : (((squint_core.truth_(hiccup_seq_QMARK_(hiccup))) ? (squint_core.mapv((function (_PERCENT_1) {
+const hiccup1 = expand_hiccup(hiccup, render_state);
+const result2 = (((hiccup1 == null)) ? (null) : (((squint_core.truth_(hiccup_seq_QMARK_(hiccup1))) ? (squint_core.mapv((function (_PERCENT_1) {
 return fully_render_hiccup(_PERCENT_1, render_state);
 
-}), hiccup)) : (((squint_core.truth_(squint_core.vector_QMARK_(hiccup))) ? ((() => {
-const tag2 = squint_core.first(hiccup);
-if (squint_core.truth_(squint_core.fn_QMARK_(tag2))) {
-return fully_render_hiccup(component__GT_hiccup(normalize_component(hiccup, render_state)), render_state)} else {
+}), hiccup1)) : (((squint_core.truth_(squint_core.vector_QMARK_(hiccup1))) ? ((() => {
 const attrs3 = (() => {
-const _QMARK_attrs4 = hiccup[1];
+const _QMARK_attrs4 = hiccup1[1];
 if (squint_core.truth_(squint_core.map_QMARK_(_QMARK_attrs4))) {
 return _QMARK_attrs4;
 };
 
 })();
-const children5 = ((squint_core.truth_(attrs3)) ? (squint_core.subvec(hiccup, 2)) : (squint_core.subvec(hiccup, 1)));
-const head6 = ((squint_core.truth_(attrs3)) ? ([hiccup[0], attrs3]) : ([hiccup[0]]));
+const children5 = ((squint_core.truth_(attrs3)) ? (squint_core.subvec(hiccup1, 2)) : (squint_core.subvec(hiccup1, 1)));
+const head6 = ((squint_core.truth_(attrs3)) ? ([hiccup1[0], attrs3]) : ([hiccup1[0]]));
 return squint_core.into(head6, squint_core.reduce((function (acc, child) {
 const processed7 = fully_render_hiccup(child, render_state);
 if ((processed7 == null)) {
@@ -783,10 +831,9 @@ return squint_core.conj(acc, processed7)} else {
 return null}}}};
 
 }), [], children5));
-};
 
-})()) : (((squint_core.truth_(squint_core.map_QMARK_(hiccup))) ? (fully_render_hiccup(squint_core.get(hiccup, "reagent-render")(), render_state)) : ((("else") ? (hiccup) : (null))))))))));
-return result1;
+})()) : ((("else") ? (hiccup1) : (null))))))));
+return result2;
 
 };
 var unmount_node_and_children = function (node) {
@@ -813,41 +860,38 @@ return node.remove();
 var patch_children = function (hiccup_a_rendered, hiccup_b_rendered, dom_a, render_state) {
 const children_a1 = squint_core.vec(squint_core.remove(squint_core.nil_QMARK_, get_hiccup_children(hiccup_a_rendered)));
 const children_b2 = squint_core.vec(squint_core.remove(squint_core.nil_QMARK_, get_hiccup_children(hiccup_b_rendered)));
-const dom_nodes3 = core_atom(squint_core.vec(dom_a["childNodes"]));
-const len_a4 = squint_core.count(children_a1);
-const len_b5 = squint_core.count(children_b2);
-const parent_ns6 = dom__GT_namespace(dom_a);
-let i7 = 0;
+const len_a3 = squint_core.count(children_a1);
+const len_b4 = squint_core.count(children_b2);
+const parent_ns5 = dom__GT_namespace(dom_a);
+let i6 = 0;
 while(true){
-if ((i7) < (squint_core.min(len_a4, len_b5))) {
-const child_a8 = squint_core.nth(children_a1, i7);
-const child_b9 = squint_core.nth(children_b2, i7);
-const dom_node10 = squint_core.nth(squint_core.deref(dom_nodes3), i7);
-const new_dom_node11 = patch(child_a8, child_b9, dom_node10, render_state);
-if (squint_core.truth_(squint_core.not_EQ_(dom_node10, new_dom_node11))) {
-squint_core.swap_BANG_(dom_nodes3, squint_core.assoc, i7, new_dom_node11)};
-let G__12 = (i7 + 1);
-i7 = G__12;
+if ((i6) < (squint_core.min(len_a3, len_b4))) {
+const child_a7 = squint_core.nth(children_a1, i6);
+const child_b8 = squint_core.nth(children_b2, i6);
+const dom_node9 = dom_a.childNodes[i6];
+patch(child_a7, child_b8, dom_node9, render_state);
+let G__10 = (i6 + 1);
+i6 = G__10;
 continue;
 };break;
 }
 ;
-if ((len_b5) > (len_a4)) {
-for (let G__13 of squint_core.iterable(squint_core.range(len_a4, len_b5))) {
-const i14 = G__13;
-const temp__22756__auto__15 = hiccup__GT_dom(squint_core.nth(children_b2, i14), parent_ns6, render_state);
-if (squint_core.truth_(temp__22756__auto__15)) {
-const new_child16 = temp__22756__auto__15;
-dom_a.appendChild(new_child16)}
+if ((len_b4) > (len_a3)) {
+for (let G__11 of squint_core.iterable(squint_core.range(len_a3, len_b4))) {
+const i12 = G__11;
+const temp__22756__auto__13 = hiccup__GT_dom(squint_core.nth(children_b2, i12), parent_ns5, render_state);
+if (squint_core.truth_(temp__22756__auto__13)) {
+const new_child14 = temp__22756__auto__13;
+dom_a.appendChild(new_child14)}
 }};
-if ((len_a4) > (len_b5)) {
-const n__22597__auto__17 = (len_a4) - (len_b5);
-let _18 = 0;
+if ((len_a3) > (len_b4)) {
+const n__22597__auto__15 = (len_a3) - (len_b4);
+let _16 = 0;
 while(true){
-if ((_18) < (n__22597__auto__17)) {
+if ((_16) < (n__22597__auto__15)) {
 remove_node_and_unmount_BANG_(dom_a.lastChild);
-let G__19 = (_18 + 1);
-_18 = G__19;
+let G__17 = (_16 + 1);
+_16 = G__17;
 continue;
 };
 ;break;
@@ -866,87 +910,25 @@ return ({  })};
 var patch_attributes = function (hiccup_a_rendered, hiccup_b_rendered, dom_a) {
 const a_attrs1 = get_attrs(hiccup_a_rendered);
 const b_attrs2 = get_attrs(hiccup_b_rendered);
-const a_ref3 = squint_core.get(a_attrs1, "ref");
-const b_ref4 = squint_core.get(b_attrs2, "ref");
-const tag_name5 = dom_a.tagName;
-if (squint_core.not(squint_core._EQ_(a_ref3, b_ref4))) {
-if (squint_core.truth_(a_ref3)) {
-a_ref3(null)};
-if (squint_core.truth_(b_ref4)) {
-b_ref4(dom_a)};
-(dom_a["---ref-fn"] = b_ref4)};
-for (let G__6 of squint_core.iterable(a_attrs1)) {
-const vec__710 = G__6;
-const k11 = squint_core.nth(vec__710, 0, null);
-const _12 = squint_core.nth(vec__710, 1, null);
+apply_ref_change(dom_a, squint_core.get(a_attrs1, "ref"), squint_core.get(b_attrs2, "ref"));
+const all_keys3 = squint_core.set(squint_core.concat(squint_core.keys(a_attrs1), squint_core.keys(b_attrs2)));
+for (let G__4 of squint_core.iterable(all_keys3)) {
+const k5 = G__4;
 if (squint_core.truth_((() => {
-const and__23153__auto__13 = squint_core.not(squint_core.contains_QMARK_(b_attrs2, k11));
-if (and__23153__auto__13) {
-const and__23153__auto__14 = squint_core.not_EQ_(k11, "ref");
-if (squint_core.truth_(and__23153__auto__14)) {
-return squint_core.not_EQ_(k11, "xmlns")} else {
-return and__23153__auto__14};
+const and__23153__auto__6 = squint_core.not_EQ_(k5, "ref");
+if (squint_core.truth_(and__23153__auto__6)) {
+const and__23153__auto__7 = squint_core.not_EQ_(k5, "xmlns");
+if (squint_core.truth_(and__23153__auto__7)) {
+return squint_core.not_EQ_(k5, "value")} else {
+return and__23153__auto__7};
 } else {
-return and__23153__auto__13};
+return and__23153__auto__6};
 
 })())) {
-if (squint_core.truth_(k11.startsWith("on-"))) {
-(dom_a[get_event_name(k11, tag_name5)] = null)} else {
-dom_a.removeAttribute(k11)}}
-};
-for (let G__15 of squint_core.iterable(b_attrs2)) {
-const vec__1619 = G__15;
-const k20 = squint_core.nth(vec__1619, 0, null);
-const v21 = squint_core.nth(vec__1619, 1, null);
-if (squint_core.truth_((() => {
-const and__23153__auto__22 = squint_core.not_EQ_(k20, "ref");
-if (squint_core.truth_(and__23153__auto__22)) {
-return squint_core.not_EQ_(k20, "xmlns")} else {
-return and__23153__auto__22};
-
-})())) {
-const old_v23 = squint_core.get(a_attrs1, k20);
-if (squint_core.truth_(k20.startsWith("on-"))) {
-(dom_a[get_event_name(k20, tag_name5)] = v21)} else {
-if (squint_core.truth_(squint_core.not_EQ_(v21, old_v23))) {
-if (squint_core.truth_(("value" === k20))) {
-} else {
-if (squint_core.truth_(("class" === k20))) {
-const class_val24 = ((squint_core.truth_((() => {
-const and__23153__auto__25 = squint_core.sequential_QMARK_(v21);
-if (squint_core.truth_(and__23153__auto__25)) {
-return squint_core.not(squint_core.string_QMARK_(v21))} else {
-return and__23153__auto__25};
-
-})())) ? (squint_core.vec(squint_core.remove(squint_core.nil_QMARK_, v21)).join(" ")) : (v21));
-if (squint_core.truth_((() => {
-const or__23141__auto__26 = (class_val24 == null);
-if (or__23141__auto__26) {
-return or__23141__auto__26} else {
-return ("" === class_val24)};
-
-})())) {
-dom_a.removeAttribute("class")} else {
-dom_a.setAttribute("class", class_val24)}} else {
-if (squint_core.truth_(("style" === k20))) {
-const css27 = style_map__GT_css_str(v21);
-if (squint_core.truth_(squint_core.seq(css27))) {
-dom_a.setAttribute("style", css27)} else {
-dom_a.removeAttribute("style")}} else {
-if (squint_core.truth_((() => {
-const or__23141__auto__28 = ("checked" === k20);
-if (squint_core.truth_(or__23141__auto__28)) {
-return or__23141__auto__28} else {
-return ("selected" === k20)};
-
-})())) {
-(dom_a[k20] = v21)} else {
-if ("else") {
-if ((v21 == null)) {
-dom_a.removeAttribute(k20)} else {
-const val_str29 = ((squint_core.truth_(("style" === k20))) ? (style_map__GT_css_str(v21)) : (v21));
-dom_a.setAttributeNS(null, k20, val_str29)}} else {
-}}}}}}}}
+const old_v8 = squint_core.get(a_attrs1, k5);
+const new_v9 = squint_core.get(b_attrs2, k5);
+if (squint_core.truth_(squint_core.not_EQ_(old_v8, new_v9))) {
+set_or_remove_attribute_BANG_(dom_a, k5, new_v9)}}
 }return null;
 
 };
@@ -973,6 +955,8 @@ return null}}};
 
 };
 var patch = function (hiccup_a_rendered, hiccup_b_rendered, dom_a, render_state) {
+if (squint_core.truth_(squint_core.identical_QMARK_(hiccup_a_rendered, hiccup_b_rendered))) {
+return dom_a} else {
 const hiccup_a_realized1 = realize_deep(hiccup_a_rendered);
 const hiccup_b_realized2 = realize_deep(hiccup_b_rendered);
 if (squint_core.truth_(squint_core._EQ_(hiccup_a_realized1, hiccup_b_realized2))) {
@@ -992,41 +976,57 @@ const parent5 = dom_a.parentNode;
 const parent_ns6 = dom__GT_namespace(parent5);
 const new_node7 = hiccup__GT_dom(hiccup_b_realized2, parent_ns6, render_state);
 unmount_node_and_children(dom_a);
-dom_a.replaceWith(new_node7);
+if (squint_core.truth_((() => {
+const c__23111__auto__8 = DocumentFragment;
+const x__23112__auto__9 = dom_a;
+const ret__23113__auto__10 = (x__23112__auto__9 instanceof c__23111__auto__8);
+return ret__23113__auto__10;
+
+})())) {
+} else {
+dom_a.replaceWith(new_node7)};
 return new_node7;
 } else {
 if ("else") {
 patch_attributes(hiccup_a_realized1, hiccup_b_rendered, dom_a);
 patch_children(hiccup_a_realized1, hiccup_b_rendered, dom_a, render_state);
-const a_attrs8 = get_attrs(hiccup_a_realized1);
-const b_attrs9 = get_attrs(hiccup_b_rendered);
-const b_value10 = squint_core.get(b_attrs9, "value");
+const a_attrs11 = get_attrs(hiccup_a_realized1);
+const b_attrs12 = get_attrs(hiccup_b_rendered);
+const b_value13 = squint_core.get(b_attrs12, "value");
 if (squint_core.truth_((() => {
-const and__23153__auto__11 = squint_core.contains_QMARK_(b_attrs9, "value");
-if (squint_core.truth_(and__23153__auto__11)) {
-return squint_core.not_EQ_(squint_core.get(a_attrs8, "value"), b_value10)} else {
-return and__23153__auto__11};
+const and__23153__auto__14 = squint_core.contains_QMARK_(b_attrs12, "value");
+if (squint_core.truth_(and__23153__auto__14)) {
+return squint_core.not_EQ_(squint_core.get(a_attrs11, "value"), b_value13)} else {
+return and__23153__auto__14};
 
 })())) {
 if (squint_core.truth_((() => {
-const and__23153__auto__12 = ("SELECT" === dom_a.tagName);
-if (squint_core.truth_(and__23153__auto__12)) {
+const and__23153__auto__15 = ("SELECT" === dom_a.tagName);
+if (squint_core.truth_(and__23153__auto__15)) {
 return dom_a.multiple} else {
-return and__23153__auto__12};
+return and__23153__auto__15};
 
 })())) {
-const value_set13 = squint_core.set(b_value10);
-for (let G__14 of squint_core.iterable(dom_a.options)) {
-const opt15 = G__14;
-(opt15["selected"] = squint_core.contains_QMARK_(value_set13, opt15.value))
+const value_set16 = squint_core.set(b_value13);
+for (let G__17 of squint_core.iterable(dom_a.options)) {
+const opt18 = G__17;
+(opt18["selected"] = squint_core.contains_QMARK_(value_set16, opt18.value))
 }} else {
-(dom_a["value"] = b_value10)}};
+(dom_a["value"] = b_value13)}};
 return dom_a;
 } else {
 return null}}};
+};
 
 };
 var modify_dom = function (runtime, normalized_component) {
+if (squint_core.truth_(squint_core.contains_QMARK_(squint_core.get(squint_core.deref(runtime), "rendering-components"), normalized_component))) {
+if (squint_core.truth_(_STAR_watcher_STAR_)) {
+return queue_watcher_BANG_(_STAR_watcher_STAR_);
+}} else {
+return (() => {
+try{
+squint_core.swap_BANG_(runtime, squint_core.update, "rendering-components", squint_core.fnil(squint_core.conj, new Set([])), normalized_component);
 remove_watchers_for_component(runtime, normalized_component);
 const temp__22756__auto__1 = (() => {
 const and__23153__auto__2 = runtime;
@@ -1085,21 +1085,20 @@ squint_core.swap_BANG_(render_state10, squint_core.assoc, "active", false)}
 
 })();
 };
+}
+finally{
+squint_core.swap_BANG_(runtime, squint_core.update, "rendering-components", squint_core.disj, normalized_component)}
+
+})()};
 
 };
 var notify_watchers = function (watchers) {
-for (let G__1 of squint_core.iterable(squint_core.vals((() => {
-const or__23141__auto__2 = squint_core.deref(watchers);
-if (squint_core.truth_(or__23141__auto__2)) {
-return or__23141__auto__2} else {
-return empty_js_map()};
-
-})()))) {
-const watcher3 = G__1;
-if (squint_core.truth_(watcher3)) {
-if (squint_core.truth_(should_defer_watcher_QMARK_(watcher3))) {
-queue_watcher_BANG_(watcher3)} else {
-run_watcher_now(watcher3)}}
+for (let G__1 of squint_core.iterable(squint_core.vals(squint_core.deref(watchers)))) {
+const watcher2 = G__1;
+if (squint_core.truth_(watcher2)) {
+if (squint_core.truth_(should_defer_watcher_QMARK_(watcher2))) {
+queue_watcher_BANG_(watcher2)} else {
+run_watcher_now(watcher2)}}
 }return null;
 
 };
@@ -1122,11 +1121,6 @@ const map__23 = temp__22756__auto__1;
 const runtime4 = squint_core.get(map__23, "runtime");
 if (squint_core.truth_(runtime4)) {
 remove_all_runtime_watchers_BANG_(runtime4)};
-if (squint_core.truth_(runtime4)) {
-squint_core.swap_BANG_(runtime4, (function (state) {
-return squint_core.assoc(squint_core.assoc(squint_core.assoc(squint_core.assoc(squint_core.assoc(state, "mounted-components", empty_js_map()), "component-instances", empty_js_map()), "pending-watchers", []), "watcher-flush-scheduled?", false), "subscriptions", empty_js_map());
-
-}))};
 squint_core.swap_BANG_(roots, squint_core.dissoc, container)};
 for (let G__5 of squint_core.iterable(squint_core.vec(container["childNodes"]))) {
 const child6 = G__5;
@@ -1165,34 +1159,18 @@ const orig_reset_BANG_3 = a1["_reset_BANG_"];
 (a1["watchers"] = core_atom(empty_js_map()));
 (a1["cursors"] = core_atom(new Set([])));
 (a1["_deref"] = (function () {
-if (squint_core.truth_(_STAR_watcher_STAR_)) {
-const watchers4 = a1["watchers"];
-const current5 = squint_core.deref(watchers4);
-const watcher_key6 = watcher_entry_key(_STAR_watcher_STAR_);
-if (squint_core.truth_(squint_core.contains_QMARK_(current5, watcher_key6))) {
-} else {
-squint_core.swap_BANG_(watchers4, (function (state) {
-return squint_core.assoc((() => {
-const or__23141__auto__7 = state;
-if (squint_core.truth_(or__23141__auto__7)) {
-return or__23141__auto__7} else {
-return empty_js_map()};
-
-})(), watcher_key6, _STAR_watcher_STAR_);
-
-}))};
-register_watcher_with_host_BANG_(a1, watchers4, _STAR_watcher_STAR_)};
+ensure_watcher_registered_BANG_(a1, a1["watchers"]);
 return orig_deref2.call(a1);
 
 }));
 (a1["_reset_BANG_"] = (function (new_val) {
-const res8 = orig_reset_BANG_3.call(a1, new_val);
+const res4 = orig_reset_BANG_3.call(a1, new_val);
 notify_watchers(a1["watchers"]);
-for (let G__9 of squint_core.iterable(squint_core.deref(a1["cursors"]))) {
-const c10 = G__9;
-notify_watchers(c10["watchers"])
+for (let G__5 of squint_core.iterable(squint_core.deref(a1["cursors"]))) {
+const c6 = G__5;
+notify_watchers(c6["watchers"])
 };
-return res8;
+return res4;
 
 }));
 return a1;
@@ -1210,57 +1188,42 @@ if ((found_cursor2 == null)) {
 const watchers3 = core_atom(empty_js_map());
 const this_cursor4 = squint_core.js_obj();
 (this_cursor4["_deref"] = (function () {
-if (squint_core.truth_(_STAR_watcher_STAR_)) {
-const current5 = squint_core.deref(watchers3);
-const watcher_key6 = watcher_entry_key(_STAR_watcher_STAR_);
-if (squint_core.truth_(squint_core.contains_QMARK_(current5, watcher_key6))) {
-} else {
-squint_core.swap_BANG_(watchers3, (function (state) {
-return squint_core.assoc((() => {
-const or__23141__auto__7 = state;
-if (squint_core.truth_(or__23141__auto__7)) {
-return or__23141__auto__7} else {
-return empty_js_map()};
-
-})(), watcher_key6, _STAR_watcher_STAR_);
-
-}))};
-register_watcher_with_host_BANG_(this_cursor4, watchers3, _STAR_watcher_STAR_)};
-const old_watcher8 = _STAR_watcher_STAR_;
+ensure_watcher_registered_BANG_(this_cursor4, watchers3);
+const old_watcher5 = _STAR_watcher_STAR_;
 return (() => {
 try{
 _STAR_watcher_STAR_ = null;
 return squint_core.get_in(squint_core.deref(the_ratom), path);
 }
 finally{
-_STAR_watcher_STAR_ = old_watcher8}
+_STAR_watcher_STAR_ = old_watcher5}
 
 })();
 
 }));
 (this_cursor4["_swap"] = (() => {
 const f27 = (function (var_args) {
-const args289 = [];
-const len__23200__auto__10 = arguments.length;
-let i2911 = 0;
+const args286 = [];
+const len__23200__auto__7 = arguments.length;
+let i298 = 0;
 while(true){
-if ((i2911) < (len__23200__auto__10)) {
-args289.push((arguments[i2911]));
-let G__12 = (i2911 + 1);
-i2911 = G__12;
+if ((i298) < (len__23200__auto__7)) {
+args286.push((arguments[i298]));
+let G__9 = (i298 + 1);
+i298 = G__9;
 continue;
 };break;
 }
 ;
-const argseq__23384__auto__13 = (((1) < (args289.length)) ? (args289.slice(1)) : (null));
-return f27.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23384__auto__13);
+const argseq__23384__auto__10 = (((1) < (args286.length)) ? (args286.slice(1)) : (null));
+return f27.cljs$core$IFn$_invoke$arity$variadic((arguments[0]), argseq__23384__auto__10);
 
 });
 f27.cljs$core$IFn$_invoke$arity$variadic = (function (f, args) {
 return squint_core.swap_BANG_(the_ratom, (function (current_state) {
-const current_cursor_value14 = squint_core.get_in(current_state, path);
-const new_cursor_value15 = squint_core.apply(f, current_cursor_value14, args);
-return squint_core.assoc_in(current_state, path, new_cursor_value15);
+const current_cursor_value11 = squint_core.get_in(current_state, path);
+const new_cursor_value12 = squint_core.apply(f, current_cursor_value11, args);
+return squint_core.assoc_in(current_state, path, new_cursor_value12);
 
 }));
 
@@ -1349,7 +1312,7 @@ return f31;
 
 })();
 var render = function (component, container) {
-const runtime1 = core_atom(({ "runtime-id": squint_core.str("runtime-", squint_core.random_uuid()), "component-instances": empty_js_map(), "pending-watchers": [], "watcher-flush-scheduled?": false, "mounted-components": empty_js_map(), "subscriptions": empty_js_map() }));
+const runtime1 = core_atom(({ "runtime-id": squint_core.str("runtime-", squint_core.random_uuid()), "component-instances": empty_js_map(), "pending-watchers": [], "watcher-flush-scheduled?": false, "mounted-components": empty_js_map(), "subscriptions": empty_js_map(), "rendering-components": new Set([]) }));
 const base_ns2 = dom__GT_namespace(container);
 const render_state3 = create_render_state(({ "container": container, "base-namespace": base_ns2, "runtime": runtime1 }));
 const normalized4 = normalize_component(component, render_state3);
