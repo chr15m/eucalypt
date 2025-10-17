@@ -328,6 +328,10 @@
         (aset element "value" value)))
     element))
 
+(defn- component->hiccup [normalized-component]
+  (let [[config & params] normalized-component
+        reagent-render (:reagent-render config)]
+    (apply reagent-render params)))
 
 (defn- normalize-component [component render-state]
   (when (vector? component)
@@ -390,30 +394,37 @@
               comp-with-lifecycle {:reagent-render render-fn}]
           (into [comp-with-lifecycle] params))))))
 
-(defn- component->hiccup [normalized-component]
-  (let [[config & params] normalized-component
-        reagent-render (:reagent-render config)]
-    (apply reagent-render params)))
+(defn- expand-hiccup [hiccup render-state]
+  (loop [hiccup' hiccup]
+    (cond
+      (and (vector? hiccup') (fn? (first hiccup')))
+      (recur (component->hiccup (normalize-component hiccup' render-state)))
+
+      (and (map? hiccup') (:reagent-render hiccup'))
+      (recur ((:reagent-render hiccup')))
+
+      :else
+      hiccup')))
 
 (defn- hiccup->dom
   ([hiccup render-state]
    (hiccup->dom hiccup (namespace-uri default-namespace) render-state))
   ([hiccup current-ns render-state]
-   (let [result
+   (let [hiccup (expand-hiccup hiccup render-state)
+         result
          (cond
            (or (string? hiccup) (number? hiccup))
            (.createTextNode js/document (str hiccup))
 
            (vector? hiccup)
            (let [tag (aget hiccup 0)]
-             (cond
-               (fn? tag) (hiccup->dom (component->hiccup (normalize-component hiccup render-state)) current-ns render-state)
-               (= :<> tag) (let [fragment (.createDocumentFragment js/document)]
-                             (doseq [child (rest hiccup)]
-                               (when-let [child-node (hiccup->dom child current-ns render-state)]
-                                 (.appendChild fragment child-node)))
-                             fragment)
-               :else (create-element hiccup current-ns render-state)))
+             (if (= :<> tag)
+               (let [fragment (.createDocumentFragment js/document)]
+                 (doseq [child (rest hiccup)]
+                   (when-let [child-node (hiccup->dom child current-ns render-state)]
+                     (.appendChild fragment child-node)))
+                 fragment)
+               (create-element hiccup current-ns render-state)))
 
            (seq? hiccup)
            (let [fragment (.createDocumentFragment js/document)]
@@ -444,42 +455,36 @@
        (not (vector? x))))
 
 (defn- fully-render-hiccup [hiccup render-state]
-  (let [result
+  (let [hiccup (expand-hiccup hiccup render-state)
+        result
         (cond
           (nil? hiccup) nil
           (hiccup-seq? hiccup)
           (mapv #(fully-render-hiccup % render-state) hiccup)
 
           (vector? hiccup)
-          (let [tag (first hiccup)]
-            (if (fn? tag)
-              (fully-render-hiccup (component->hiccup (normalize-component hiccup render-state)) render-state)
-              (let [attrs (let [?attrs (aget hiccup 1)]
-                            (when (map? ?attrs)
-                              ?attrs))
-                    children (if attrs (subvec hiccup 2) (subvec hiccup 1))
-                    head (if attrs [(aget hiccup 0) attrs] [(aget hiccup 0)])]
-                (into head
-                      (reduce (fn [acc child]
-                                (let [processed (fully-render-hiccup child render-state)]
-                                  (cond
-                                    (nil? processed) acc
+          (let [attrs (let [?attrs (aget hiccup 1)]
+                        (when (map? ?attrs)
+                          ?attrs))
+                children (if attrs (subvec hiccup 2) (subvec hiccup 1))
+                head (if attrs [(aget hiccup 0) attrs] [(aget hiccup 0)])]
+            (into head
+                  (reduce (fn [acc child]
+                            (let [processed (fully-render-hiccup child render-state)]
+                              (cond
+                                (nil? processed) acc
 
-                                    ;; Unpack fragments
-                                    (and (vector? processed) (= :<> (aget processed 0)))
-                                    (into acc (subvec processed 1))
+                                ;; Unpack fragments
+                                (and (vector? processed) (= :<> (aget processed 0)))
+                                (into acc (subvec processed 1))
 
-                                    ;; Unnest hiccup children
-                                    (hiccup-seq? child)
-                                    (into acc processed)
+                                ;; Unnest hiccup children
+                                (hiccup-seq? child)
+                                (into acc processed)
 
-                                    ;; Single child
-                                    :else (conj acc processed))))
-                              [] children)))))
-
-          (map? hiccup)
-          ;; This is a map component directly in the hiccup tree
-          (fully-render-hiccup ((:reagent-render hiccup)) render-state)
+                                ;; Single child
+                                :else (conj acc processed))))
+                          [] children)))
           :else
           hiccup)]
     result))
