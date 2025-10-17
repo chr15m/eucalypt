@@ -628,48 +628,55 @@
           dom-a))))
 
 (defn- modify-dom [runtime normalized-component]
-  (remove-watchers-for-component runtime normalized-component)
-  (when-let [mounted-info (and runtime
-                               (runtime-mounted-info runtime normalized-component))]
-    (let [{:keys [hiccup dom container base-namespace]} mounted-info
-          render-state (create-render-state {:normalized-component normalized-component
-                                             :container container
-                                             :base-namespace (or base-namespace
-                                                                 (dom->namespace container))
-                                             :runtime runtime})]
-      (try
-        (swap! render-state assoc :positional-key-counter 0)
-        (let [new-hiccup-unrendered (with-watcher-bound
-                                      normalized-component
-                                      render-state
-                                      (fn [] (component->hiccup normalized-component)))
-              _ (swap! render-state assoc :positional-key-counter 0)
-              new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
-          (if (and (vector? hiccup) (= :<> (first hiccup)))
-            (do
-              (swap! render-state assoc :positional-key-counter 0)
-              (patch-children hiccup new-hiccup-rendered container render-state)
-              (let [base-ns (:base-namespace @render-state)]
-                (assoc-runtime-mounted-info! runtime normalized-component
-                  {:hiccup new-hiccup-rendered
-                   :dom dom
-                   :container container
-                   :base-namespace base-ns
-                   :runtime runtime})))
-            (let [_ (swap! render-state assoc :positional-key-counter 0)
-                  new-dom (patch hiccup new-hiccup-rendered dom render-state)
-                  base-ns (:base-namespace @render-state)]
-              (assoc-runtime-mounted-info! runtime normalized-component
-                {:hiccup new-hiccup-rendered
-                 :dom new-dom
-                 :container container
-                 :base-namespace base-ns
-                 :runtime runtime})
-              (when (not= dom new-dom)
-                (aset container "innerHTML" "")
-                (.appendChild container new-dom)))))
-        (finally
-          (swap! render-state assoc :active false))))))
+  (if (contains? (:rendering-components @runtime) normalized-component)
+    (when *watcher*
+      (queue-watcher! *watcher*))
+    (try
+      (swap! runtime update :rendering-components (fnil conj #{}) normalized-component)
+      (remove-watchers-for-component runtime normalized-component)
+      (when-let [mounted-info (and runtime
+                                   (runtime-mounted-info runtime normalized-component))]
+        (let [{:keys [hiccup dom container base-namespace]} mounted-info
+              render-state (create-render-state {:normalized-component normalized-component
+                                                 :container container
+                                                 :base-namespace (or base-namespace
+                                                                     (dom->namespace container))
+                                                 :runtime runtime})]
+          (try
+            (swap! render-state assoc :positional-key-counter 0)
+            (let [new-hiccup-unrendered (with-watcher-bound
+                                          normalized-component
+                                          render-state
+                                          (fn [] (component->hiccup normalized-component)))
+                  _ (swap! render-state assoc :positional-key-counter 0)
+                  new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
+              (if (and (vector? hiccup) (= :<> (first hiccup)))
+                (do
+                  (swap! render-state assoc :positional-key-counter 0)
+                  (patch-children hiccup new-hiccup-rendered container render-state)
+                  (let [base-ns (:base-namespace @render-state)]
+                    (assoc-runtime-mounted-info! runtime normalized-component
+                      {:hiccup new-hiccup-rendered
+                       :dom dom
+                       :container container
+                       :base-namespace base-ns
+                       :runtime runtime})))
+                (let [_ (swap! render-state assoc :positional-key-counter 0)
+                      new-dom (patch hiccup new-hiccup-rendered dom render-state)
+                      base-ns (:base-namespace @render-state)]
+                  (assoc-runtime-mounted-info! runtime normalized-component
+                    {:hiccup new-hiccup-rendered
+                     :dom new-dom
+                     :container container
+                     :base-namespace base-ns
+                     :runtime runtime})
+                  (when (not= dom new-dom)
+                    (aset container "innerHTML" "")
+                    (.appendChild container new-dom)))))
+            (finally
+              (swap! render-state assoc :active false)))))
+      (finally
+        (swap! runtime update :rendering-components disj normalized-component)))))
 
 (defn- notify-watchers [watchers]
   (doseq [watcher (vals (or @watchers (empty-js-map)))]
@@ -706,7 +713,8 @@
                    (assoc :component-instances (empty-js-map))
                    (assoc :pending-watchers [])
                    (assoc :watcher-flush-scheduled? false)
-                   (assoc :subscriptions (empty-js-map))))))
+                   (assoc :subscriptions (empty-js-map))
+                   (assoc :rendering-components #{})))))
     (swap! roots dissoc container))
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
@@ -825,7 +833,8 @@
                             :pending-watchers []
                             :watcher-flush-scheduled? false
                             :mounted-components (empty-js-map)
-                            :subscriptions (empty-js-map)})
+                            :subscriptions (empty-js-map)
+                            :rendering-components #{}})
         base-ns (dom->namespace container)
         render-state (create-render-state {:container container
                                            :base-namespace base-ns
