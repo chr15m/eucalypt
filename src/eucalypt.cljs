@@ -633,7 +633,7 @@
         (swap! runtime update :rendering-components disj normalized-component)))))
 
 (defn- notify-watchers [watchers]
-  (doseq [watcher (vals (or @watchers (empty-js-map)))]
+  (doseq [watcher (vals @watchers)]
     (when watcher
       (if (should-defer-watcher? watcher)
         (queue-watcher! watcher)
