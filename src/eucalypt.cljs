@@ -484,7 +484,6 @@
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
   (let [children-a (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
         children-b (vec (remove nil? (get-hiccup-children hiccup-b-rendered)))
-        dom-nodes (core-atom (vec (aget dom-a "childNodes")))
         len-a (count children-a)
         len-b (count children-b)
         parent-ns (dom->namespace dom-a)]
@@ -493,10 +492,8 @@
       (when (< i (min len-a len-b))
         (let [child-a (nth children-a i)
               child-b (nth children-b i)
-              dom-node (nth @dom-nodes i)
-              new-dom-node (patch child-a child-b dom-node render-state)]
-          (when (not= dom-node new-dom-node)
-            (swap! dom-nodes assoc i new-dom-node)))
+              dom-node (aget (.-childNodes dom-a) i)]
+          (patch child-a child-b dom-node render-state))
         (recur (inc i))))
     ;; Add new nodes
     (when (> len-b len-a)
