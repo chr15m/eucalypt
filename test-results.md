@@ -3,47 +3,47 @@
 [Tests source code](https://github.com/chr15m/eucalypt/blob/main/src/test/src).
 
 ```
- ✅ src/atom_operations.test.mjs (9 tests) 6ms
- ✅ src/attribute_handling.test.mjs (6 tests) 177ms
- ✅ src/basic_components.test.mjs (19 tests) 24ms
- ✅ src/boolean_attributes.test.mjs (1 test) 23ms
- ✅ src/checkbox.test.mjs (1 test) 25ms
- ✅ src/click_swap.test.mjs (1 test) 11ms
- ✅ src/component_switching_bug.test.mjs (1 test) 161ms
- ✅ src/empty_fragment.test.mjs (1 test) 10ms
- ✅ src/enter_to_submit.test.mjs (1 test) 24ms
- ✅ src/fragment_clickable.test.mjs (1 test) 93ms
- ✅ src/fragment_switching.test.mjs (1 test) 25ms
- ✅ src/games_fail_case_race.test.mjs (1 test) 691ms
- ✅ src/list_demo.test.mjs (1 test) 64ms
- ✅ src/list_rerender.test.mjs (2 tests) 41ms
- ✅ src/local_state_rerender.test.mjs (1 test) 19ms
- ✅ src/multiple_instances.test.mjs (3 tests) 48ms
- ✅ src/multiple_select.test.mjs (1 test) 21ms
- ✅ src/nested_fors.test.mjs (3 tests) 39ms
- ✅ src/numeric_input.test.mjs (1 test) 23ms
- ✅ src/prop_change_rerender.test.mjs (1 test) 19ms
+ ✅ src/atom_operations.test.mjs (9 tests) 9ms
+ ✅ src/attribute_handling.test.mjs (6 tests) 161ms
+ ✅ src/basic_components.test.mjs (19 tests) 23ms
+ ✅ src/boolean_attributes.test.mjs (1 test) 15ms
+ ✅ src/checkbox.test.mjs (1 test) 21ms
+ ✅ src/click_swap.test.mjs (1 test) 13ms
+ ✅ src/component_switching_bug.test.mjs (1 test) 155ms
+ ✅ src/empty_fragment.test.mjs (1 test) 8ms
+ ✅ src/enter_to_submit.test.mjs (1 test) 17ms
+ ✅ src/fragment_clickable.test.mjs (1 test) 74ms
+ ✅ src/fragment_switching.test.mjs (1 test) 19ms
+ ✅ src/games_fail_case_race.test.mjs (1 test) 682ms
+ ✅ src/list_demo.test.mjs (1 test) 54ms
+ ✅ src/list_rerender.test.mjs (2 tests) 39ms
+ ✅ src/local_state_rerender.test.mjs (1 test) 20ms
+ ✅ src/multiple_instances.test.mjs (3 tests) 45ms
+ ✅ src/multiple_select.test.mjs (1 test) 27ms
+ ✅ src/nested_fors.test.mjs (3 tests) 41ms
+ ✅ src/numeric_input.test.mjs (1 test) 21ms
+ ✅ src/prop_change_rerender.test.mjs (1 test) 20ms
  ✅ src/radio_buttons.test.mjs (1 test) 26ms
- ✅ src/range_slider.test.mjs (2 tests) 29ms
- ✅ src/ratom_deferred.test.mjs (1 test) 21ms
- ✅ src/reentrant_render.test.mjs (5 tests) 98ms
+ ✅ src/range_slider.test.mjs (2 tests) 27ms
+ ✅ src/ratom_deferred.test.mjs (1 test) 15ms
+ ✅ src/reentrant_render.test.mjs (5 tests) 104ms
  ✅ src/ref.test.mjs (1 test) 18ms
- ✅ src/select.test.mjs (1 test) 17ms
- ✅ src/select_attribute.test.mjs (1 test) 20ms
- ✅ src/shared_state_multiple_roots.test.mjs (1 test) 24ms
- ✅ src/simple_component.test.mjs (1 test) 13ms
- ✅ src/snake_game_over.test.mjs (1 test) 377ms
- ✅ src/standard_attributes.test.mjs (3 tests) 38ms
- ✅ src/stateful_component.test.mjs (1 test) 16ms
- ✅ src/style_attribute.test.mjs (1 test) 18ms
- ✅ src/svg.test.mjs (1 test) 13ms
- ✅ src/text_input.test.mjs (1 test) 16ms
- ✅ src/textarea.test.mjs (1 test) 24ms
+ ✅ src/select.test.mjs (1 test) 21ms
+ ✅ src/select_attribute.test.mjs (1 test) 23ms
+ ✅ src/shared_state_multiple_roots.test.mjs (1 test) 20ms
+ ✅ src/simple_component.test.mjs (1 test) 15ms
+ ✅ src/snake_game_over.test.mjs (1 test) 372ms
+ ✅ src/standard_attributes.test.mjs (3 tests) 44ms
+ ✅ src/stateful_component.test.mjs (1 test) 15ms
+ ✅ src/style_attribute.test.mjs (1 test) 23ms
+ ✅ src/svg.test.mjs (1 test) 15ms
+ ✅ src/text_input.test.mjs (1 test) 15ms
+ ✅ src/textarea.test.mjs (1 test) 13ms
  ✅ src/timer.test.mjs (1 test) 675ms
- ✅ src/timers_and_buttons.test.mjs (1 test) 90ms
- ✅ src/todomvc.test.mjs (10 tests) 996ms
- ✅ src/various_events.test.mjs (3 tests) 15ms
- ✅ src/various_renderings.test.mjs (6 tests) 11ms
+ ✅ src/timers_and_buttons.test.mjs (1 test) 86ms
+ ✅ src/todomvc.test.mjs (10 tests) 925ms
+ ✅ src/various_events.test.mjs (3 tests) 16ms
+ ✅ src/various_renderings.test.mjs (6 tests) 31ms
 ```
 
 ## Summary
@@ -51,4 +51,4 @@
 - **Test Files**: 41 passed (41)
 - **Test Suites**: 89 passed (89)
 - **Tests**: 100 passed (100)
-- **Duration**: 10.40s
+- **Duration**: 9.42s
