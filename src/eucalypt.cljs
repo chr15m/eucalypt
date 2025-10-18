@@ -250,7 +250,9 @@
     (= :on-double-click k)
     "ondblclick"
     :else
-    (.replaceAll k "-" "")))
+    (-> k
+        .toLowerCase
+        (.replaceAll "-" ""))))
 
 (defn- assign-event! [element event-key handler]
   (let [event-name (get-event-name event-key (.-tagName element))]
@@ -277,7 +279,13 @@
 
 (defn- set-or-remove-attribute! [element k v]
   (cond
-    (.startsWith k "on-") (assign-event! element k v)
+    (let [s (str k)]
+      (and (> (count s) 2)
+           (.startsWith s "on")
+           (let [c3 (.charAt s 2)]
+             (or (= c3 "-")
+                 (and (>= c3 "A") (<= c3 "Z"))))))
+    (assign-event! element k v)
     (= :style k) (apply-style! element v)
     (= :class k) (apply-class! element v)
     (or (= :checked k) (= :selected k)) (aset element k v)
