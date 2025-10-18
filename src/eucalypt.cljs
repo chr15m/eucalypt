@@ -163,8 +163,8 @@
     (swap! runtime
            (fn [state]
              (-> state
-                 (assoc :pending-watchers [])
-                 (assoc :watcher-flush-scheduled? false))))
+                 (assoc :pending-watchers []
+                        :watcher-flush-scheduled? false))))
     (doseq [watcher queued]
       (run-watcher-now watcher))))
 
