@@ -63,13 +63,12 @@
       current-uri)))
 
 (defn- dom->namespace [dom]
-  (if (some? dom)
+  (if dom
     (normalize-namespace (.-namespaceURI dom))
     (namespace-uri default-namespace)))
 
 (defn- with-meta* [obj m]
-  (aset obj "---meta" m)
-  obj)
+  (doto obj (aset "---meta" m)))
 
 (defn- meta* [obj]
   (aget obj "---meta"))
@@ -77,9 +76,7 @@
 (defn- remove-watcher-from-runtime-queue! [watcher]
   (when-let [runtime (-> watcher meta* :runtime)]
     (swap! runtime update :pending-watchers
-           (fn [queue]
-             (let [existing (or queue [])]
-               (into [] (remove #(= watcher %) existing)))))))
+           #(vec (remove (partial = watcher) (or % []))))))
 
 (defn- watcher-entry-key [watcher]
   (or (-> watcher meta* :normalized-component)
