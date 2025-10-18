@@ -83,22 +83,20 @@
       watcher))
 
 (defn- register-watcher-with-host! [host watchers-atom watcher]
-  (let [meta-info (meta* watcher)
-        runtime (:runtime meta-info)
-        component-key (:normalized-component meta-info)]
-    (when (and runtime component-key host)
+  (let [{:keys [runtime normalized-component]} (meta* watcher)]
+    (when (and runtime normalized-component host)
       (swap! runtime
              (fn [state]
-               (let [existing (get-in state [:subscriptions component-key host])]
+               (let [existing (get-in state [:subscriptions normalized-component host])]
                  (if (= watcher (:watcher existing))
                    state
                    (let [subs (or (:subscriptions state) (empty-js-map))
-                         component-map (or (get subs component-key) (empty-js-map))
+                         component-map (or (get subs normalized-component) (empty-js-map))
                          entry {:host host
                                 :watchers-atom watchers-atom
                                 :watcher watcher}
                          new-component-map (assoc component-map host entry)
-                         new-subs (assoc subs component-key new-component-map)]
+                         new-subs (assoc subs normalized-component new-component-map)]
                      (assoc state :subscriptions new-subs)))))))))
 
 (defn- ensure-watcher-registered! [host watchers-atom]
