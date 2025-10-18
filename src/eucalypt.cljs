@@ -111,10 +111,6 @@
         (swap! watchers-atom assoc watcher-key *watcher*)))
     (register-watcher-with-host! host watchers-atom *watcher*)))
 
-(defn- render-state-runtime [render-state]
-  (when render-state
-    (:runtime @render-state)))
-
 (defn- runtime-component-cache [runtime]
   (when runtime
     (:component-instances @runtime)))
@@ -198,7 +194,7 @@
 
 (defn- with-watcher-bound [normalized-component render-state f]
   (let [old-watcher *watcher*
-        runtime (render-state-runtime render-state)
+        {:keys [runtime]} @render-state
         watcher-fn (with-meta* #(modify-dom runtime normalized-component)
                      {:normalized-component normalized-component
                       :should-defer? #(boolean (:active @render-state))
@@ -364,7 +360,7 @@
     (apply reagent-render params)))
 
 (defn- fetch-or-create-component-instance [a-fn params-vec component-meta render-state]
-  (let [runtime (render-state-runtime render-state)
+  (let [{:keys [runtime]} (when render-state @render-state)
         component-cache (runtime-component-cache runtime)
         fn-cache (when component-cache (get component-cache a-fn))
         instance-key (if (contains? component-meta :key)
@@ -774,7 +770,7 @@
   (unmount-components container)
   (reset-positional-counter! render-state)
   (try
-    (let [runtime (render-state-runtime render-state)
+    (let [{:keys [runtime]} @render-state
           [hiccup dom]
           (add-modify-dom-watcher-on-ratom-deref
             normalized-component
