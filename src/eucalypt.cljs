@@ -284,7 +284,7 @@
            (.startsWith s "on")
            (let [c3 (.charAt s 2)]
              (or (= c3 "-")
-                 (and (>= c3 "A") (<= c3 "Z"))))))
+                 (and (>= c3 65) (<= c3 90)))))) ; A to Z
     (assign-event! element k v)
     (= :style k) (apply-style! element v)
     (= :class k) (apply-class! element v)
