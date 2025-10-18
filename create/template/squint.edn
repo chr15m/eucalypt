@@ -1,3 +1,0 @@
-{:paths ["."]
- :output-dir "."
- :extension "mjs"}
