@@ -87,17 +87,10 @@
     (when (and runtime normalized-component host)
       (swap! runtime
              (fn [state]
-               (let [existing (get-in state [:subscriptions normalized-component host])]
-                 (if (= watcher (:watcher existing))
-                   state
-                   (let [subs (or (:subscriptions state) (empty-js-map))
-                         component-map (or (get subs normalized-component) (empty-js-map))
-                         entry {:host host
-                                :watchers-atom watchers-atom
-                                :watcher watcher}
-                         new-component-map (assoc component-map host entry)
-                         new-subs (assoc subs normalized-component new-component-map)]
-                     (assoc state :subscriptions new-subs)))))))))
+               (if (= watcher (get-in state [:subscriptions normalized-component host :watcher]))
+                 state
+                 (let [entry {:host host :watchers-atom watchers-atom :watcher watcher}]
+                   (assoc-in state [:subscriptions normalized-component host] entry))))))))
 
 (defn- ensure-watcher-registered! [host watchers-atom]
   (when *watcher*
