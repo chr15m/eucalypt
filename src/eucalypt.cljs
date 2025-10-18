@@ -705,30 +705,27 @@
                                           render-state
                                           (fn [] (component->hiccup normalized-component)))
                   _ (reset-positional-counter! render-state)
-                  new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
-              (if (and (vector? hiccup) (= :<> (first hiccup)))
-                (do
-                  (reset-positional-counter! render-state)
-                  (patch-children hiccup new-hiccup-rendered container render-state)
-                  (let [base-ns (:base-namespace @render-state)]
-                    (assoc-runtime-mounted-info! runtime normalized-component
-                      {:hiccup new-hiccup-rendered
-                       :dom dom
-                       :container container
-                       :base-namespace base-ns
-                       :runtime runtime})))
-                (let [_ (reset-positional-counter! render-state)
-                      new-dom (patch hiccup new-hiccup-rendered dom render-state)
-                      base-ns (:base-namespace @render-state)]
-                  (assoc-runtime-mounted-info! runtime normalized-component
-                    {:hiccup new-hiccup-rendered
-                     :dom new-dom
-                     :container container
-                     :base-namespace base-ns
-                     :runtime runtime})
-                  (when (not= dom new-dom)
-                    (aset container "innerHTML" "")
-                    (.appendChild container new-dom)))))
+                  new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)
+                  base-ns (:base-namespace @render-state)]
+              (assoc-runtime-mounted-info!
+                runtime normalized-component
+                {:hiccup new-hiccup-rendered
+                 :container container
+                 :base-namespace base-ns
+                 :runtime runtime
+                 :dom
+                 (if (and (vector? hiccup) (= :<> (first hiccup)))
+                   (do
+                     (reset-positional-counter! render-state)
+                     (patch-children hiccup new-hiccup-rendered container render-state)
+                     dom)
+                   (do
+                     (reset-positional-counter! render-state)
+                     (let [new-dom (patch hiccup new-hiccup-rendered dom render-state)]
+                       (when (not= dom new-dom)
+                         (aset container "innerHTML" "")
+                         (.appendChild container new-dom))
+                       new-dom)))}))
             (finally
               (swap! render-state assoc :active false)))))
       (finally
