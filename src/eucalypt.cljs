@@ -130,9 +130,8 @@
     (core-atom state)))
 
 (defn- next-positional-key! [render-state]
-  (let [next-val (inc (:positional-key-counter @render-state))]
-    (swap! render-state assoc :positional-key-counter next-val)
-    next-val))
+  (let [next-val (swap! render-state update :positional-key-counter inc)]
+    (:positional-key-counter next-val)))
 
 (defn- reset-positional-counter! [render-state]
   (swap! render-state assoc :positional-key-counter 0))
