@@ -322,13 +322,16 @@
 (defn- create-element [hiccup current-ns render-state]
   (let [{:keys [tag-name attrs content]} (parse-hiccup hiccup)
         value (:value attrs)
-        attrs-without-value (dissoc attrs :value)
+        danger-html (get-in attrs [:dangerouslySetInnerHTML :__html])
+        attrs-without-value (dissoc attrs :value :dangerouslySetInnerHTML)
         new-ns (next-namespace (normalize-namespace current-ns) tag-name)
         element (.createElementNS js/document new-ns tag-name)]
     (set-attributes! element attrs-without-value)
-    (doseq [child content]
-      (when-let [child-node (hiccup->dom child new-ns render-state)]
-        (.appendChild element child-node)))
+    (if (some? danger-html)
+      (set! (.-innerHTML element) danger-html)
+      (doseq [child content]
+        (when-let [child-node (hiccup->dom child new-ns render-state)]
+          (.appendChild element child-node))))
     (when (some? value)
       (if (and (= "SELECT" (.-tagName element)) (.-multiple element))
         (let [value-set (set value)]
@@ -528,7 +531,7 @@
     (apply-ref-change dom-a (:ref a-attrs) (:ref b-attrs))
     (let [all-keys (set (concat (keys a-attrs) (keys b-attrs)))]
       (doseq [k all-keys]
-        (when (and (not= k :ref) (not= k :xmlns) (not= k :value))
+        (when (and (not= k :ref) (not= k :xmlns) (not= k :value) (not= k :dangerouslySetInnerHTML))
           (let [old-v (get a-attrs k)
                 new-v (get b-attrs k)]
             (when (not= old-v new-v)
@@ -572,7 +575,22 @@
 
         :else
         (do (patch-attributes hiccup-a-realized hiccup-b-rendered dom-a)
-            (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)
+            (let [a-attrs (get-attrs hiccup-a-realized)
+                  b-attrs (get-attrs hiccup-b-rendered)
+                  a-html (get-in a-attrs [:dangerouslySetInnerHTML :__html])
+                  b-html (get-in b-attrs [:dangerouslySetInnerHTML :__html])]
+              (cond
+                (some? b-html)
+                (when (not= a-html b-html)
+                  (set! (.-innerHTML dom-a) b-html))
+
+                (some? a-html) ; b-html is nil
+                (do
+                  (set! (.-innerHTML dom-a) "")
+                  (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state))
+
+                :else
+                (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)))
             (let [a-attrs (get-attrs hiccup-a-realized)
                   b-attrs (get-attrs hiccup-b-rendered)
                   b-value (:value b-attrs)]
