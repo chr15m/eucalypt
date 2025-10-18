@@ -526,35 +526,35 @@
         old-dom-nodes (vec (.-childNodes dom-a))
         parent-ns (dom->namespace dom-a)
 
-        old-keyed-map (atom (into {}
-                                  (keep-indexed (fn [idx child]
-                                                  (when-let [key (get-key child)]
-                                                    [key {:hiccup child
-                                                          :dom (get old-dom-nodes idx)}])))
-                                  old-hiccup-children))
+        old-keyed-map (into {}
+                            (keep-indexed (fn [idx child]
+                                            (when-let [key (get-key child)]
+                                              [key {:hiccup child
+                                                    :dom (get old-dom-nodes idx)}])))
+                            old-hiccup-children)
 
-        old-unkeyed-pool (atom (vec (for [i (range (count old-hiccup-children))
-                                          :let [child (nth old-hiccup-children i)]
-                                          :when (not (get-key child))]
-                                      {:hiccup (nth old-hiccup-children i)
-                                       :dom (nth old-dom-nodes i)
-                                       :used? false})))
+        old-unkeyed-pool (vec (for [i (range (count old-hiccup-children))
+                                    :let [child (nth old-hiccup-children i)]
+                                    :when (not (get-key child))]
+                                {:hiccup (nth old-hiccup-children i)
+                                 :dom (nth old-dom-nodes i)
+                                 :used? false}))
 
         new-dom-nodes
         (mapv (fn [new-child]
                 (let [key (get-key new-child)
                       old-match (if key
-                                  (let [match (get @old-keyed-map key)]
-                                    (when match (swap! old-keyed-map dissoc key))
+                                  (let [match (get old-keyed-map key)]
+                                    (when match (js-delete old-keyed-map key))
                                     match)
                                   (let [match-idx (first (keep-indexed (fn [idx old-info]
                                                                          (when (and (not (:used? old-info))
                                                                                     (= (get-type (:hiccup old-info)) (get-type new-child)))
                                                                            idx))
-                                                                       @old-unkeyed-pool))]
+                                                                       old-unkeyed-pool))]
                                     (when (some? match-idx)
-                                      (let [match (get @old-unkeyed-pool match-idx)]
-                                        (swap! old-unkeyed-pool assoc-in [match-idx :used?] true)
+                                      (let [match (get old-unkeyed-pool match-idx)]
+                                        (aset match "used?" true)
                                         match))))]
                   (if old-match
                     (patch (:hiccup old-match) new-child (:dom old-match) render-state)
@@ -562,9 +562,9 @@
               new-hiccup-children)]
 
     ;; Remove unused old nodes
-    (doseq [old-info (vals @old-keyed-map)]
+    (doseq [old-info (vals old-keyed-map)]
       (remove-node-and-unmount! (:dom old-info)))
-    (doseq [old-info (filter #(not (:used? %)) @old-unkeyed-pool)]
+    (doseq [old-info (filter #(not (:used? %)) old-unkeyed-pool)]
       (remove-node-and-unmount! (:dom old-info)))
 
     ;; Re-order/add nodes in the DOM
