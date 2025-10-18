@@ -147,19 +147,14 @@
 
 (defn- flush-queued-watchers [runtime]
   (let [queued (:pending-watchers @runtime)]
-    (swap! runtime
-           (fn [state]
-             (-> state
-                 (assoc :pending-watchers []
-                        :watcher-flush-scheduled? false))))
-    (doseq [watcher queued]
-      (run-watcher-now watcher))))
+    (swap! runtime assoc :pending-watchers [] :watcher-flush-scheduled? false)
+    (run! run-watcher-now queued)))
 
 (defn- schedule-watcher-flush! [runtime]
   (when (and runtime (not (:watcher-flush-scheduled? @runtime)))
     (swap! runtime assoc :watcher-flush-scheduled? true)
     (let [flush-fn #(flush-queued-watchers runtime)]
-      (if (some? (.-queueMicrotask js/globalThis))
+      (if (.-queueMicrotask js/globalThis)
         (.queueMicrotask js/globalThis flush-fn)
         (js/setTimeout flush-fn 0)))))
 
@@ -172,10 +167,8 @@
     (run-watcher-now watcher)))
 
 (defn- should-defer-watcher? [watcher]
-  (let [meta-info (meta* watcher)
-        defer-fn (and meta-info (:should-defer? meta-info))]
-    (boolean (and (fn? defer-fn)
-                  (defer-fn)))))
+  (when-let [{:keys [should-defer?]} (meta* watcher)]
+    (and (fn? should-defer?) (should-defer?))))
 
 (declare hiccup->dom)
 (declare modify-dom)
