@@ -12,27 +12,27 @@
 (defn select-page []
   [:div
    [:h2 "Select Test"]
-  [:select {:id "select-input"
-            :value (:selected @select-state)
-            :on-change (fn [e]
-                         (swap! select-state assoc :selected (.. e -target -value)))}
-   [:option {:value "a"} "Option A"]
-   [:option {:value "b"} "Option B"]
-   [:option {:value "c"} "Option C"]]
-  [:p {:id "output"} "You selected: " (:selected @select-state)]
-  [:button {:id "change-to-a" :on-click #(swap! select-state assoc :selected "a")} "Set to A"]])
+   [:select {:id "select-input"
+             :value (:selected @select-state)
+             :on-change (fn [e]
+                          (swap! select-state assoc :selected (.. e -target -value)))}
+    [:option {:value "a"} "Option A"]
+    [:option {:value "b"} "Option B"]
+    [:option {:value "c"} "Option C"]]
+   [:p {:id "output"} "You selected: " (:selected @select-state)]
+   [:button {:id "change-to-a" :on-click #(swap! select-state assoc :selected "a")} "Set to A"]])
 
 (describe "Select Component"
   (fn []
     (it "should set value from :value attribute"
       (fn []
         (let [container (.createElement js/document "div")
-              component [:select
+              component [:select {:value "b"}
                          [:option {:value "a"} "A"]
                          [:option {:value "b"} "B"]
                          [:option {:value "c"} "C"]]]
           (.appendChild js/document.body container)
-          (r/render [component {:value "b"}] container)
+          (r/render component container)
           (let [select-el (.querySelector container "select")]
             (th/assert-not-nil select-el)
             (th/assert-equal (.-value select-el) "b")))))
