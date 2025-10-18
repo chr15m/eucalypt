@@ -324,13 +324,17 @@
         value (:value attrs)
         danger-html (get-in attrs [:dangerouslySetInnerHTML :__html])
         attrs-without-value (dissoc attrs :value :dangerouslySetInnerHTML)
-        new-ns (next-namespace (normalize-namespace current-ns) tag-name)
-        element (.createElementNS js/document new-ns tag-name)]
+        current-ns-normalized (normalize-namespace current-ns)
+        element-ns (if (get entry-tag->namespace tag-name)
+                     (next-namespace current-ns-normalized tag-name)
+                     current-ns-normalized)
+        children-ns (next-namespace element-ns tag-name)
+        element (.createElementNS js/document element-ns tag-name)]
     (set-attributes! element attrs-without-value)
     (if (some? danger-html)
       (set! (.-innerHTML element) danger-html)
       (doseq [child content]
-        (when-let [child-node (hiccup->dom child new-ns render-state)]
+        (when-let [child-node (hiccup->dom child children-ns render-state)]
           (.appendChild element child-node))))
     (when (some? value)
       (if (and (= "SELECT" (.-tagName element)) (.-multiple element))
