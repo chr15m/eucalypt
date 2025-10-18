@@ -150,6 +150,9 @@
     (swap! render-state assoc :positional-key-counter next-val)
     next-val))
 
+(defn- reset-positional-counter! [render-state]
+  (swap! render-state assoc :positional-key-counter 0))
+
 (defn- run-watcher-now [watcher]
   (let [old-watcher *watcher*]
     (try
@@ -232,6 +235,9 @@
         (remove-watchers-for-component runtime component)))))
 
 ;; *** hiccup-to-dom implementation ***
+
+(defn- text-like? [x]
+  (or (string? x) (number? x)))
 
 (defn- style-map->css-str [style-map]
   (apply str (map (fn [[k v]] (str k ":" v ";")) style-map)))
@@ -410,7 +416,7 @@
    (let [hiccup (expand-hiccup hiccup render-state)
          result
          (cond
-           (or (string? hiccup) (number? hiccup))
+           (text-like? hiccup)
            (.createTextNode js/document (str hiccup))
 
            (vector? hiccup)
@@ -446,6 +452,9 @@
       (rest content)
       content)))
 
+(defn- normalized-hiccup-children [hiccup]
+  (vec (remove nil? (get-hiccup-children hiccup))))
+
 (defn- hiccup-seq? [x]
   (and (seq? x)
        (not (string? x))
@@ -458,12 +467,8 @@
 (defn- get-type [hiccup]
   (cond
     (vector? hiccup) (:tag-name (parse-tag (first hiccup)))
-    (string? hiccup) :<text>
-    (number? hiccup) :<text>
+    (text-like? hiccup) :<text>
     :else nil))
-
-(defn- text-like? [x]
-  (or (string? x) (number? x)))
 
 (defn- fully-render-hiccup [hiccup render-state]
   (let [hiccup (expand-hiccup hiccup render-state)
@@ -516,8 +521,8 @@
 (declare patch)
 
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
-  (let [old-hiccup-children (vec (remove nil? (get-hiccup-children hiccup-a-rendered)))
-        new-hiccup-children (vec (remove nil? (get-hiccup-children hiccup-b-rendered)))
+  (let [old-hiccup-children (normalized-hiccup-children hiccup-a-rendered)
+        new-hiccup-children (normalized-hiccup-children hiccup-b-rendered)
         old-dom-nodes (vec (.-childNodes dom-a))
         parent-ns (dom->namespace dom-a)
 
@@ -686,16 +691,16 @@
                                                                      (dom->namespace container))
                                                  :runtime runtime})]
           (try
-            (swap! render-state assoc :positional-key-counter 0)
+            (reset-positional-counter! render-state)
             (let [new-hiccup-unrendered (with-watcher-bound
                                           normalized-component
                                           render-state
                                           (fn [] (component->hiccup normalized-component)))
-                  _ (swap! render-state assoc :positional-key-counter 0)
+                  _ (reset-positional-counter! render-state)
                   new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
               (if (and (vector? hiccup) (= :<> (first hiccup)))
                 (do
-                  (swap! render-state assoc :positional-key-counter 0)
+                  (reset-positional-counter! render-state)
                   (patch-children hiccup new-hiccup-rendered container render-state)
                   (let [base-ns (:base-namespace @render-state)]
                     (assoc-runtime-mounted-info! runtime normalized-component
@@ -704,7 +709,7 @@
                        :container container
                        :base-namespace base-ns
                        :runtime runtime})))
-                (let [_ (swap! render-state assoc :positional-key-counter 0)
+                (let [_ (reset-positional-counter! render-state)
                       new-dom (patch hiccup new-hiccup-rendered dom render-state)
                       base-ns (:base-namespace @render-state)]
                   (assoc-runtime-mounted-info! runtime normalized-component
@@ -762,15 +767,14 @@
 
 (defn- do-render [normalized-component container render-state]
   (unmount-components container)
-  (swap! render-state assoc :positional-key-counter 0)
+  (reset-positional-counter! render-state)
   (try
     (let [runtime (render-state-runtime render-state)
-          base-ns (:base-namespace @render-state)
           [hiccup dom]
           (add-modify-dom-watcher-on-ratom-deref
             normalized-component
             render-state)
-          _ (swap! render-state assoc :positional-key-counter 0)
+          _ (reset-positional-counter! render-state)
           hiccup-rendered (fully-render-hiccup hiccup render-state)]
       (.appendChild container dom)
       (update-mounted-info! runtime normalized-component hiccup-rendered dom container render-state)
@@ -858,12 +862,12 @@
         (remove-watchers-for-component runtime old-normalized)
         (when-let [mounted-info (runtime-mounted-info runtime old-normalized)]
           (let [{:keys [hiccup dom]} mounted-info]
-            (swap! render-state assoc :positional-key-counter 0)
+            (reset-positional-counter! render-state)
             (let [new-hiccup-unrendered (with-watcher-bound
                                           new-normalized
                                           render-state
                                           (fn [] (component->hiccup new-normalized)))
-                  _ (swap! render-state assoc :positional-key-counter 0)
+                  _ (reset-positional-counter! render-state)
                   new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
               (if (and (vector? hiccup) (= :<> (first hiccup)))
                 (do
