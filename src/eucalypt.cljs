@@ -603,7 +603,16 @@
                   (let [value-set (set b-value)]
                     (doseq [opt (.-options dom-a)]
                       (aset opt "selected" (contains? value-set (.-value opt)))))
-                  (aset dom-a "value" b-value))))
+                  (let [tag-name (.-tagName dom-a)
+                        is-input? (or (= "INPUT" tag-name) (= "TEXTAREA" tag-name))
+                        is-active? (identical? dom-a (.-activeElement js/document))]
+                    (if (and is-input? is-active?)
+                      (let [start (.-selectionStart dom-a)
+                            end (.-selectionEnd dom-a)]
+                        (aset dom-a "value" b-value)
+                        (set! (.-selectionStart dom-a) start)
+                        (set! (.-selectionEnd dom-a) end))
+                      (aset dom-a "value" b-value))))))
             dom-a)))))
 
 (defn- modify-dom [runtime normalized-component]
