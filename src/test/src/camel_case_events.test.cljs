@@ -56,3 +56,26 @@
             (th/assert-equal (:focus-out? @focus-state) false)
             (.dispatchEvent input (new js/Event "focusout" #js {:bubbles true}))
             (th/assert-equal (:focus-out? @focus-state) true)))))))
+
+;;; onMouseOver test
+(def mouse-over-state (r/atom {:count 0}))
+
+(defn mouse-over-component []
+  [:div {:id "mouse-over-div"
+         :onMouseOver #(swap! mouse-over-state update :count inc)}
+   "Hover over me"])
+
+(describe "Camel case mouse events"
+  (fn []
+    (it "should support onMouseOver"
+      (fn []
+        (reset! mouse-over-state {:count 0})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [mouse-over-component] container)
+          (let [div (.querySelector container "#mouse-over-div")]
+            (th/assert-equal (:count @mouse-over-state) 0)
+            (.dispatchEvent div (new js/Event "mouseover" #js {:bubbles true}))
+            (th/assert-equal (:count @mouse-over-state) 1)
+            (.dispatchEvent div (new js/Event "mouseover" #js {:bubbles true}))
+            (th/assert-equal (:count @mouse-over-state) 2)))))))
