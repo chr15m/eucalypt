@@ -16,12 +16,13 @@
     "dist:build": "cd src && squint compile",
     "demo:watch": "cd src/demo && squint watch",
     "demo:dev": "concurrently \"npm run demo:watch\" \"vite src/demo --port 8000\"",
-    "test:compile": "cd src/test && squint compile"
+    "test:compile": "cd src/test && squint compile",
+    "report": "echo \"Branch: `git rev-parse --abbrev-ref HEAD`\"; pnpm test | grep -v squint | grep -E '(pass|fail)'; echo \"LOC: `wc -l src/eucalypt.cljs`\"; pnpm build | grep docs"
   },
   "devDependencies": {
     "concurrently": "8.2.2",
     "happy-dom": "14.12.3",
-    "squint-cljs": "0.8.159",
+    "squint-cljs": "0.9.169",
     "vite": "7.1.2",
     "vite-bundle-analyzer": "^1.2.3",
     "vite-plugin-singlefile": "2.3.0",
