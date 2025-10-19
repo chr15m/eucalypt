@@ -248,7 +248,7 @@
       (.setAttribute element "class" normalized))))
 
 (defn- apply-ref-change [element old-ref new-ref]
-  (when (not= old-ref new-ref)
+  (when (not (= old-ref new-ref))
     (when old-ref (old-ref nil))
     (when new-ref (new-ref element))
     (aset element "---ref-fn" new-ref)))
@@ -576,7 +576,7 @@
         (when (and (not= k :ref) (not= k :xmlns) (not= k :value) (not= k :dangerouslySetInnerHTML))
           (let [old-v (get a-attrs k)
                 new-v (get b-attrs k)]
-            (when (not= old-v new-v)
+            (when (not (= old-v new-v))
               (set-or-remove-attribute! dom-a k new-v))))))))
 
 (defn- realize-deep [x]
@@ -607,7 +607,7 @@
              (text-like? hiccup-b-realized)
              (= (.-nodeType dom-a) 3))
         (do
-          (when (not= (str hiccup-a-realized) (str hiccup-b-realized))
+          (when (not (= (str hiccup-a-realized) (str hiccup-b-realized)))
             (set! (.-data dom-a) (str hiccup-b-realized)))
           dom-a)
 
@@ -629,7 +629,7 @@
                   b-html (get-in b-attrs [:dangerouslySetInnerHTML :__html])]
               (cond
                 (some? b-html)
-                (when (not= a-html b-html)
+                (when (not (= a-html b-html))
                   (set! (.-innerHTML dom-a) b-html))
 
                 (some? a-html) ; b-html is nil
@@ -642,7 +642,7 @@
             (let [a-attrs (get-attrs hiccup-a-realized)
                   b-attrs (get-attrs hiccup-b-rendered)
                   b-value (:value b-attrs)]
-              (when (and (contains? b-attrs :value) (not= (:value a-attrs) b-value))
+              (when (and (contains? b-attrs :value) (not (= (:value a-attrs) b-value)))
                 (if (and (= "SELECT" (.-tagName dom-a) ) (.-multiple dom-a))
                   (let [value-set (set b-value)]
                     (doseq [opt (.-options dom-a)]
