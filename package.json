@@ -12,6 +12,7 @@
     "dev": "npm run demo:dev",
     "test": "npm run test:compile && vitest run --config src/test/vitest.config.js",
     "test:ci": "npm run test:compile && vitest run --reporter=default --reporter=json --outputFile=./test-results.json --config src/test/vitest.config.js",
+    "coverage": "npm run test:compile && vitest run --coverage --config src/test/vitest.config.js",
     "demo:build": "cd src/demo && squint compile && vite build && SRC=small.html vite build && SRC=games.html vite build",
     "dist:build": "cd src && squint compile",
     "demo:watch": "cd src/demo && squint watch",
@@ -20,6 +21,7 @@
     "report": "pnpm clean; echo \"Branch: `git rev-parse --abbrev-ref HEAD`\"; pnpm test | grep -v squint | grep -E '(pass|fail)'; echo \"LOC: `wc -l src/eucalypt.cljs`\"; pnpm build | grep docs"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^3.2.4",
     "concurrently": "8.2.2",
     "happy-dom": "14.12.3",
     "squint-cljs": "0.9.169",

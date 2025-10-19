@@ -5,5 +5,11 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     include: ['src/test/src/**/*.test.mjs'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/test/src/eucalypt.mjs'],
+      all: true,
+    },
   },
 });
