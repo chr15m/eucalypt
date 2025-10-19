@@ -73,9 +73,7 @@
     (it "should null and re-invoke refs when swapping component root element type"
       (fn []
         (let [calls (atom [])
-              ref-fn (fn [el]
-                       (js/console.log "ref-fn called with:" (if el (.-nodeName el) "nil"))
-                       (swap! calls conj el))
+              ref-fn (fn [el] (swap! calls conj el))
               show-div (r/atom true)
               app (fn [] (if @show-div
                            [:div {:ref ref-fn}]
@@ -83,17 +81,13 @@
               container (.createElement js/document "div")]
           (.appendChild js/document.body container)
 
-          (js/console.log "--- initial render ---")
           (r/render [app] container)
-          (js/console.log "calls after initial render:" (pr-str (mapv #(if % (.-nodeName %) "nil") @calls)))
           (th/assert-equal (count @calls) 1)
           (let [first-call (first @calls)]
             (th/assert-not-nil first-call)
             (th/assert-equal (.-nodeName first-call) "DIV"))
 
-          (js/console.log "--- swapping component ---")
           (reset! show-div false)
-          (js/console.log "calls after swap:" (pr-str (mapv #(if % (.-nodeName %) "nil") @calls)))
 
           (th/assert-equal (count @calls) 3)
           (let [[div-mount div-unmount span-mount] @calls]
