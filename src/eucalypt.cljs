@@ -232,7 +232,7 @@
 
 (defn- assign-event! [element event-key handler]
   (let [event-name (get-event-name event-key (.-tagName element))]
-    (aset element event-name handler)))
+    (aset element event-name (if (fn? handler) handler nil))))
 
 (defn- apply-style! [element style-map]
   (if (not-empty style-map)
