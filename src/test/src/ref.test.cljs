@@ -41,4 +41,63 @@
           ;; Toggle to unmount
           (.click (.querySelector container "#toggle"))
 
-          (th/assert-equal @ref-val nil))))))
+          (th/assert-equal @ref-val nil)))))
+
+    (it "should not call stale refs"
+      (fn []
+        (let [ref1-mount-calls (atom 0)
+              ref1-unmount-calls (atom 0)
+              ref2-mount-calls (atom 0)
+              ref2-unmount-calls (atom 0)
+              ref1 (fn [el] (if el (swap! ref1-mount-calls inc) (swap! ref1-unmount-calls inc)))
+              ref2 (fn [el] (if el (swap! ref2-mount-calls inc) (swap! ref2-unmount-calls inc)))
+              show-ref1 (r/atom true)
+              app (fn [] [:div {:ref (if @show-ref1 ref1 ref2)}])
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+
+          (r/render [app] container)
+          (th/assert-equal @ref1-mount-calls 1)
+          (th/assert-equal @ref1-unmount-calls 0)
+          (th/assert-equal @ref2-mount-calls 0)
+          (th/assert-equal @ref2-unmount-calls 0)
+
+          (reset! show-ref1 false)
+
+          ;; When ref changes, old ref should be called with nil, new ref with element
+          (th/assert-equal @ref1-mount-calls 1)
+          (th/assert-equal @ref1-unmount-calls 1)
+          (th/assert-equal @ref2-mount-calls 1)
+          (th/assert-equal @ref2-unmount-calls 0))))
+
+    (it "should null and re-invoke refs when swapping component root element type"
+      (fn []
+        (let [calls (atom [])
+              ref-fn (fn [el]
+                       (js/console.log "ref-fn called with:" (if el (.-nodeName el) "nil"))
+                       (swap! calls conj el))
+              show-div (r/atom true)
+              app (fn [] (if @show-div
+                           [:div {:ref ref-fn}]
+                           [:span {:ref ref-fn}]))
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+
+          (js/console.log "--- initial render ---")
+          (r/render [app] container)
+          (js/console.log "calls after initial render:" (pr-str (mapv #(if % (.-nodeName %) "nil") @calls)))
+          (th/assert-equal (count @calls) 1)
+          (let [first-call (first @calls)]
+            (th/assert-not-nil first-call)
+            (th/assert-equal (.-nodeName first-call) "DIV"))
+
+          (js/console.log "--- swapping component ---")
+          (reset! show-div false)
+          (js/console.log "calls after swap:" (pr-str (mapv #(if % (.-nodeName %) "nil") @calls)))
+
+          (th/assert-equal (count @calls) 3)
+          (let [[div-mount div-unmount span-mount] @calls]
+            (th/assert-equal (.-nodeName div-mount) "DIV")
+            (th/assert-equal div-unmount nil)
+            (th/assert-not-nil span-mount)
+            (th/assert-equal (.-nodeName span-mount) "SPAN"))))))
