@@ -49,4 +49,78 @@
 
             ;; Dispatch the other event and check it was fired
             (.dispatchEvent div (new js/Event "otherclick" #js {:bubbles true}))
-            (th/assert-equal @other-click-fired true)))))))
+            (th/assert-equal @other-click-fired true)))))
+
+    (it "should update event handlers"
+      (fn []
+        (let [click1-fired (r/atom false)
+              click2-fired (r/atom false)
+              handler-ratom (r/atom #(reset! click1-fired true))
+              container (.createElement js/document "div")
+              component (fn [] [:div {:id "test-div" :on-click @handler-ratom}])]
+          (.appendChild js/document.body container)
+          (r/render [component] container)
+
+          ;; Initial render with handler 1
+          (let [div (.querySelector container "#test-div")]
+            (.click div)
+            (th/assert-equal @click1-fired true)
+            (th/assert-equal @click2-fired false))
+
+          ;; Reset state and update handler
+          (reset! click1-fired false)
+          (reset! click2-fired false)
+          (reset! handler-ratom #(reset! click2-fired true))
+
+          ;; After re-render, click again
+          (let [div (.querySelector container "#test-div")]
+            (.click div)
+            (th/assert-equal @click1-fired false)
+            (th/assert-equal @click2-fired true)))))
+
+    (it "should remove event handlers"
+      (fn []
+        (let [click-fired (r/atom false)
+              mousedown-fired (r/atom false)
+              show-mousedown (r/atom true)
+              show-click (r/atom true)
+              container (.createElement js/document "div")
+              component (fn []
+                          [:div {:id "test-div"
+                                 :on-click (when @show-click #(reset! click-fired true))
+                                 :on-mousedown (when @show-mousedown #(reset! mousedown-fired true))}])]
+          (.appendChild js/document.body container)
+          (r/render [component] container)
+
+          ;; Both handlers should work initially
+          (let [div (.querySelector container "#test-div")]
+            (.dispatchEvent div (new js/Event "mousedown" #js {:bubbles true}))
+            (th/assert-equal @mousedown-fired true)
+            (.click div)
+            (th/assert-equal @click-fired true))
+
+          ;; Reset state
+          (reset! click-fired false)
+          (reset! mousedown-fired false)
+
+          ;; Remove mousedown handler
+          (reset! show-mousedown false)
+
+          (let [div (.querySelector container "#test-div")]
+            (.dispatchEvent div (new js/Event "mousedown" #js {:bubbles true}))
+            (th/assert-equal @mousedown-fired false "mousedown should be removed")
+            (.click div)
+            (th/assert-equal @click-fired true "click should still work"))
+
+          ;; Reset state
+          (reset! click-fired false)
+          (reset! mousedown-fired false)
+
+          ;; Remove click handler
+          (reset! show-click false)
+
+          (let [div (.querySelector container "#test-div")]
+            (.dispatchEvent div (new js/Event "mousedown" #js {:bubbles true}))
+            (th/assert-equal @mousedown-fired false "mousedown should still be removed")
+            (.click div)
+            (th/assert-equal @click-fired false "click should be removed")))))))
