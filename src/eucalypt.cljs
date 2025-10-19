@@ -616,10 +616,9 @@
             (not= (get-type hiccup-a-realized)
                   (get-type hiccup-b-realized)))
         (let [parent (.-parentNode dom-a)
-              parent-ns (dom->namespace parent)
-              new-node (hiccup->dom hiccup-b-realized parent-ns render-state)]
+              parent-ns (dom->namespace parent)]
           (unmount-node-and-children dom-a)
-          new-node)
+          (hiccup->dom hiccup-b-realized parent-ns render-state))
 
         :else
         (do (patch-attributes hiccup-a-realized hiccup-b-rendered dom-a)
