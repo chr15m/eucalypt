@@ -247,11 +247,19 @@
       (.removeAttribute element "class")
       (.setAttribute element "class" normalized))))
 
-(defn- apply-ref-change [element old-ref new-ref]
-  (when (not (= old-ref new-ref))
-    (when old-ref (old-ref nil))
-    (when new-ref (new-ref element))
-    (aset element "---ref-fn" new-ref)))
+(defn- queue-ref-mount! [render-state new-ref element]
+  (when new-ref
+    (when-let [runtime-atom (:runtime @render-state)]
+      (when-let [ref-queue-atom (:ref-queue @runtime-atom)]
+        (swap! ref-queue-atom conj [new-ref element])))))
+
+(defn- flush-ref-queue! [runtime]
+  (when-let [ref-queue-atom (:ref-queue @runtime)]
+    (let [refs-to-process @ref-queue-atom]
+      (when (seq refs-to-process)
+        (reset! ref-queue-atom [])
+        (doseq [[ref-fn value] refs-to-process]
+          (ref-fn value))))))
 
 (defn- set-or-remove-attribute! [element k v]
   (cond
@@ -270,7 +278,6 @@
             (.setAttributeNS element nil k v))))
 
 (defn- set-attributes! [element attrs]
-  (apply-ref-change element nil (:ref attrs))
   (doseq [[k v] attrs]
     (when (not= k :ref)
       (cond
@@ -326,6 +333,10 @@
       (doseq [child content]
         (when-let [child-node (hiccup->dom child children-ns render-state)]
           (.appendChild element child-node))))
+    (let [new-ref (:ref attrs)]
+      (when new-ref
+        (aset element "---ref-fn" new-ref)
+        (queue-ref-mount! render-state new-ref element)))
     (when (some? value)
       (if (and (= "SELECT" (.-tagName element)) (.-multiple element))
         (let [value-set (set value)]
@@ -569,15 +580,14 @@
 
 (defn- patch-attributes [hiccup-a-rendered hiccup-b-rendered dom-a]
   (let [a-attrs (get-attrs hiccup-a-rendered)
-        b-attrs (get-attrs hiccup-b-rendered)]
-    (apply-ref-change dom-a (:ref a-attrs) (:ref b-attrs))
-    (let [all-keys (set (concat (keys a-attrs) (keys b-attrs)))]
-      (doseq [k all-keys]
-        (when (and (not= k :ref) (not= k :xmlns) (not= k :value) (not= k :dangerouslySetInnerHTML))
-          (let [old-v (get a-attrs k)
-                new-v (get b-attrs k)]
-            (when (not (= old-v new-v))
-              (set-or-remove-attribute! dom-a k new-v))))))))
+        b-attrs (get-attrs hiccup-b-rendered)
+        all-keys (set (concat (keys a-attrs) (keys b-attrs)))]
+    (doseq [k all-keys]
+      (when (and (not= k :ref) (not= k :xmlns) (not= k :value) (not= k :dangerouslySetInnerHTML))
+        (let [old-v (get a-attrs k)
+              new-v (get b-attrs k)]
+          (when (not (= old-v new-v))
+            (set-or-remove-attribute! dom-a k new-v)))))))
 
 (defn- realize-deep [x]
   (cond
@@ -621,9 +631,9 @@
           (hiccup->dom hiccup-b-realized parent-ns render-state))
 
         :else
-        (do (patch-attributes hiccup-a-realized hiccup-b-rendered dom-a)
+        (do (patch-attributes hiccup-a-realized hiccup-b-realized dom-a)
             (let [a-attrs (get-attrs hiccup-a-realized)
-                  b-attrs (get-attrs hiccup-b-rendered)
+                  b-attrs (get-attrs hiccup-b-realized)
                   a-html (get-in a-attrs [:dangerouslySetInnerHTML :__html])
                   b-html (get-in b-attrs [:dangerouslySetInnerHTML :__html])]
               (cond
@@ -634,12 +644,19 @@
                 (some? a-html) ; b-html is nil
                 (do
                   (set! (.-innerHTML dom-a) "")
-                  (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state))
+                  (patch-children hiccup-a-realized hiccup-b-realized dom-a render-state))
 
                 :else
-                (patch-children hiccup-a-realized hiccup-b-rendered dom-a render-state)))
+                (patch-children hiccup-a-realized hiccup-b-realized dom-a render-state)))
+            (let [old-ref (:ref (get-attrs hiccup-a-realized))
+                  new-ref (:ref (get-attrs hiccup-b-realized))]
+              (when (not (= old-ref new-ref))
+                (when old-ref
+                  (old-ref nil))
+                (queue-ref-mount! render-state new-ref dom-a)
+                (aset dom-a "---ref-fn" new-ref)))
             (let [a-attrs (get-attrs hiccup-a-realized)
-                  b-attrs (get-attrs hiccup-b-rendered)
+                  b-attrs (get-attrs hiccup-b-realized)
                   b-value (:value b-attrs)]
               (when (and (contains? b-attrs :value) (not (= (:value a-attrs) b-value)))
                 (if (and (= "SELECT" (.-tagName dom-a) ) (.-multiple dom-a))
@@ -704,6 +721,7 @@
             (finally
               (swap! render-state assoc :active false)))))
       (finally
+        (flush-ref-queue! runtime)
         (swap! runtime update :rendering-components disj normalized-component)))))
 
 (defn- notify-watchers [watchers]
@@ -732,8 +750,8 @@
 (defn- unmount-components [container]
   (when-let [{:keys [runtime]} (get @roots container)]
     (when runtime
-      (remove-all-runtime-watchers! runtime))
-    (swap! roots dissoc container))
+      (remove-all-runtime-watchers! runtime)))
+  (swap! roots dissoc container)
   (doseq [child (vec (aget container "childNodes"))]
     (remove-node-and-unmount! child)))
 
@@ -860,17 +878,20 @@
                     (swap! runtime assoc :component-instances (empty-js-map)))))
               (swap! roots assoc container (assoc old-root-info :component new-normalized))
               (when (not (identical? old-normalized new-normalized))
-                (swap! runtime update :mounted-components dissoc old-normalized))))))
+                (swap! runtime update :mounted-components dissoc old-normalized))
+              (flush-ref-queue! runtime)))))
       ;; New render logic
       (do
         (swap! render-state assoc :normalized-component new-normalized)
-        (do-render new-normalized container render-state)))))
+        (do-render new-normalized container render-state)
+        (flush-ref-queue! runtime)))))
 
 ;; Reagent API
 (defn render [component container]
   (if-let [root-info (get @roots container)]
     (render-into-container component container (:runtime root-info) root-info)
     (let [runtime (core-atom {:runtime-id (str "runtime-" (random-uuid))
+                              :ref-queue (core-atom [])
                               :component-instances (empty-js-map)
                               :pending-watchers []
                               :watcher-flush-scheduled? false
