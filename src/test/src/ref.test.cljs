@@ -108,15 +108,9 @@
           (r/render [app] container)
           (r/render [app] container)
 
-          ;; Expected Preact behavior:
+          ;; Observed Preact behavior from console logs:
           ;; 1. Mount: H1, DIV (bottom-up)
-          ;; 2. Update -> Unmount: null-DIV, null-H1 (top-down)
+          ;; 2. Update -> Unmount: null-H1, null-DIV (bottom-up)
           ;; 3. Update -> Mount: H1, DIV (bottom-up)
-          ;; Total: ["H1", "DIV", "null-DIV", "null-H1", "H1", "DIV"]
-          ;;
-          ;; Current Eucalypt behavior:
-          ;; 1. Mount: DIV, H1 (top-down)
-          ;; 2. Update -> Unmount: null-DIV, null-H1 (top-down)
-          ;; 3. Update -> Mount: DIV, H1 (top-down)
-          ;; Total: ["DIV", "H1", "null-DIV", "null-H1", "DIV", "H1"]
-          (th/assert-equal @events ["H1" "DIV" "null-DIV" "null-H1" "H1" "DIV"])))))
+          ;; Total: ["H1", "DIV", "null-H1", "null-DIV", "H1", "DIV"]
+          (th/assert-equal @events ["H1" "DIV" "null-H1" "null-DIV" "H1" "DIV"])))))
