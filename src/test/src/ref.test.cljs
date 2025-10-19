@@ -45,30 +45,27 @@
 
     (it "should not call stale refs"
       (fn []
-        (let [ref1-mount-calls (atom 0)
-              ref1-unmount-calls (atom 0)
-              ref2-mount-calls (atom 0)
-              ref2-unmount-calls (atom 0)
-              ref1 (fn [el] (if el (swap! ref1-mount-calls inc) (swap! ref1-unmount-calls inc)))
-              ref2 (fn [el] (if el (swap! ref2-mount-calls inc) (swap! ref2-unmount-calls inc)))
+        (let [ref1-calls (atom [])
+              ref2-calls (atom [])
+              ref1 (fn [el] (swap! ref1-calls conj el))
+              ref2 (fn [el] (swap! ref2-calls conj el))
               show-ref1 (r/atom true)
               app (fn [] [:div {:ref (if @show-ref1 ref1 ref2)}])
               container (.createElement js/document "div")]
           (.appendChild js/document.body container)
 
           (r/render [app] container)
-          (th/assert-equal @ref1-mount-calls 1)
-          (th/assert-equal @ref1-unmount-calls 0)
-          (th/assert-equal @ref2-mount-calls 0)
-          (th/assert-equal @ref2-unmount-calls 0)
+          (let [div-el (-> container .-firstChild)]
+            (th/assert-equal @ref1-calls [div-el])
+            (th/assert-equal @ref2-calls []))
 
           (reset! show-ref1 false)
 
-          ;; When ref changes, old ref should be called with nil, new ref with element
-          (th/assert-equal @ref1-mount-calls 1)
-          (th/assert-equal @ref1-unmount-calls 1)
-          (th/assert-equal @ref2-mount-calls 1)
-          (th/assert-equal @ref2-unmount-calls 0))))
+          (let [div-el (-> container .-firstChild)]
+            (th/assert-equal (count @ref1-calls) 2)
+            (th/assert-equal (first @ref1-calls) div-el)
+            (th/assert-equal (second @ref1-calls) nil)
+            (th/assert-equal @ref2-calls [div-el])))))
 
     (it "should null and re-invoke refs when swapping component root element type"
       (fn []
@@ -94,4 +91,32 @@
             (th/assert-equal (.-nodeName div-mount) "DIV")
             (th/assert-equal div-unmount nil)
             (th/assert-not-nil span-mount)
-            (th/assert-equal (.-nodeName span-mount) "SPAN"))))))
+            (th/assert-equal (.-nodeName span-mount) "SPAN")))))
+
+    (it "should have a consistent order"
+      (fn []
+        (let [events (atom [])
+              ref-fn (fn [tag-name]
+                       (fn [el]
+                         (swap! events conj (if el tag-name (str "null-" tag-name)))))
+              app (fn []
+                    [:div {:ref (ref-fn "DIV")}
+                     [:h1 {:ref (ref-fn "H1")} "hi"]])
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+
+          (r/render [app] container)
+          (r/render [app] container)
+
+          ;; Expected Preact behavior:
+          ;; 1. Mount: H1, DIV (bottom-up)
+          ;; 2. Update -> Unmount: null-DIV, null-H1 (top-down)
+          ;; 3. Update -> Mount: H1, DIV (bottom-up)
+          ;; Total: ["H1", "DIV", "null-DIV", "null-H1", "H1", "DIV"]
+          ;;
+          ;; Current Eucalypt behavior:
+          ;; 1. Mount: DIV, H1 (top-down)
+          ;; 2. Update -> Unmount: null-DIV, null-H1 (top-down)
+          ;; 3. Update -> Mount: DIV, H1 (top-down)
+          ;; Total: ["DIV", "H1", "null-DIV", "null-H1", "DIV", "H1"]
+          (th/assert-equal @events ["H1" "DIV" "null-DIV" "null-H1" "H1" "DIV"])))))
