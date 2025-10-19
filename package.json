@@ -10,7 +10,7 @@
     "analyze": "ANALYZE=1 npm run build",
     "watch": "npm run dev",
     "dev": "npm run demo:dev",
-    "test": "npm run test:compile && vitest run --config src/test/vitest.config.js",
+    "test": "pnpm clean; npm run test:compile && vitest run --config src/test/vitest.config.js",
     "test:ci": "npm run test:compile && vitest run --reporter=default --reporter=json --outputFile=./test-results.json --config src/test/vitest.config.js",
     "coverage": "npm run test:compile && vitest run --coverage --config src/test/vitest.config.js",
     "demo:build": "cd src/demo && squint compile && vite build && SRC=small.html vite build && SRC=games.html vite build",
