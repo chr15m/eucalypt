@@ -24,7 +24,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "concurrently": "8.2.2",
     "happy-dom": "14.12.3",
-    "squint-cljs": "0.9.169",
+    "squint-cljs": "0.9.174",
     "vite": "7.1.2",
     "vite-bundle-analyzer": "^1.2.3",
     "vite-plugin-singlefile": "2.3.0",

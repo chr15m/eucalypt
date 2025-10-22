@@ -18,20 +18,20 @@ importers:
         specifier: 14.12.3
         version: 14.12.3
       squint-cljs:
-        specifier: 0.9.169
-        version: 0.9.169
+        specifier: 0.9.174
+        version: 0.9.174
       vite:
         specifier: 7.1.2
-        version: 7.1.2(terser@5.44.0)
+        version: 7.1.2(@types/node@20.19.23)(terser@5.44.0)
       vite-bundle-analyzer:
         specifier: ^1.2.3
         version: 1.2.3
       vite-plugin-singlefile:
         specifier: 2.3.0
-        version: 2.3.0(rollup@4.52.0)(vite@7.1.2(terser@5.44.0))
+        version: 2.3.0(rollup@4.52.0)(vite@7.1.2(@types/node@20.19.23)(terser@5.44.0))
       vitest:
         specifier: 3.2.4
-        version: 3.2.4(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0)
+        version: 3.2.4(@types/node@20.19.23)(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0)
 
 packages:
 
@@ -369,6 +369,9 @@ packages:
 
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
+
+  '@types/node@20.19.23':
+    resolution: {integrity: sha512-yIdlVVVHXpmqRhtyovZAcSy0MiPcYWGkoO4CGe/+jpP0hmNuihm4XhHbADpK++MsiLHP5MVlv+bcgdF99kSiFQ==}
 
   '@vitest/coverage-v8@3.2.4':
     resolution: {integrity: sha512-EyF9SXU6kS5Ku/U82E259WSnvg6c8KTjppUncuNdm5QHpe17mwREHnjDzozC8x9MZ0xfBUFSaLkRv4TMA75ALQ==}
@@ -760,8 +763,8 @@ packages:
   spawn-command@0.0.2:
     resolution: {integrity: sha512-zC8zGoGkmc8J9ndvml8Xksr1Amk9qBujgbF0JAIWO7kXr43w0h/0GJNM/Vustixu+YE8N/MTrQ7N31FvHUACxQ==}
 
-  squint-cljs@0.9.169:
-    resolution: {integrity: sha512-12+QyXstbCO8sdZ/lgNNshknNZasS3Ubu8C30W7OHqFbbSShZDelyldCIRWjE9V4iBT8OXYFQjw24TkxjzwOkg==}
+  squint-cljs@0.9.174:
+    resolution: {integrity: sha512-lYPc9KhxN3TL82YKPcLtKgcR/wJ0JfbsF2D/3uRw1XPAXoOhefNL8zciA4mTc16fZwPSvDiB/tzS8Ic1vbZ4pA==}
     hasBin: true
 
   stackback@0.0.2:
@@ -842,6 +845,9 @@ packages:
 
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
+
+  undici-types@6.21.0:
+    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
   vite-bundle-analyzer@1.2.3:
     resolution: {integrity: sha512-8nhwDGHWMKKgg6oegAOpDgTT7/yzTVzeYzLF4y8WBJoYu9gO7h29UpHiQnXD2rAvfQzDy5Wqe/Za5cgqhnxi5g==}
@@ -1178,6 +1184,11 @@ snapshots:
 
   '@types/estree@1.0.8': {}
 
+  '@types/node@20.19.23':
+    dependencies:
+      undici-types: 6.21.0
+    optional: true
+
   '@vitest/coverage-v8@3.2.4(vitest@3.2.4)':
     dependencies:
       '@ampproject/remapping': 2.3.0
@@ -1193,7 +1204,7 @@ snapshots:
       std-env: 3.9.0
       test-exclude: 7.0.1
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0)
+      vitest: 3.2.4(@types/node@20.19.23)(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -1205,13 +1216,13 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 2.0.0
 
-  '@vitest/mocker@3.2.4(vite@7.1.2(terser@5.44.0))':
+  '@vitest/mocker@3.2.4(vite@7.1.2(@types/node@20.19.23)(terser@5.44.0))':
     dependencies:
       '@vitest/spy': 3.2.4
       estree-walker: 3.0.3
       magic-string: 0.30.19
     optionalDependencies:
-      vite: 7.1.2(terser@5.44.0)
+      vite: 7.1.2(@types/node@20.19.23)(terser@5.44.0)
 
   '@vitest/pretty-format@3.2.4':
     dependencies:
@@ -1242,7 +1253,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 2.0.0
-      vitest: 3.2.4(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0)
+      vitest: 3.2.4(@types/node@20.19.23)(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0)
     optional: true
 
   '@vitest/utils@3.2.4':
@@ -1607,7 +1618,7 @@ snapshots:
 
   spawn-command@0.0.2: {}
 
-  squint-cljs@0.9.169:
+  squint-cljs@0.9.174:
     dependencies:
       chokidar: 4.0.3
 
@@ -1687,15 +1698,18 @@ snapshots:
 
   tslib@2.8.1: {}
 
+  undici-types@6.21.0:
+    optional: true
+
   vite-bundle-analyzer@1.2.3: {}
 
-  vite-node@3.2.4(terser@5.44.0):
+  vite-node@3.2.4(@types/node@20.19.23)(terser@5.44.0):
     dependencies:
       cac: 6.7.14
       debug: 4.4.3
       es-module-lexer: 1.7.0
       pathe: 2.0.3
-      vite: 7.1.2(terser@5.44.0)
+      vite: 7.1.2(@types/node@20.19.23)(terser@5.44.0)
     transitivePeerDependencies:
       - '@types/node'
       - jiti
@@ -1710,13 +1724,13 @@ snapshots:
       - tsx
       - yaml
 
-  vite-plugin-singlefile@2.3.0(rollup@4.52.0)(vite@7.1.2(terser@5.44.0)):
+  vite-plugin-singlefile@2.3.0(rollup@4.52.0)(vite@7.1.2(@types/node@20.19.23)(terser@5.44.0)):
     dependencies:
       micromatch: 4.0.8
       rollup: 4.52.0
-      vite: 7.1.2(terser@5.44.0)
+      vite: 7.1.2(@types/node@20.19.23)(terser@5.44.0)
 
-  vite@7.1.2(terser@5.44.0):
+  vite@7.1.2(@types/node@20.19.23)(terser@5.44.0):
     dependencies:
       esbuild: 0.25.10
       fdir: 6.5.0(picomatch@4.0.3)
@@ -1725,14 +1739,15 @@ snapshots:
       rollup: 4.52.0
       tinyglobby: 0.2.15
     optionalDependencies:
+      '@types/node': 20.19.23
       fsevents: 2.3.3
       terser: 5.44.0
 
-  vitest@3.2.4(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0):
+  vitest@3.2.4(@types/node@20.19.23)(@vitest/ui@3.2.4)(happy-dom@14.12.3)(terser@5.44.0):
     dependencies:
       '@types/chai': 5.2.2
       '@vitest/expect': 3.2.4
-      '@vitest/mocker': 3.2.4(vite@7.1.2(terser@5.44.0))
+      '@vitest/mocker': 3.2.4(vite@7.1.2(@types/node@20.19.23)(terser@5.44.0))
       '@vitest/pretty-format': 3.2.4
       '@vitest/runner': 3.2.4
       '@vitest/snapshot': 3.2.4
@@ -1750,10 +1765,11 @@ snapshots:
       tinyglobby: 0.2.15
       tinypool: 1.1.1
       tinyrainbow: 2.0.0
-      vite: 7.1.2(terser@5.44.0)
-      vite-node: 3.2.4(terser@5.44.0)
+      vite: 7.1.2(@types/node@20.19.23)(terser@5.44.0)
+      vite-node: 3.2.4(@types/node@20.19.23)(terser@5.44.0)
       why-is-node-running: 2.3.0
     optionalDependencies:
+      '@types/node': 20.19.23
       '@vitest/ui': 3.2.4(vitest@3.2.4)
       happy-dom: 14.12.3
     transitivePeerDependencies:
