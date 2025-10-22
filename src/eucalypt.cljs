@@ -873,7 +873,7 @@
                   (update-mounted-info! runtime new-normalized new-hiccup-rendered dom container render-state))
                 (let [new-dom (patch hiccup new-hiccup-rendered dom render-state)]
                   (update-mounted-info! runtime new-normalized new-hiccup-rendered new-dom container render-state)
-                  (when (not= dom new-dom)
+                  (when (not (identical? dom new-dom))
                     (.replaceWith dom new-dom)
                     (swap! runtime assoc :component-instances (empty-js-map)))))
               (swap! roots assoc container (assoc old-root-info :component new-normalized))
