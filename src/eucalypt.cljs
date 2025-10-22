@@ -483,7 +483,7 @@
                   (reduce (fn [acc child]
                             (let [processed (fully-render-hiccup child render-state)]
                               (cond
-                                (nil? processed) acc
+                                (or (nil? processed) (boolean? processed)) acc
 
                                 ;; Unpack fragments
                                 (and (vector? processed) (= :<> (aget processed 0)))
