@@ -649,7 +649,7 @@
                      :container container
                      :base-namespace base-ns
                      :runtime runtime})
-                  (when (not= dom new-dom)
+                  (when (not (identical? dom new-dom))
                     (aset container "innerHTML" "")
                     (.appendChild container new-dom)))))
             (finally
