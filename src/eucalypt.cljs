@@ -196,13 +196,13 @@
             (let [key (watcher-entry-key watcher)]
               (swap! watchers-atom
                      (fn [state]
-                       (dissoc (or state (empty-js-map)) key))))))))
+                       (dissoc (or state (empty-js-map)) key)))))))
       (swap! runtime
              (fn [state]
                (let [subs (or (:subscriptions state) (empty-js-map))
                      new-subs (dissoc subs normalized-component)]
                  (assoc state :subscriptions new-subs)))))
-    nil)
+    nil))
 
 (defn- remove-all-runtime-watchers! [runtime]
   (when runtime
@@ -858,28 +858,35 @@
       ;; Update logic
       (let [old-normalized (:component old-root-info)]
         (remove-watchers-for-component runtime old-normalized)
-        (when-let [mounted-info (runtime-mounted-info runtime old-normalized)]
+        (if-let [mounted-info (runtime-mounted-info runtime old-normalized)]
           (let [{:keys [hiccup dom]} mounted-info]
-            (reset-positional-counter! render-state)
-            (let [new-hiccup-unrendered (with-watcher-bound
-                                          new-normalized
-                                          render-state
-                                          (fn [] (component->hiccup new-normalized)))
-                  _ (reset-positional-counter! render-state)
-                  new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
-              (if (and (vector? hiccup) (= :<> (first hiccup)))
-                (do
-                  (patch-children hiccup new-hiccup-rendered container render-state)
-                  (update-mounted-info! runtime new-normalized new-hiccup-rendered dom container render-state))
-                (let [new-dom (patch hiccup new-hiccup-rendered dom render-state)]
-                  (update-mounted-info! runtime new-normalized new-hiccup-rendered new-dom container render-state)
-                  (when (not (identical? dom new-dom))
-                    (.replaceWith dom new-dom)
-                    (swap! runtime assoc :component-instances (empty-js-map)))))
-              (swap! roots assoc container (assoc old-root-info :component new-normalized))
-              (when (not (identical? old-normalized new-normalized))
-                (swap! runtime update :mounted-components dissoc old-normalized))
-              (flush-ref-queue! runtime)))))
+            (if (and dom (not (.-parentNode dom)))
+              ;; The old DOM node is detached, so we must re-render from scratch.
+              (do-render new-normalized container render-state)
+              ;; The old DOM node is still in the document, so we can patch it.
+              (do
+                (reset-positional-counter! render-state)
+                (let [new-hiccup-unrendered (with-watcher-bound
+                                              new-normalized
+                                              render-state
+                                              (fn [] (component->hiccup new-normalized)))
+                      _ (reset-positional-counter! render-state)
+                      new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
+                  (if (and (vector? hiccup) (= :<> (first hiccup)))
+                    (do
+                      (patch-children hiccup new-hiccup-rendered container render-state)
+                      (update-mounted-info! runtime new-normalized new-hiccup-rendered dom container render-state))
+                    (let [new-dom (patch hiccup new-hiccup-rendered dom render-state)]
+                      (update-mounted-info! runtime new-normalized new-hiccup-rendered new-dom container render-state)
+                      (when (not (identical? dom new-dom))
+                        (.replaceWith dom new-dom)
+                        (swap! runtime assoc :component-instances (empty-js-map)))))
+                  (swap! roots assoc container (assoc old-root-info :component new-normalized))
+                  (when (not (identical? old-normalized new-normalized))
+                    (swap! runtime update :mounted-components dissoc old-normalized))
+                  (flush-ref-queue! runtime)))))
+          ;; If there's no mounted-info, we must render from scratch.
+          (do-render new-normalized container render-state)))
       ;; New render logic
       (do
         (swap! render-state assoc :normalized-component new-normalized)
