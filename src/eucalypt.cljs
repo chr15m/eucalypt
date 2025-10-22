@@ -714,7 +714,7 @@
                    (do
                      (reset-positional-counter! render-state)
                      (let [new-dom (patch hiccup new-hiccup-rendered dom render-state)]
-                       (when (not= dom new-dom)
+                       (when (not (identical? dom new-dom))
                          (aset container "innerHTML" "")
                          (.appendChild container new-dom))
                        new-dom)))}))
