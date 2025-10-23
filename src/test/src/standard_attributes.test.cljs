@@ -139,4 +139,20 @@
           (r/render [:div {:aria-checked "false"}] container)
           (let [test-element (.querySelector container "div")]
             (th/assert-equal (.hasAttribute test-element "aria-checked") true)
-            (th/assert-equal (.getAttribute test-element "aria-checked") "false")))))))
+            (th/assert-equal (.getAttribute test-element "aria-checked") "false")))))
+
+    (it "should unset href if nil or undefined"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:pre
+                     [:a {:href "#"} "href=\"#\""]
+                     [:a {:href js/undefined} "href=\"undefined\""]
+                     [:a {:href nil} "href=\"null\""]
+                     [:a {:href ""} "href=\"''\""]]
+                    container)
+          (let [links (.querySelectorAll container "a")]
+            (th/assert-equal (.hasAttribute (aget links 0) "href") true)
+            (th/assert-equal (.hasAttribute (aget links 1) "href") false)
+            (th/assert-equal (.hasAttribute (aget links 2) "href") false)
+            (th/assert-equal (.hasAttribute (aget links 3) "href") true)))))))
