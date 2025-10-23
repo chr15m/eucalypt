@@ -45,4 +45,20 @@
 
             ;; After clicking clear, color should be empty again
             (.click clear-btn)
-            (th/assert-equal (.. test-element -style -color) "")))))))
+            (th/assert-equal (.. test-element -style -color) "")))))
+
+    (it "should apply style as String"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:style "top: 5px; position: relative;"}] container)
+          (th/assert-equal (.. container -firstChild -style -cssText) "top: 5px; position: relative;"))))
+
+    (it "should support opacity 0"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:style {:opacity 1}}] container)
+          (th/assert-equal (.. container -firstChild -style -opacity) "1")
+          (r/render [:div {:style {:opacity 0}}] container)
+          (th/assert-equal (.. container -firstChild -style -opacity) "0"))))))
