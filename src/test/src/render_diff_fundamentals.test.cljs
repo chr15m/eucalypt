@@ -34,6 +34,38 @@
             (th/assert-equal (identical? (-> container .-firstChild .-firstChild) b-el) true)
             (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true)))))
 
+    (it "should update in-place keyed DOM nodes"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:ul
+                     ^{:key "a"} [:li "a"]
+                     ^{:key "b"} [:li "b"]
+                     ^{:key "c"} [:li "c"]]
+                    container)
+          (let [li-a (-> container .-firstChild (.querySelector "li:nth-child(1)"))
+                li-b (-> container .-firstChild (.querySelector "li:nth-child(2)"))
+                li-c (-> container .-firstChild (.querySelector "li:nth-child(3)"))]
+            (th/assert-equal (.-textContent li-a) "a")
+            (th/assert-equal (.-textContent li-b) "b")
+            (th/assert-equal (.-textContent li-c) "c")
+
+            (r/render [:ul
+                       ^{:key "a"} [:li "x"]
+                       ^{:key "b"} [:li "y"]
+                       ^{:key "c"} [:li "z"]]
+                      container)
+
+            (let [li-a-after (-> container .-firstChild (.querySelector "li:nth-child(1)"))
+                  li-b-after (-> container .-firstChild (.querySelector "li:nth-child(2)"))
+                  li-c-after (-> container .-firstChild (.querySelector "li:nth-child(3)"))]
+              (th/assert-equal (identical? li-a li-a-after) true)
+              (th/assert-equal (identical? li-b li-b-after) true)
+              (th/assert-equal (identical? li-c li-c-after) true)
+              (th/assert-equal (.-textContent li-a-after) "x")
+              (th/assert-equal (.-textContent li-b-after) "y")
+              (th/assert-equal (.-textContent li-c-after) "z"))))))
+
     (it "should not lead to stale DOM nodes"
       (fn []
         (let [state (r/atom 0)
