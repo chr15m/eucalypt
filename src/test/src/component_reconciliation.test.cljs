@@ -144,3 +144,28 @@
                   [:div "explicit"])]
           (r/render [explicit-child-component "ignored"] js/document.body)
           (th/assert-equal (.-innerHTML js/document.body) "<div>explicit</div>"))))))
+
+(describe "Component initialization"
+  (fn []
+    (it "should not crash when setting state in constructor"
+        (fn []
+          (let [state-in-constructor (atom nil)]
+            (letfn [(foo []
+                      (let [local-state (r/atom {:preact "awesome"})]
+                        (reset! state-in-constructor @local-state)
+                        (fn []
+                          [:div (pr-str @local-state)])))]
+              (r/render [foo] js/document.body)
+              (th/assert-equal @state-in-constructor {:preact "awesome"})))))
+
+    (it "should initialize props but not state in Component constructor"
+        (fn []
+          (let [captured-initial-state (atom nil)]
+            (letfn [(foo [_props]
+                      (let [local-state (r/atom nil)]
+                        (reset! captured-initial-state @local-state)
+                        (fn [props]
+                          [:div (pr-str props)])))]
+              (r/render [foo {:bar "baz"}] js/document.body)
+              (th/assert-equal @captured-initial-state nil)
+              (th/assert-equal (.-innerHTML js/document.body) "<div>{\"bar\":\"baz\"}</div>")))))))
