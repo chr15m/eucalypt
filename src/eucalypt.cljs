@@ -719,17 +719,14 @@
 (defn- ratom [initial-value]
   (let [a (core-atom initial-value)
         orig-deref (aget a "_deref")
-        orig-reset_BANG_ (aget a "_reset_BANG_")]
-    (aset a "watchers" (core-atom (empty-js-map)))
-    (aset a "cursors" (core-atom #{}))
+        orig-reset_BANG_ (aget a "_reset_BANG_")
+        watchers (core-atom (empty-js-map))]
     (aset a "_deref" (fn []
-                       (ensure-watcher-registered! a (aget a "watchers"))
+                       (ensure-watcher-registered! a watchers)
                        (.call orig-deref a)))
     (aset a "_reset_BANG_" (fn [new-val]
                              (let [res (.call orig-reset_BANG_ a new-val)]
-                               (notify-watchers (aget a "watchers"))
-                               (doseq [c @(aget a "cursors")]
-                                 (notify-watchers (aget c "watchers")))
+                               (notify-watchers watchers)
                                res)))
     a))
 
