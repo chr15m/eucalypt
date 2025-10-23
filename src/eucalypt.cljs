@@ -274,14 +274,6 @@
     (aset element "---ref-cleanup" nil)
     (aset element "---ref-fn" nil)))
 
-(defn- queue-ref-mount! [render-state new-ref element]
-  (when new-ref
-    (when element
-      (aset element "---ref-cleanup" nil))
-    (when-let [runtime-atom (:runtime @render-state)]
-      (when-let [ref-queue-atom (:ref-queue @runtime-atom)]
-        (swap! ref-queue-atom conj [new-ref element])))))
-
 (defn- flush-ref-queue! [runtime]
   (when-let [ref-queue-atom (:ref-queue @runtime)]
     (let [refs-to-process @ref-queue-atom]
