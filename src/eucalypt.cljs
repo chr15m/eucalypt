@@ -234,10 +234,14 @@
   (let [event-name (get-event-name event-key (.-tagName element))]
     (aset element event-name (if (fn? handler) handler nil))))
 
-(defn- apply-style! [element style-map]
-  (if (not-empty style-map)
-    (.setAttribute element "style" (style-map->css-str style-map))
-    (.removeAttribute element "style")))
+(defn- apply-style! [element style-val]
+  (let [css-text (if (string? style-val)
+                   style-val
+                   (when (map? style-val)
+                     (style-map->css-str style-val)))]
+    (if (not-empty css-text)
+      (.setAttribute element "style" css-text)
+      (.removeAttribute element "style"))))
 
 (defn- apply-class! [element class-val]
   (let [normalized (if (and (sequential? class-val) (not (string? class-val)))
