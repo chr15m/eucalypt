@@ -249,6 +249,35 @@
 
 (defn- queue-ref-mount! [render-state new-ref element]
   (when new-ref
+    (when element
+      (aset element "---ref-cleanup" nil))
+    (when-let [runtime-atom (:runtime @render-state)]
+      (when-let [ref-queue-atom (:ref-queue @runtime-atom)]
+        (swap! ref-queue-atom conj [new-ref element])))))
+
+(defn- store-ref-cleanup! [element cleanup]
+  (when element
+    (if (fn? cleanup)
+      (aset element "---ref-cleanup" cleanup)
+      (aset element "---ref-cleanup" nil))))
+
+(defn- call-ref-cleanup! [element]
+  (when element
+    (let [cleanup (aget element "---ref-cleanup")
+          ref-fn (aget element "---ref-fn")]
+      (cond
+        (fn? cleanup)
+        (cleanup)
+
+        (fn? ref-fn)
+        (ref-fn nil)))
+    (aset element "---ref-cleanup" nil)
+    (aset element "---ref-fn" nil)))
+
+(defn- queue-ref-mount! [render-state new-ref element]
+  (when new-ref
+    (when element
+      (aset element "---ref-cleanup" nil))
     (when-let [runtime-atom (:runtime @render-state)]
       (when-let [ref-queue-atom (:ref-queue @runtime-atom)]
         (swap! ref-queue-atom conj [new-ref element])))))
@@ -259,7 +288,8 @@
       (when (seq refs-to-process)
         (reset! ref-queue-atom [])
         (doseq [[ref-fn value] refs-to-process]
-          (ref-fn value))))))
+          (let [cleanup (ref-fn value)]
+            (store-ref-cleanup! value cleanup)))))))
 
 (defn- set-or-remove-attribute! [element k v]
   (cond
@@ -336,6 +366,7 @@
     (let [new-ref (:ref attrs)]
       (when new-ref
         (aset element "---ref-fn" new-ref)
+        (aset element "---ref-cleanup" nil)
         (queue-ref-mount! render-state new-ref element)))
     (when (some? value)
       (if (and (= "SELECT" (.-tagName element)) (.-multiple element))
@@ -502,9 +533,7 @@
 
 (defn- unmount-node-and-children [node]
   (when node
-    (when-let [ref-fn (aget node "---ref-fn")]
-      (ref-fn nil)
-      (aset node "---ref-fn" nil))
+    (call-ref-cleanup! node)
     (doseq [child (vec (aget node "childNodes"))]
       (unmount-node-and-children child))))
 
@@ -651,9 +680,9 @@
             (let [old-ref (:ref (get-attrs hiccup-a-realized))
                   new-ref (:ref (get-attrs hiccup-b-realized))]
               (when (not (= old-ref new-ref))
-                (when old-ref
-                  (old-ref nil))
-                (queue-ref-mount! render-state new-ref dom-a)
+                (call-ref-cleanup! dom-a)
+                (when new-ref
+                  (queue-ref-mount! render-state new-ref dom-a))
                 (aset dom-a "---ref-fn" new-ref)))
             (let [a-attrs (get-attrs hiccup-a-realized)
                   b-attrs (get-attrs hiccup-b-realized)
