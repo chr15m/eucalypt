@@ -16,3 +16,6 @@
 
 (defn assert-not-nil [actual]
   (-> (expect actual) (.not.toBeNull)))
+
+(defn rand []
+  (js/Math.random))

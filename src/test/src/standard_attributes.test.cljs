@@ -112,4 +112,31 @@
 
             ;; After clicking again, data-test should be removed
             (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "data-test") false)))))))
+            (th/assert-equal (.hasAttribute test-element "data-test") false)))))
+
+    (it "should set data attributes to 'false' string for false boolean value"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:data-test false}] container)
+          (let [test-element (.querySelector container "div")]
+            (th/assert-equal (.hasAttribute test-element "data-test") true)
+            (th/assert-equal (.getAttribute test-element "data-test") "false")))))
+
+    (it "should set aria attributes to 'false' string for false boolean value"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:aria-checked false}] container)
+          (let [test-element (.querySelector container "div")]
+            (th/assert-equal (.hasAttribute test-element "aria-checked") true)
+            (th/assert-equal (.getAttribute test-element "aria-checked") "false")))))
+
+    (it "should support false string aria-* attributes"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:aria-checked "false"}] container)
+          (let [test-element (.querySelector container "div")]
+            (th/assert-equal (.hasAttribute test-element "aria-checked") true)
+            (th/assert-equal (.getAttribute test-element "aria-checked") "false")))))))

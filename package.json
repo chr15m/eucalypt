@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "npm run demo:build; npm run dist:build",
-    "clean": "find . -name '*.mjs' -not -path './node_modules/*' -delete",
+    "clean": "find src -name '*.mjs' -not -path './node_modules/*' -delete",
     "analyze": "ANALYZE=1 npm run build",
     "watch": "npm run dev",
     "dev": "npm run demo:dev",
