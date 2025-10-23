@@ -41,7 +41,7 @@
           ;; Toggle to unmount
           (.click (.querySelector container "#toggle"))
 
-          (th/assert-equal @ref-val nil)))))
+          (th/assert-equal @ref-val nil))))
 
     (it "should not call stale refs"
       (fn []
@@ -113,4 +113,40 @@
           ;; 2. Update -> Unmount: null-H1, null-DIV (bottom-up)
           ;; 3. Update -> Mount: H1, DIV (bottom-up)
           ;; Total: ["H1", "DIV", "null-H1", "null-DIV", "H1", "DIV"]
-          (th/assert-equal @events ["H1" "DIV" "null-H1" "null-DIV" "H1" "DIV"])))))
+          (th/assert-equal @events ["H1" "DIV" "null-H1" "null-DIV" "H1" "DIV"]))))
+
+    (it "should call ref after children are rendered"
+      (fn []
+        (let [ref-called-with (atom nil)
+              child-mounted (atom false)
+              parent (fn []
+                       [:div {:ref #(reset! ref-called-with %)}
+                        [:span {:ref (fn [el]
+                                       (when el
+                                         (reset! child-mounted true)))}
+                         "child"]])
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [parent] container)
+          (th/assert-equal @child-mounted true)
+          (th/assert-not-nil @ref-called-with)
+          (th/assert-equal (.-tagName @ref-called-with) "DIV"))))
+
+    (it "should correctly set nested child refs"
+      (fn []
+        (let [ref-val (atom nil)
+              app (fn [open?]
+                    (if open?
+                      [:div {:class "open" :key "open"}
+                       [:div {:ref #(reset! ref-val %)}]]
+                      [:div {:class "closed" :key "closed"}
+                       [:div {:ref #(reset! ref-val %)}]]))
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+
+          (r/render [app false] container)
+          (th/assert-not-nil @ref-val)
+
+          (reset! ref-val nil)
+          (r/render [app true] container)
+          (th/assert-not-nil @ref-val))))))
