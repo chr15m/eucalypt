@@ -117,20 +117,15 @@
 
     (it "should call ref after children are rendered"
       (fn []
-        (let [ref-called-with (atom nil)
-              child-mounted (atom false)
+        (let [events (atom [])
               parent (fn []
-                       [:div {:ref #(reset! ref-called-with %)}
-                        [:span {:ref (fn [el]
-                                       (when el
-                                         (reset! child-mounted true)))}
+                       [:div {:ref (fn [el] (when el (swap! events conj :parent)))}
+                        [:span {:ref (fn [el] (when el (swap! events conj :child)))}
                          "child"]])
               container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [parent] container)
-          (th/assert-equal @child-mounted true)
-          (th/assert-not-nil @ref-called-with)
-          (th/assert-equal (.-tagName @ref-called-with) "DIV"))))
+          (th/assert-equal @events [:child :parent]))))
 
     (it "should correctly set nested child refs"
       (fn []
