@@ -372,10 +372,34 @@
         (aset element "value" value)))
     element))
 
-(defn- component->hiccup [normalized-component]
-  (let [[config & params] normalized-component
-        reagent-render (:reagent-render config)]
-    (apply reagent-render params)))
+(defn- component->hiccup [normalized-component render-state]
+  (let [instance (first normalized-component)
+        params (rest normalized-component)]
+    (if (:needs-initialization instance)
+      (let [{:keys [runtime]} @render-state
+            outer-render-fn (:reagent-render instance)
+            result (apply outer-render-fn params)
+            is-form-2? (fn? result)]
+        ;; MUTATE THE INSTANCE
+        (js-delete instance "needs-initialization")
+        (when is-form-2?
+          (aset instance "reagent-render" result))
+        ;; UPDATE CACHE FOR FORM-1
+        (when-not is-form-2?
+          (update-component-cache! runtime
+                                   (fn [cache]
+                                     (let [a-fn (:component-fn instance)
+                                           instance-key (:instance-key instance)
+                                           fn-cache (get cache a-fn)]
+                                       ;; Move from instance-key to :form-1-instance
+                                       (if (and fn-cache (get fn-cache instance-key))
+                                         (-> cache
+                                             (assoc-in [a-fn :form-1-instance] {:instance instance})
+                                             (update-in [a-fn] dissoc instance-key))
+                                         cache)))))
+        (if is-form-2? (apply result params) result))
+      (let [reagent-render (:reagent-render instance)]
+        (apply reagent-render params)))))
 
 (defn- fetch-or-create-component-instance [a-fn params-vec component-meta render-state]
   (let [{:keys [runtime]} (when render-state @render-state)
@@ -389,14 +413,14 @@
         cached-instance (or (get-in fn-cache [instance-key :instance])
                             (get-in fn-cache [:form-1-instance :instance]))]
     (or cached-instance
-        (let [func-or-hiccup (apply a-fn params-vec)
-              [instance cache-key type] (if (fn? func-or-hiccup)
-                                          [{:reagent-render func-or-hiccup} instance-key :form-2]
-                                          [{:reagent-render a-fn} :form-1-instance :form-1])]
+        (let [instance {:reagent-render a-fn
+                        :component-fn a-fn
+                        :instance-key instance-key
+                        :needs-initialization true}]
           (update-component-cache! runtime
                                    (fn [cache]
                                      (let [fn-cache (or (get cache a-fn) (empty-js-map))
-                                           new-fn-cache (assoc fn-cache cache-key {:type type :instance instance})]
+                                           new-fn-cache (assoc fn-cache instance-key {:instance instance})]
                                        (assoc cache a-fn new-fn-cache))))
           instance))))
 
@@ -423,7 +447,7 @@
   (loop [hiccup' hiccup]
     (cond
       (and (vector? hiccup') (fn? (first hiccup')))
-      (recur (component->hiccup (normalize-component hiccup' render-state)))
+      (recur (component->hiccup (normalize-component hiccup' render-state) render-state))
 
       (and (map? hiccup') (:reagent-render hiccup'))
       (recur ((:reagent-render hiccup')))
@@ -725,7 +749,7 @@
             (let [new-hiccup-unrendered (with-watcher-bound
                                           normalized-component
                                           render-state
-                                          (fn [] (component->hiccup normalized-component)))
+                                          (fn [] (component->hiccup normalized-component render-state)))
                   _ (reset-positional-counter! render-state)
                   new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)
                   base-ns (:base-namespace @render-state)]
@@ -770,9 +794,7 @@
     normalized-component
     render-state
     (fn []
-      (let [reagent-render (-> normalized-component first :reagent-render)
-            params (rest normalized-component)
-            hiccup (apply reagent-render params)
+      (let [hiccup (component->hiccup normalized-component render-state)
             base-ns (:base-namespace @render-state)
             dom (hiccup->dom hiccup base-ns render-state)]
         [hiccup dom]))))
@@ -904,7 +926,7 @@
                 (let [new-hiccup-unrendered (with-watcher-bound
                                               new-normalized
                                               render-state
-                                              (fn [] (component->hiccup new-normalized)))
+                                              (fn [] (component->hiccup new-normalized render-state)))
                       _ (reset-positional-counter! render-state)
                       new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
                   (if is-old-fragment?
