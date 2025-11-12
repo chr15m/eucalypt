@@ -401,7 +401,7 @@
       (let [reagent-render (:reagent-render instance)]
         (apply reagent-render params)))))
 
-(defn- fetch-or-create-component-instance [a-fn params-vec component-meta render-state]
+(defn- fetch-or-create-component-instance [a-fn _params-vec component-meta render-state]
   (let [{:keys [runtime]} (when render-state @render-state)
         component-cache (runtime-component-cache runtime)
         fn-cache (when component-cache (get component-cache a-fn))
