@@ -15,8 +15,9 @@
 (defn list-component []
   [:ul
    (for [item @list-data]
-     ^{:key item}
-     [:li item])])
+     (with-meta
+       [:li item]
+       {:key item}))])
 
 (defn move [v from to]
   (let [item (nth v from)
@@ -101,7 +102,7 @@
 
 ;;; --- Stateful list reordering ---
 
-(defn stateful-item [id]
+(defn stateful-item []
   (let [counter (r/atom 0)]
     (fn [id]
       [:li {:id (str "item-" id)}
@@ -147,3 +148,156 @@
             (let [items (.querySelectorAll container "li")]
               (th/assert-equal (.-id (aget items 0)) "item-B")
               (th/assert-equal (.-id (aget items 1)) "item-A"))))))))
+
+;;; --- Keyed replacements and holes ---
+
+(def mounted-actions (atom []))
+
+(defn comp-with-lifecycle []
+  (fn [i]
+    [:div {:ref (fn [el]
+                  (when el
+                    (swap! mounted-actions conj (str "mounted " i))))}
+     "Hello"]))
+
+(def replacement-state (r/atom {:y "1"}))
+
+(defn keyed-replacement-app []
+  (let [y (:y @replacement-state)]
+    [:div
+     (with-meta [comp-with-lifecycle 1] {:key y})
+     false
+     [comp-with-lifecycle 2]
+     [comp-with-lifecycle 3]]))
+
+(describe "Keyed replacements"
+  (fn []
+    (it "should handle keyed replacements"
+      (fn []
+        (reset! mounted-actions [])
+        (reset! replacement-state {:y "1"})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [keyed-replacement-app] container)
+          (th/assert-equal @mounted-actions ["mounted 1" "mounted 2" "mounted 3"])
+
+          (reset! mounted-actions [])
+          (reset! replacement-state {:y "2"})
+          (th/assert-equal @mounted-actions ["mounted 1"]))))))
+
+(def hole-state (r/atom {:y "1"}))
+
+(defn hole-prepend-app []
+  (let [y (:y @hole-state)]
+    (if (= y "2")
+      [:div
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       (with-meta [comp-with-lifecycle 2] {:key 2})
+       (with-meta [comp-with-lifecycle 3] {:key 3})]
+      [:div
+       nil
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       (with-meta [comp-with-lifecycle 2] {:key 2})
+       (with-meta [comp-with-lifecycle 3] {:key 3})])))
+
+(describe "Hole prepend"
+  (fn []
+    (it "should handle hole prepend"
+      (fn []
+        (reset! mounted-actions [])
+        (reset! hole-state {:y "1"})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [hole-prepend-app] container)
+          (th/assert-equal @mounted-actions ["mounted 1" "mounted 2" "mounted 3"])
+
+          (reset! mounted-actions [])
+          (reset! hole-state {:y "2"})
+          (th/assert-equal @mounted-actions []))))))
+
+(defn hole-replace-app []
+  (let [y (:y @hole-state)]
+    (if (= y "1")
+      [:div
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       (with-meta [comp-with-lifecycle 2] {:key 2})
+       (with-meta [comp-with-lifecycle 3] {:key 3})]
+      [:div
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       nil
+       (with-meta [comp-with-lifecycle 3] {:key 3})])))
+
+(describe "Hole replace"
+  (fn []
+    (it "should handle hole replace"
+      (fn []
+        (reset! mounted-actions [])
+        (reset! hole-state {:y "1"})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [hole-replace-app] container)
+          (th/assert-equal @mounted-actions ["mounted 1" "mounted 2" "mounted 3"])
+
+          (reset! mounted-actions [])
+          (reset! hole-state {:y "2"})
+          (th/assert-equal @mounted-actions [])
+
+          (reset! mounted-actions [])
+          (reset! hole-state {:y "1"})
+          (th/assert-equal @mounted-actions ["mounted 2"]))))))
+
+(defn hole-insert-app []
+  (let [y (:y @hole-state)]
+    (if (= y "2")
+      [:div
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       (with-meta [comp-with-lifecycle 2] {:key 2})
+       (with-meta [comp-with-lifecycle 3] {:key 3})]
+      [:div
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       (with-meta [comp-with-lifecycle 2] {:key 2})
+       nil
+       (with-meta [comp-with-lifecycle 3] {:key 3})])))
+
+(describe "Hole insert"
+  (fn []
+    (it "should handle hole insert"
+      (fn []
+        (reset! mounted-actions [])
+        (reset! hole-state {:y "1"})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [hole-insert-app] container)
+          (th/assert-equal @mounted-actions ["mounted 1" "mounted 2" "mounted 3"])
+
+          (reset! mounted-actions [])
+          (reset! hole-state {:y "2"})
+          (th/assert-equal @mounted-actions []))))))
+
+(defn hole-append-app []
+  (let [y (:y @hole-state)]
+    (if (= y "2")
+      [:div
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       (with-meta [comp-with-lifecycle 2] {:key 2})
+       (with-meta [comp-with-lifecycle 3] {:key 3})]
+      [:div
+       (with-meta [comp-with-lifecycle 1] {:key 1})
+       (with-meta [comp-with-lifecycle 2] {:key 2})
+       (with-meta [comp-with-lifecycle 3] {:key 3})
+       nil])))
+
+(describe "Hole append"
+  (fn []
+    (it "should handle hole append"
+      (fn []
+        (reset! mounted-actions [])
+        (reset! hole-state {:y "1"})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [hole-append-app] container)
+          (th/assert-equal @mounted-actions ["mounted 1" "mounted 2" "mounted 3"])
+
+          (reset! mounted-actions [])
+          (reset! hole-state {:y "2"})
+          (th/assert-equal @mounted-actions []))))))
