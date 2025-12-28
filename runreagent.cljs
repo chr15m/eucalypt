@@ -1,17 +1,19 @@
 (ns runreagent
   (:require
     ["fs" :as fs]
+    ["process" :as process]
     ["happy-dom" :as hd]))
 
-(let [script (fs/readFileSync "reagent-update-script.cljs" "utf8")
+(defn eval-file [path]
+  (let [file-content (fs/readFileSync path "utf8")]
+    (js/eval.call js/globalThis file-content)))
+
+(let [script-path (last (aget process "argv"))
+      script (fs/readFileSync script-path "utf8")
       react-dom (js/require "react-dom")
       react (js/require "react")
       window (hd/Window.)
-      document (aget window "document")
-      scittle (fs/readFileSync
-                "node_modules/scittle/dist/scittle.js" "utf8")
-      scittle-reagent (fs/readFileSync
-                        "node_modules/scittle/dist/scittle.reagent.js" "utf8")]
+      document (aget window "document")]
   (aset js/globalThis "ReactDOM" react-dom)
   (aset js/globalThis "React" react)
   (aset js/globalThis "document" document)
@@ -19,8 +21,8 @@
   (let [app-div (doto (.createElement document "div")
                   (aset "id" "app"))]
     (-> document .-body (.appendChild app-div))
-    (js/eval.call js/globalThis scittle)
-    (js/eval.call js/globalThis scittle-reagent)
+    (eval-file "node_modules/scittle/dist/scittle.js")
+    (eval-file "node_modules/scittle/dist/scittle.reagent.js")
     (js/scittle.core.eval_string script)
     (-> document (.querySelector "button") (.click))
     (js/setTimeout
