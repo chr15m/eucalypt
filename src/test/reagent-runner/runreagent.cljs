@@ -8,6 +8,20 @@
   (let [file-content (fs/readFileSync path "utf8")]
     (js/eval.call js/globalThis file-content)))
 
+(defn add-cljs [document cljs]
+  (let [script-tag
+        (doto (.createElement document "script")
+          (aset "type" "application/x-scittle")
+          (aset "textContent" (pr-str cljs)))]
+    (-> document .-body (.appendChild script-tag))))
+
+(def alerty
+  '(js/console.log "yo")
+  #_ '(do
+     (ns alerty)
+     (js/console.log "yo")
+     (defn boing [x] (print "boing" x))))
+
 (let [script-path (last (aget process "argv"))
       script (fs/readFileSync script-path "utf8")
       react-dom (js/require "react-dom")
@@ -21,10 +35,13 @@
   (let [app-div (doto (.createElement document "div")
                   (aset "id" "app"))]
     (-> document .-body (.appendChild app-div))
+    (add-cljs document alerty)
     (eval-file "node_modules/scittle/dist/scittle.js")
     (eval-file "node_modules/scittle/dist/scittle.reagent.js")
     (js/scittle.core.eval_string script)
     (-> document (.querySelector "button") (.click))
     (js/setTimeout
       (fn [] (js/console.log (-> document .-body (.toString)))) 
-      0)))
+      0)
+    ;(js/scittle.core.eval_string "(boing 'yes)")
+    ))
