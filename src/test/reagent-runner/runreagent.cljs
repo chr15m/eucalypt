@@ -39,7 +39,9 @@
   ;; Load shims into Scittle environment
   (js/scittle.core.eval_string (read-file "src/test/reagent-runner/vitest-shim.cljs"))
   (js/scittle.core.eval_string (read-file "src/test/reagent-runner/eucalypt-shim.cljs"))
-  (js/scittle.core.eval_string (read-file "src/test/reagent-runner/helpers-shim.cljs"))
+  (js/scittle.core.eval_string (-> (read-file "src/test/src/helpers.cljs")
+                                    (.replace #"\[\"vitest\" :refer \[(.*?)\]\]"
+                                              "[vitest :refer [$1]]")))
 
   ;; Run the test file
   (js/scittle.core.eval_string test-script)

@@ -15,7 +15,7 @@
   (-> (expect actual) (.toEqual expected)))
 
 (defn assert-not-nil [actual]
-  (-> (expect actual) (.not.toBeNull)))
+  (-> (expect actual) .-not (.toBeNull)))
 
 (defn rand []
   (js/Math.random))
