@@ -1,4 +1,4 @@
-(ns games-fail-case-race.test
+(ns nested-ratoms-race.test
   (:require ["vitest" :refer [describe it afterEach]]
             [clojure.string :as str]
             [eucalypt :as r]
@@ -77,7 +77,7 @@
                      (reset! interval-id nil))))]
     (fn []
       [:div {:ref ref-fn}
-       [:pre {:class "timer-state"} (pr-str (:fail-tick @app-state))]
+       [:pre {:class "timer-state"} (str (or (:fail-tick @app-state) 0))]
        [:p "Mode B"]
        [:p
         [:button {:on-click #(swap! app-state dissoc :fail-case)}
@@ -94,7 +94,7 @@
                      (reset! interval-id nil))))]
     (fn []
       [:div {:ref ref-fn}
-       [:pre {:class "timer-state"} (pr-str (:fail-tick @app-state))]
+       [:pre {:class "timer-state"} (str (or (:fail-tick @app-state) 0))]
        [:p "Mode A"]
        [:p
         [:button {:on-click #(swap! app-state assoc :fail-case true)}
@@ -117,7 +117,7 @@
       [nav-link :fail-case-pre "Fail case pre"]
       [nav-link :fail-case "Fail case"]]
      [:hr]
-     [:pre {:class "app-state"} (pr-str @app-state)]
+     [:pre {:class "app-state"} (js/JSON.stringify (clj->js @app-state))]
      (case page
        :home [home-page]
        :fail-case-pre [fail-case-pre]

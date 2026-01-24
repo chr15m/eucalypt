@@ -154,7 +154,7 @@
                       (let [local-state (r/atom {:preact "awesome"})]
                         (reset! state-in-constructor @local-state)
                         (fn []
-                          [:div (pr-str @local-state)])))]
+                          [:div (js/JSON.stringify (clj->js @local-state))])))]
               (r/render [foo] js/document.body)
               (th/assert-equal @state-in-constructor {:preact "awesome"})))))
 
@@ -165,7 +165,7 @@
                       (let [local-state (r/atom nil)]
                         (reset! captured-initial-state @local-state)
                         (fn [props]
-                          [:div (pr-str props)])))]
+                          [:div (js/JSON.stringify (clj->js props))])))]
               (r/render [foo {:bar "baz"}] js/document.body)
               (th/assert-equal @captured-initial-state nil)
               (th/assert-equal (.-innerHTML js/document.body) "<div>{\"bar\":\"baz\"}</div>")))))))
