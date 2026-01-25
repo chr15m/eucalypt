@@ -555,26 +555,27 @@
                           (let [child-meta (meta child)
                                 ;; Check if child is a component before processing
                                 child-is-component (and (vector? child) (fn? (first child)))
-                                processed (fully-render-hiccup child render-state)]
+                                processed (fully-render-hiccup child render-state)
+                                ;; Preserve child metadata and add component marker if needed
+                                merged-meta (cond
+                                              (and child-is-component child-meta)
+                                              (assoc child-meta :component-root true)
+                                              child-is-component
+                                              {:component-root true}
+                                              :else
+                                              child-meta)
+                                has-key? (contains? merged-meta :key)]
                             (cond
                               (or (nil? processed) (boolean? processed)) acc
 
-                              (and (vector? processed) (= :<> (aget processed 0)))
+                              (and (vector? processed) (= :<> (aget processed 0)) (not has-key?))
                               (into acc (subvec processed 1))
 
                               (hiccup-seq? child)
                               (into acc processed)
 
                               :else
-                              (let [;; Preserve child metadata and add component marker if needed
-                                    merged-meta (cond
-                                                  (and child-is-component child-meta)
-                                                  (assoc child-meta :component-root true)
-                                                  child-is-component
-                                                  {:component-root true}
-                                                  :else
-                                                  child-meta)
-                                    final-child (if (and merged-meta (vector? processed))
+                              (let [final-child (if (and merged-meta (vector? processed))
                                                   (with-meta processed merged-meta)
                                                   processed)]
                                 (conj acc final-child)))))
@@ -600,31 +601,43 @@
 
 (declare patch)
 
+(defn- count-dom-nodes [hiccup]
+  (if (and (vector? hiccup) (= :<> (aget hiccup 0)))
+    (reduce + 0 (map count-dom-nodes (subvec hiccup 1)))
+    1))
+
 (defn- patch-children [hiccup-a-rendered hiccup-b-rendered dom-a render-state]
   (let [old-hiccup-children (normalized-hiccup-children hiccup-a-rendered)
         new-hiccup-children (normalized-hiccup-children hiccup-b-rendered)
         old-dom-nodes (vec (.-childNodes dom-a))
         parent-ns (dom->namespace dom-a)
 
+        ;; Map old children to DOM nodes (handling fragments)
+        old-children-with-dom
+        (let [dom-idx (atom 0)]
+          (mapv (fn [child]
+                  (let [node-count (count-dom-nodes child)
+                        current-dom-idx @dom-idx
+                        dom-nodes (subvec old-dom-nodes current-dom-idx (+ current-dom-idx node-count))]
+                    (swap! dom-idx + node-count)
+                    {:hiccup child
+                     :dom (if (= 1 node-count) (first dom-nodes) dom-nodes)}))
+                old-hiccup-children))
+
         old-keyed-map (into {}
-                            (keep-indexed (fn [idx child]
-                                            (when-let [key (get-key child)]
-                                              [key {:hiccup child
-                                                    :dom (get old-dom-nodes idx)}])))
-                            old-hiccup-children)
+                            (keep (fn [info]
+                                    (when-let [key (get-key (:hiccup info))]
+                                      [key info]))
+                                  old-children-with-dom))
 
-        old-unkeyed-pool (vec (for [i (range (count old-hiccup-children))
-                                    :let [child (nth old-hiccup-children i)]
-                                    :when (not (get-key child))]
-                                {:hiccup (nth old-hiccup-children i)
-                                 :dom (nth old-dom-nodes i)
-                                 :used? false}))
+        old-unkeyed-pool (vec (for [info old-children-with-dom
+                                    :when (not (get-key (:hiccup info)))]
+                                (assoc info :used? false)))
 
-        new-dom-nodes
+        new-dom-nodes-nested
         (mapv (fn [new-child]
                 (let [key (get-key new-child)
                       is-keyed-match (boolean key)
-                      ;; Check if this child is a component root (came from a component expansion)
                       is-component-root (-> new-child meta :component-root)
                       old-match (if key
                                   (let [match (get old-keyed-map key)]
@@ -639,22 +652,35 @@
                                       (let [match (get old-unkeyed-pool match-idx)]
                                         (aset match "used?" true)
                                         match))))
-                      ;; Preserve refs for:
-                      ;; 1. Keyed matches (always)
-                      ;; 2. Component roots matched positionally (Reagent behavior)
-                      ;; Don't preserve refs for plain elements matched positionally (React behavior)
                       should-preserve-ref (or is-keyed-match is-component-root)]
                   (if old-match
                     (patch (:hiccup old-match) new-child (:dom old-match) render-state
                            {:preserve-ref should-preserve-ref})
                     (hiccup->dom new-child parent-ns render-state))))
-              new-hiccup-children)]
+              new-hiccup-children)
+
+        ;; Flatten new DOM nodes (handle fragments and DocumentFragments)
+        new-dom-nodes
+        (reduce (fn [acc node]
+                  (cond
+                    (vector? node) (into acc node)
+                    (and node (= 11 (.-nodeType node))) ;; DocumentFragment
+                    (into acc (vec (.-childNodes node)))
+                    node (conj acc node)
+                    :else acc))
+                [] new-dom-nodes-nested)]
 
     ;; Remove unused old nodes
     (doseq [old-info (vals old-keyed-map)]
-      (remove-node-and-unmount! (:dom old-info)))
+      (let [dom (:dom old-info)]
+        (if (vector? dom)
+          (doseq [n dom] (remove-node-and-unmount! n))
+          (remove-node-and-unmount! dom))))
     (doseq [old-info (filter #(not (:used? %)) old-unkeyed-pool)]
-      (remove-node-and-unmount! (:dom old-info)))
+      (let [dom (:dom old-info)]
+        (if (vector? dom)
+          (doseq [n dom] (remove-node-and-unmount! n))
+          (remove-node-and-unmount! dom))))
 
     ;; Re-order/add nodes in the DOM
     (let [num-new (count new-dom-nodes)]
@@ -667,7 +693,9 @@
       ;; Remove any extra nodes from the end
       (while (> (.-length (.-childNodes dom-a)) num-new)
         (let [last-child (.-lastChild dom-a)]
-          (remove-node-and-unmount! last-child))))))
+          (remove-node-and-unmount! last-child))))
+
+    new-dom-nodes))
 
 (defn- get-attrs [hiccup]
   (let [s (second hiccup)]
@@ -723,6 +751,11 @@
              (= hiccup-a-realized hiccup-b-realized)
              dom-a
 
+             (and (vector? hiccup-a-realized) (= :<> (aget hiccup-a-realized 0))
+                  (vector? hiccup-b-realized) (= :<> (aget hiccup-b-realized 0)))
+             (let [parent (if (vector? dom-a) (.-parentNode (first dom-a)) (.-parentNode dom-a))]
+               (patch-children hiccup-a-realized hiccup-b-realized parent render-state))
+
              (and (text-like? hiccup-a-realized)
                   (text-like? hiccup-b-realized)
                   (= (.-nodeType dom-a) 3))
@@ -735,9 +768,11 @@
                  (not (vector? hiccup-b-realized))
                  (not= (get-type hiccup-a-realized)
                        (get-type hiccup-b-realized)))
-             (let [parent (.-parentNode dom-a)
+             (let [parent (if (vector? dom-a) (.-parentNode (first dom-a)) (.-parentNode dom-a))
                    parent-ns (dom->namespace parent)]
-               (unmount-node-and-children dom-a)
+               (if (vector? dom-a)
+                 (doseq [n dom-a] (unmount-node-and-children n))
+                 (unmount-node-and-children dom-a))
                (hiccup->dom hiccup-b-realized parent-ns render-state))
 
              :else

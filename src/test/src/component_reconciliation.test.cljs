@@ -7,8 +7,55 @@
  (fn []
    (set! (.-innerHTML js/document.body) "")))
 
+(defn x-comp [children]
+  (into [:<>] children))
+
+(defn app-comp [{:keys [i]}]
+  (if (== i 0)
+    [:div
+     (with-meta [x-comp ["1"]] {:key 1})
+     (with-meta [x-comp ["2"]] {:key 2})]
+    [:div
+     (with-meta [x-comp ["2"]] {:key 2})
+     (with-meta [x-comp ["1"]] {:key 1})]))
+
 (describe "Component reconciliation"
   (fn []
+    (it "should handle reordering components that return Fragments"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+
+          ;; Initial render: 1 then 2
+          (r/render [app-comp {:i 0}] container)
+          (th/assert-equal (.-textContent container) "12")
+
+          (let [first-node (-> container .-firstChild .-firstChild)]
+            ;(js/console.log "Initial first node text:" (.-textContent first-node))
+            ;(js/console.log "Initial first node outerHTML:" (.-outerHTML first-node))
+            (th/assert-equal (.-textContent first-node) "1")
+
+            ;; Re-render: 2 then 1
+            ;(js/console.log "--- Re-rendering to swap order ---")
+            ;(js/console.log "app-comp(1) hiccup:" (pr-str [app-comp {:i 1}]))
+
+            ;; Check internal state before render
+            #_ (let [root-info (get @r/roots container)
+                  runtime (:runtime root-info)
+                  mounted (:mounted-components @runtime)]
+              (js/console.log "Mounted components count:" (count mounted)))
+
+            (r/render [app-comp {:i 1}] container)
+            ; (js/console.log "HTML after swap:" (.-innerHTML container))
+            (th/assert-equal (.-textContent container) "21")
+
+            ;; Verify the node containing "1" is still the same instance but moved
+            (let [new-second-node (-> container .-firstChild .-lastChild)]
+              ;(js/console.log "New second node text:" (.-textContent new-second-node))
+              ;(js/console.log "New second node outerHTML:" (.-outerHTML new-second-node))
+              ;(js/console.log "Nodes are identical?:" (identical? first-node new-second-node))
+              (th/assert-equal (identical? first-node new-second-node) true))))))
+
     (it "should not orphan children"
       (fn []
         (let [state-c (r/atom {:show? false})
