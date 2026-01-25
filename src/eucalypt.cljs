@@ -770,9 +770,7 @@
                        (get-type hiccup-b-realized)))
              (let [parent (if (vector? dom-a) (.-parentNode (first dom-a)) (.-parentNode dom-a))
                    parent-ns (dom->namespace parent)]
-               (if (vector? dom-a)
-                 (doseq [n dom-a] (unmount-node-and-children n))
-                 (unmount-node-and-children dom-a))
+               (run! unmount-node-and-children (if (vector? dom-a) dom-a [dom-a]))
                (hiccup->dom hiccup-b-realized parent-ns render-state))
 
              :else
@@ -839,67 +837,34 @@
                            (aset dom-a "value" b-value))))))
                  dom-a))))))))
 
-(defn- container-connected? [container]
-  "Check if a container is still connected to the document."
-  (and container
-       (or (identical? container js/document.body)
-           (.-isConnected container))))
+(defn- fragment? [x] (and (vector? x) (= :<> (aget x 0))))
 
 (defn- modify-dom [runtime normalized-component]
   (if (contains? (:rendering-components @runtime) normalized-component)
-    (when *watcher*
-      (queue-watcher! *watcher*))
+    (when *watcher* (queue-watcher! *watcher*))
     (try
       (swap! runtime update :rendering-components (fnil conj #{}) normalized-component)
-      (when-let [mounted-info (and runtime
-                                   (runtime-mounted-info runtime normalized-component))]
-        (let [{:keys [hiccup dom container base-namespace]} mounted-info]
-          ;; If the container has been removed from the document (e.g., via innerHTML = ""),
-          ;; clean up watchers and mounted info instead of trying to re-render
-          (if-not (container-connected? container)
-            (do
-              (remove-watchers-for-component runtime normalized-component)
+      (when-let [{:keys [hiccup dom container base-namespace]} (runtime-mounted-info runtime normalized-component)]
+        (if-not (and container (or (identical? container js/document.body) (.-isConnected container)))
+          (do (remove-watchers-for-component runtime normalized-component)
               (swap! runtime update :mounted-components dissoc normalized-component))
-            (do
-              (remove-watchers-for-component runtime normalized-component)
-              (let [render-state (create-render-state {:normalized-component normalized-component
-                                                       :container container
-                                                       :base-namespace (or base-namespace
-                                                                           (dom->namespace container))
-                                                       :runtime runtime})]
-                (try
-                  (reset-positional-counter! render-state)
-                  (let [new-hiccup-unrendered (with-watcher-bound
-                                                normalized-component
-                                                render-state
-                                                (fn [] (component->hiccup normalized-component render-state)))
-                        _ (reset-positional-counter! render-state)
-                        new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)
-                        base-ns (:base-namespace @render-state)]
-                    (assoc-runtime-mounted-info!
-                      runtime normalized-component
-                      {:hiccup new-hiccup-rendered
-                       :container container
-                       :base-namespace base-ns
-                       :runtime runtime
-                       :dom
-                       (if (and (vector? hiccup) (= :<> (first hiccup)))
-                         (do
-                           (reset-positional-counter! render-state)
-                           (patch-children hiccup new-hiccup-rendered container render-state)
-                           nil)
-                         (do
-                           (reset-positional-counter! render-state)
-                           (let [new-dom (patch hiccup new-hiccup-rendered dom render-state)]
-                             (when (not (identical? dom new-dom))
-                               (aset container "innerHTML" "")
-                               (.appendChild container new-dom))
-                             new-dom)))}))
-                  (finally
-                    (swap! render-state assoc :active false))))))))
-      (finally
-        (flush-ref-queue! runtime)
-        (swap! runtime update :rendering-components disj normalized-component)))))
+          (let [rs (create-render-state {:normalized-component normalized-component :container container
+                                         :base-namespace (or base-namespace (dom->namespace container))
+                                         :runtime runtime})]
+            (remove-watchers-for-component runtime normalized-component)
+            (try
+              (reset-positional-counter! rs)
+              (let [new-h (fully-render-hiccup (with-watcher-bound normalized-component rs #(component->hiccup normalized-component rs)) rs)]
+                (reset-positional-counter! rs)
+                (assoc-runtime-mounted-info!
+                  runtime normalized-component
+                  {:hiccup new-h :container container :runtime runtime :base-namespace (:base-namespace @rs)
+                   :dom (if (fragment? hiccup) (do (patch-children hiccup new-h container rs) nil)
+                          (let [new-dom (patch hiccup new-h dom rs)]
+                            (when-not (identical? dom new-dom) (set! (.-innerHTML container) "") (.appendChild container new-dom))
+                            new-dom))}))
+              (finally (swap! rs assoc :active false))))))
+      (finally (flush-ref-queue! runtime) (swap! runtime update :rendering-components disj normalized-component)))))
 
 (defn- notify-watchers [watchers]
   (doseq [watcher (vals @watchers)]
@@ -1027,51 +992,25 @@
         (set! *watcher* old-watcher)))))
 
 (defn- render-into-container [component container runtime old-root-info]
-  (let [render-state (create-render-state {:container container
-                                           :base-namespace (dom->namespace container)
-                                           :runtime runtime})
-        new-normalized (normalize-component component render-state)]
-    (if old-root-info
-      ;; Update logic
-      (let [old-normalized (:component old-root-info)]
-        (remove-watchers-for-component runtime old-normalized)
-        (if-let [mounted-info (runtime-mounted-info runtime old-normalized)]
-          (let [{:keys [hiccup dom]} mounted-info
-                is-old-fragment? (and (vector? hiccup) (= :<> (first hiccup)))
-                dom-is-detached? (or (nil? dom)
-                                     (and dom (not (.-parentNode dom))))]
-            (if (and (not is-old-fragment?) dom-is-detached?)
-              ;; Re-render from scratch only if NOT a fragment AND dom is detached
-              (do-render new-normalized container render-state)
-              ;; Otherwise patch (works for both fragments and normal elements)
-              (do
-                (reset-positional-counter! render-state)
-                (let [new-hiccup-unrendered (with-watcher-bound
-                                              new-normalized
-                                              render-state
-                                              (fn [] (component->hiccup new-normalized render-state)))
-                      _ (reset-positional-counter! render-state)
-                      new-hiccup-rendered (fully-render-hiccup new-hiccup-unrendered render-state)]
-                  (if is-old-fragment?
-                    (do
-                      (patch-children hiccup new-hiccup-rendered container render-state)
-                      (update-mounted-info! runtime new-normalized new-hiccup-rendered nil container render-state))
-                    (let [new-dom (patch hiccup new-hiccup-rendered dom render-state)]
-                      (update-mounted-info! runtime new-normalized new-hiccup-rendered new-dom container render-state)
-                      (when (not (identical? dom new-dom))
-                        (.replaceWith dom new-dom)
-                        (swap! runtime assoc :component-instances (empty-js-map)))))
-                  (swap! roots assoc container (assoc old-root-info :component new-normalized))
-                  (when (not (identical? old-normalized new-normalized))
-                    (swap! runtime update :mounted-components dissoc old-normalized))
-                  (flush-ref-queue! runtime)))))
-          ;; If there's no mounted-info, we must render from scratch.
-          (do-render new-normalized container render-state)))
-      ;; New render logic
-      (do
-        (swap! render-state assoc :normalized-component new-normalized)
-        (do-render new-normalized container render-state)
-        (flush-ref-queue! runtime)))))
+  (let [rs (create-render-state {:container container :runtime runtime :base-namespace (dom->namespace container)})
+        new-comp (normalize-component component rs)]
+    (if-let [mounted (and old-root-info (runtime-mounted-info runtime (:component old-root-info)))]
+      (let [{:keys [hiccup dom]} mounted old-comp (:component old-root-info)]
+        (remove-watchers-for-component runtime old-comp)
+        (if (and (not (fragment? hiccup)) dom (not (.-parentNode dom)))
+          (do-render new-comp container rs)
+          (do (reset-positional-counter! rs)
+              (let [new-h (fully-render-hiccup (with-watcher-bound new-comp rs #(component->hiccup new-comp rs)) rs)]
+                (reset-positional-counter! rs)
+                (if (fragment? hiccup)
+                  (do (patch-children hiccup new-h container rs) (update-mounted-info! runtime new-comp new-h nil container rs))
+                  (let [new-dom (patch hiccup new-h dom rs)]
+                    (update-mounted-info! runtime new-comp new-h new-dom container rs)
+                    (when-not (identical? dom new-dom) (.replaceWith dom new-dom) (swap! runtime assoc :component-instances (empty-js-map)))))
+                (swap! roots assoc container (assoc old-root-info :component new-comp))
+                (when-not (identical? old-comp new-comp) (swap! runtime update :mounted-components dissoc old-comp))
+                (flush-ref-queue! runtime)))))
+      (do (swap! rs assoc :normalized-component new-comp) (do-render new-comp container rs) (flush-ref-queue! runtime)))))
 
 ;; Reagent API
 (defn render [component container]
