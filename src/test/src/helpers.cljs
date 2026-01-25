@@ -1,4 +1,5 @@
 (ns helpers
+  (:refer-clojure :exclude [rand])
   (:require ["vitest" :refer [expect]]))
 
 (defn log [& args]
@@ -17,5 +18,5 @@
 (defn assert-not-nil [actual]
   (-> (expect actual) .-not (.toBeNull)))
 
-(defn rand []
+(defn rand [] ; shim for missing rand in squint
   (js/Math.random))
