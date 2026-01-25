@@ -34,14 +34,15 @@
                 rows (partition-all 5 slots-vec)]
             (map-indexed
              (fn [row-idx row]
-               ^{:key row-idx}
-               [:div {:class "slot-row"}
-                (let [row-vec (vec row)]
-                  (map (fn [slot]
-                         (if slot
-                           [:span "🪙"]
-                           [:span "⚪"]))
-                       row-vec))])
+               (with-meta
+                [:div {:class "slot-row"}
+                 (let [row-vec (vec row)]
+                   (map (fn [slot]
+                          (if slot
+                            [:span "🪙"]
+                            [:span "⚪"]))
+                        row-vec))]
+                {:key row-idx}))
              rows))]])])
    [:button {:on-click #(swap! list-component-state update :show? not)} "Toggle"]])
 

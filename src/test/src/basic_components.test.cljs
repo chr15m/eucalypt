@@ -66,7 +66,7 @@
 (defn lister [items]
   [:ul
    (for [item items]
-     ^{:key item} [:li item])])
+     (with-meta [:li item] {:key item}))])
 
 (describe "Lister"
   (fn []
@@ -187,3 +187,20 @@
           (.appendChild js/document.body container)
           (r/render [:.my-class] container)
           (th/assert-equal (.-innerHTML container) "<div class=\"my-class\"></div>"))))))
+
+;;; Initial Render
+(describe "Initial Render"
+  (fn []
+    (it "should render a simple component exactly once on initial mount"
+      (fn []
+        (let [container (.createElement js/document "div")
+              render-count (atom 0)]
+          (.appendChild js/document.body container)
+
+          (defn test-component []
+            (swap! render-count inc)
+            [:div "Render count: " @render-count])
+
+          (r/render [test-component] container)
+
+          (th/assert-equal @render-count 1))))))

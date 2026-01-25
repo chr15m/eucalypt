@@ -158,7 +158,7 @@
 (defn lister [items]
   [:ul
    (for [item items]
-     ^{:key item} [:li "Item " item])])
+     (with-meta [:li "Item " item] {:key item}))])
 
 (defn lister-user []
   [:div
@@ -235,15 +235,16 @@
     "+ Add"]
    [:ul
     (for [item @list-data]
-      ^{:key item}
-      [:li
-       item
-       " "
-       [:button {:on-click (fn [_]
-                             (swap! list-data
-                                    (fn [items]
-                                      (vec (remove #(= % item) items)))))}
-        "x"]])]])
+      (with-meta
+       [:li
+        item
+        " "
+        [:button {:on-click (fn [_]
+                              (swap! list-data
+                                     (fn [items]
+                                       (vec (remove #(= % item) items)))))}
+         "x"]]
+       {:key item}))]])
 
 ;;; TodoMVC implementation
 
@@ -353,7 +354,7 @@
                                     :active (complement :done)
                                     :done :done
                                     :all identity) items)]
-                 ^{:key (:id todo)} [todo-item todo])]]
+                 (with-meta [todo-item todo] {:key (:id todo)}))]]
              [:footer {:id "footer"}
               [todo-stats {:active active :done done :filt filt}]]])]
          [:footer {:id "info"}

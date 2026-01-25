@@ -81,8 +81,9 @@
     [:div
      [:nav
       (for [[kw label] [[:tab-0 "Tab 0"] [:tab-1 "Tab 1"] [:tab-2 "Tab 2"]]]
-        ^{:key kw}
-        [nav-link kw label])]
+        (with-meta
+         [nav-link kw label]
+         {:key kw}))]
      [:hr]
      (case page
        :tab-0 [tab-0-component]

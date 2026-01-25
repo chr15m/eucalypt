@@ -122,7 +122,7 @@
                                     :active (complement :done)
                                     :done :done
                                     :all identity) items)]
-                 ^{:key (:id todo)} [todo-item todo])]]
+                 (with-meta [todo-item todo] {:key (:id todo)}))]]
              [:footer {:id "footer"}
               [todo-stats {:active active :done done :filt filt}]]])]
          [:footer {:id "info"}

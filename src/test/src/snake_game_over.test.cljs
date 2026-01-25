@@ -71,8 +71,9 @@
            :style {:border "1px solid black"
                    :background "#eef"}}
      (for [segment snake]
-       ^{:key (str segment)}
-       [cell-rect segment "green"])
+       (with-meta
+        [cell-rect segment "green"]
+        {:key (str segment)}))
      [cell-rect food "red"]
      (when-not alive?
        [:text {:x 50 :y 100 :font-size 20 :fill "black"} "Game Over!"])]))

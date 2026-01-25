@@ -12,7 +12,7 @@
 (defn test-component []
   [:div
    [:button {:on-click #(swap! state update :counter (fnil inc 0))} "inc"]
-   [:p (pr-str @state)]])
+   [:p (js/JSON.stringify (clj->js @state))]])
 
 (describe "Click Swap with nil atom"
   (fn []

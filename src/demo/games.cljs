@@ -47,7 +47,7 @@
                  :grid-template-rows "repeat(3, 60px)"
                  :gap "2px"}}
    (for [i (range 9)]
-     ^{:key i} [ttt-square i])])
+     (with-meta [ttt-square i] {:key i}))])
 
 (defn tic-tac-toe-game []
   (let [{:keys [board x-turn?]} @ttt-state
@@ -133,7 +133,7 @@
                         :background "#eef"}}
           ;; snake
           (for [part snake]
-            ^{:key (str part)} [snake-cell-rect part "green"])
+            (with-meta [snake-cell-rect part "green"] {:key (str part)}))
           ;; food
           [snake-cell-rect food "red"]
           ;; game over overlay
@@ -173,14 +173,16 @@
       coords)))
 
 (defn life-step [grid]
-  (vec (for [y (range life-size)]
-         (vec (for [x (range life-size)]
-                (let [alive? (= (nth (nth grid y) x) 1)
-                      n (life-neighbors grid x y)]
-                  (cond
-                    (and alive? (or (= n 2) (= n 3))) 1
-                    (and (not alive?) (= n 3)) 1
-                    :else 0)))))))
+  (mapv (fn [y]
+          (mapv (fn [x]
+                  (let [alive? (= (nth (nth grid y) x) 1)
+                        n (life-neighbors grid x y)]
+                    (cond
+                      (and alive? (or (= n 2) (= n 3))) 1
+                      (and (not alive?) (= n 3)) 1
+                      :else 0)))
+                (range life-size)))
+        (range life-size)))
 
 (defn life-tick []
   (swap! life-state
@@ -211,8 +213,9 @@
                 :style {:border "1px solid black"}}
           (for [y (range life-size)
                 x (range life-size)]
-            ^{:key (str x "-" y)}
-            [life-cell-rect x y (nth (nth grid y) x)])
+            (with-meta
+             [life-cell-rect x y (nth (nth grid y) x)]
+             {:key (str x "-" y)}))
           (when (not running?)
             [:text {:x 50 :y 50 :fill "red" :font-size 20} "Paused"])]
          [:p
