@@ -173,14 +173,16 @@
       coords)))
 
 (defn life-step [grid]
-  (vec (for [y (range life-size)]
-         (vec (for [x (range life-size)]
-                (let [alive? (= (nth (nth grid y) x) 1)
-                      n (life-neighbors grid x y)]
-                  (cond
-                    (and alive? (or (= n 2) (= n 3))) 1
-                    (and (not alive?) (= n 3)) 1
-                    :else 0)))))))
+  (mapv (fn [y]
+          (mapv (fn [x]
+                  (let [alive? (= (nth (nth grid y) x) 1)
+                        n (life-neighbors grid x y)]
+                    (cond
+                      (and alive? (or (= n 2) (= n 3))) 1
+                      (and (not alive?) (= n 3)) 1
+                      :else 0)))
+                (range life-size)))
+        (range life-size)))
 
 (defn life-tick []
   (swap! life-state
