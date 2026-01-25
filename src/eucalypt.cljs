@@ -701,143 +701,52 @@
   (let [s (second hiccup)]
     (if (map? s) s {})))
 
-(defn- patch-attributes [hiccup-a-rendered hiccup-b-rendered dom-a]
-  (let [a-attrs (get-attrs hiccup-a-rendered)
-        b-attrs (get-attrs hiccup-b-rendered)
-        all-keys (set (concat (keys a-attrs) (keys b-attrs)))]
-    (doseq [k all-keys]
-      (when (and (not= k :ref) (not= k :xmlns) (not= k :value) (not= k :dangerouslySetInnerHTML))
-        (let [old-v (get a-attrs k)
-              new-v (get b-attrs k)]
-          (when (not (= old-v new-v))
-            (set-or-remove-attribute! dom-a k new-v)))))))
+(defn- fragment? [x] (and (vector? x) (= :<> (aget x 0))))
 
-(defn- realize-deep [x]
-  (cond
-    ;; Squint's LazyIterable has a `.gen` property. Realize it to a vector.
-    (and (seq? x) (aget x "gen"))
-    (let [realized (mapv realize-deep x)
-          original-meta (meta x)]
-      (if original-meta
-        (with-meta realized original-meta)
-        realized))
-
-    ;; For other sequential types (vectors, lists), recurse.
-    (and (sequential? x) (not (string? x)))
-    (let [realized (into (empty x) (map realize-deep x))
-          original-meta (meta x)]
-      (if original-meta
-        (with-meta realized original-meta)
-        realized))
-
-    :else x))
+(defn- patch-attributes [h-a h-b dom]
+  (let [a (get-attrs h-a) b (get-attrs h-b)]
+    (doseq [k (set (concat (keys a) (keys b)))]
+      (when-not (#{:ref :xmlns :value :dangerouslySetInnerHTML} k)
+        (let [ov (get a k) nv (get b k)]
+          (when-not (= ov nv) (set-or-remove-attribute! dom k nv)))))))
 
 (defn- patch
-  "transform dom-a to dom representation of hiccup-b.
-  if hiccup-a and hiccup-b are not the same element type, then a new dom element is created from hiccup-b.
-  opts can contain :preserve-ref to skip ref cleanup/remount for keyed element matches."
-  ([hiccup-a-rendered hiccup-b-rendered dom-a render-state]
-   (patch hiccup-a-rendered hiccup-b-rendered dom-a render-state {}))
-  ([hiccup-a-rendered hiccup-b-rendered dom-a render-state opts]
-   (let [preserve-ref (:preserve-ref opts)]
-     (if (nil? dom-a)
-       (let [parent-ns (namespace-uri default-namespace)]
-         (hiccup->dom hiccup-b-rendered parent-ns render-state))
-       (if (identical? hiccup-a-rendered hiccup-b-rendered)
-         dom-a
-         (let [hiccup-a-realized (realize-deep hiccup-a-rendered)
-               hiccup-b-realized (realize-deep hiccup-b-rendered)]
-           (cond
-             (= hiccup-a-realized hiccup-b-realized)
-             dom-a
-
-             (and (vector? hiccup-a-realized) (= :<> (aget hiccup-a-realized 0))
-                  (vector? hiccup-b-realized) (= :<> (aget hiccup-b-realized 0)))
-             (let [parent (if (vector? dom-a) (.-parentNode (first dom-a)) (.-parentNode dom-a))]
-               (patch-children hiccup-a-realized hiccup-b-realized parent render-state))
-
-             (and (text-like? hiccup-a-realized)
-                  (text-like? hiccup-b-realized)
-                  (= (.-nodeType dom-a) 3))
-             (do
-               (when (not (= (str hiccup-a-realized) (str hiccup-b-realized)))
-                 (set! (.-data dom-a) (str hiccup-b-realized)))
-               dom-a)
-
-             (or (not (vector? hiccup-a-realized))
-                 (not (vector? hiccup-b-realized))
-                 (not= (get-type hiccup-a-realized)
-                       (get-type hiccup-b-realized)))
-             (let [parent (if (vector? dom-a) (.-parentNode (first dom-a)) (.-parentNode dom-a))
-                   parent-ns (dom->namespace parent)]
-               (run! unmount-node-and-children (if (vector? dom-a) dom-a [dom-a]))
-               (hiccup->dom hiccup-b-realized parent-ns render-state))
-
-             :else
-             (do (patch-attributes hiccup-a-realized hiccup-b-realized dom-a)
-                 (let [a-attrs (get-attrs hiccup-a-realized)
-                       b-attrs (get-attrs hiccup-b-realized)
-                       a-html (get-in a-attrs [:dangerouslySetInnerHTML :__html])
-                       b-html (get-in b-attrs [:dangerouslySetInnerHTML :__html])]
-                   (cond
-                     (some? b-html)
-                     (when (not (= a-html b-html))
-                       (set! (.-innerHTML dom-a) b-html))
-
-                     (some? a-html)
-                     (do
-                       (set! (.-innerHTML dom-a) "")
-                       (patch-children hiccup-a-realized hiccup-b-realized dom-a render-state))
-
-                     :else
-                     (patch-children hiccup-a-realized hiccup-b-realized dom-a render-state)))
-                 ;; Handle ref changes
-                 ;; For preserve-ref mode (keyed matches or component roots):
-                 ;; - Only re-call refs if the stored ref is different from the new ref
-                 ;; - This preserves inline refs (which change identity each render)
-                 ;; - But handles stable refs that actually changed (component switch)
-                 ;; For non-preserve-ref mode (plain elements):
-                 ;; - Re-call refs if function changes (React behavior)
-                 (let [old-ref (:ref (get-attrs hiccup-a-realized))
-                       new-ref (:ref (get-attrs hiccup-b-realized))
-                       stored-ref (aget dom-a "---ref-fn")]
-                   (if preserve-ref
-                     ;; In preserve-ref mode, only handle if stored ref differs from new ref
-                     ;; AND the stored ref matches the old hiccup ref (stable ref)
-                     (when (and (not (identical? stored-ref new-ref))
-                                (identical? stored-ref old-ref))
-                       ;; Stable ref changed - component switch
-                       (call-ref-cleanup! dom-a)
-                       (when new-ref
-                         (queue-ref-mount! render-state new-ref dom-a))
-                       (aset dom-a "---ref-fn" new-ref))
-                     ;; In non-preserve-ref mode, handle any ref change
-                     (when (not (= old-ref new-ref))
-                       (call-ref-cleanup! dom-a)
-                       (when new-ref
-                         (queue-ref-mount! render-state new-ref dom-a))
-                       (aset dom-a "---ref-fn" new-ref))))
-                 (let [a-attrs (get-attrs hiccup-a-realized)
-                       b-attrs (get-attrs hiccup-b-rendered)
-                       b-value (:value b-attrs)]
-                   (when (and (contains? b-attrs :value) (not (= (:value a-attrs) b-value)))
-                     (if (and (= "SELECT" (.-tagName dom-a) ) (.-multiple dom-a))
-                       (let [value-set (set b-value)]
-                         (doseq [opt (.-options dom-a)]
-                           (aset opt "selected" (contains? value-set (.-value opt)))))
-                       (let [tag-name (.-tagName dom-a)
-                             is-input? (or (= "INPUT" tag-name) (= "TEXTAREA" tag-name))
-                             is-active? (identical? dom-a (.-activeElement js/document))]
-                         (if (and is-input? is-active?)
-                           (let [start (.-selectionStart dom-a)
-                                 end (.-selectionEnd dom-a)]
-                             (aset dom-a "value" b-value)
-                             (set! (.-selectionStart dom-a) start)
-                             (set! (.-selectionEnd dom-a) end))
-                           (aset dom-a "value" b-value))))))
-                 dom-a))))))))
-
-(defn- fragment? [x] (and (vector? x) (= :<> (aget x 0))))
+  ([h-a h-b dom rs] (patch h-a h-b dom rs {}))
+  ([h-a h-b dom rs opts]
+   (let [pref (:preserve-ref opts)]
+     (if-not dom (hiccup->dom h-b (namespace-uri default-namespace) rs)
+       (if (or (identical? h-a h-b) (= h-a h-b)) dom
+         (cond
+           (and (fragment? h-a) (fragment? h-b))
+           (patch-children h-a h-b (if (vector? dom) (.-parentNode (first dom)) (.-parentNode dom)) rs)
+           (and (text-like? h-a) (text-like? h-b) (= (.-nodeType dom) 3))
+           (do (when-not (= (str h-a) (str h-b)) (set! (.-data dom) (str h-b))) dom)
+           (or (not (vector? h-a)) (not (vector? h-b)) (not= (get-type h-a) (get-type h-b)))
+           (let [p (if (vector? dom) (.-parentNode (first dom)) (.-parentNode dom))]
+             (run! unmount-node-and-children (if (vector? dom) dom [dom]))
+             (hiccup->dom h-b (dom->namespace p) rs))
+           :else
+           (do (patch-attributes h-a h-b dom)
+               (let [aa (get-attrs h-a) ab (get-attrs h-b)
+                     ah (get-in aa [:dangerouslySetInnerHTML :__html])
+                     bh (get-in ab [:dangerouslySetInnerHTML :__html])]
+                 (cond (some? bh) (when-not (= ah bh) (set! (.-innerHTML dom) bh))
+                       (some? ah) (do (set! (.-innerHTML dom) "") (patch-children h-a h-b dom rs))
+                       :else (patch-children h-a h-b dom rs)))
+               (let [or (:ref (get-attrs h-a)) nr (:ref (get-attrs h-b)) sr (aget dom "---ref-fn")]
+                 (when (if pref (and (not (identical? sr nr)) (identical? sr or)) (not (= or nr)))
+                   (call-ref-cleanup! dom) (when nr (queue-ref-mount! rs nr dom)) (aset dom "---ref-fn" nr)))
+               (let [aa (get-attrs h-a) ab (get-attrs h-b) bv (:value ab)]
+                 (when (and (contains? ab :value) (not (= (:value aa) bv)))
+                   (if (and (= "SELECT" (.-tagName dom)) (.-multiple dom))
+                     (let [vs (set bv)] (doseq [o (.-options dom)] (aset o "selected" (contains? vs (.-value o)))))
+                     (let [tn (.-tagName dom) is-i (or (= "INPUT" tn) (= "TEXTAREA" tn))
+                           is-a (identical? dom (.-activeElement js/document))]
+                       (if (and is-i is-a)
+                         (let [s (.-selectionStart dom) e (.-selectionEnd dom)]
+                           (aset dom "value" bv) (set! (.-selectionStart dom) s) (set! (.-selectionEnd dom) e))
+                         (aset dom "value" bv))))))
+               dom)))))))
 
 (defn- modify-dom [runtime normalized-component]
   (if (contains? (:rendering-components @runtime) normalized-component)
@@ -908,23 +817,13 @@
   (reset-positional-counter! render-state)
   (try
     (let [{:keys [runtime]} @render-state
-          [hiccup dom]
-          (add-modify-dom-watcher-on-ratom-deref
-            normalized-component
-            render-state)
+          [hiccup dom] (add-modify-dom-watcher-on-ratom-deref normalized-component render-state)
           _ (reset-positional-counter! render-state)
-          hiccup-rendered (fully-render-hiccup hiccup render-state)
-          is-fragment? (and (vector? hiccup-rendered) (= :<> (first hiccup-rendered)))
-          dom-to-store (if is-fragment? nil dom)]
+          h-rendered (fully-render-hiccup hiccup render-state)]
       (.appendChild container dom)
-      (update-mounted-info! runtime normalized-component hiccup-rendered dom-to-store container render-state)
-      (when container
-        (swap! roots assoc container
-               {:container container
-                :component normalized-component
-                :runtime runtime})))
-    (finally
-      (swap! render-state assoc :active false))))
+      (update-mounted-info! runtime normalized-component h-rendered (when-not (fragment? h-rendered) dom) container render-state)
+      (when container (swap! roots assoc container {:container container :component normalized-component :runtime runtime})))
+    (finally (swap! render-state assoc :active false))))
 
 ; mirrored as atom below
 (defn- ratom [initial-value]
