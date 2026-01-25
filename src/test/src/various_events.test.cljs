@@ -69,3 +69,25 @@
           (let [input (.querySelector container "#key-down-input")]
             (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:code "Enter" :bubbles true}))
             (th/assert-equal (:key-pressed @key-down-state) "Enter")))))))
+
+;;; on-animation-end test (ported from Preact)
+(def animation-state (r/atom {:ended? false}))
+
+(defn animation-component []
+  [:div {:id "animation-div"
+         :on-animation-end #(swap! animation-state assoc :ended? true)}])
+
+(describe "on-animation-end event"
+  (fn []
+    (it "should register events not appearing on dom nodes (like animationend)"
+      (fn []
+        (reset! animation-state {:ended? false})
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [animation-component] container)
+          (let [div (.querySelector container "#animation-div")]
+            ;; Verify the property was assigned to the element
+            (th/assert-not-nil (aget div "onanimationend"))
+            ;; Simulate the event
+            (.dispatchEvent div (new js/Event "animationend" #js {:bubbles true}))
+            (th/assert-equal (:ended? @animation-state) true)))))))
