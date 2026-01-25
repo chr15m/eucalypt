@@ -66,7 +66,7 @@
 (defn lister [items]
   [:ul
    (for [item items]
-     ^{:key item} [:li item])])
+     (with-meta [:li item] {:key item}))])
 
 (describe "Lister"
   (fn []

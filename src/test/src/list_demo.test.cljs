@@ -18,16 +18,17 @@
     "+ Add"]
    [:ul
     (for [item @list-data]
-      ^{:key item}
-      [:li
-       item
-       " "
-       [:button {:class "delete-btn"
-                 :on-click (fn [_]
-                             (swap! list-data
-                                    (fn [items]
-                                      (vec (remove #(= % item) items)))))}
-        "x"]])]])
+      (with-meta
+       [:li
+        item
+        " "
+        [:button {:class "delete-btn"
+                  :on-click (fn [_]
+                              (swap! list-data
+                                     (fn [items]
+                                       (vec (remove #(= % item) items)))))}
+         "x"]]
+       {:key item}))]])
 
 (describe "List Demo"
   (fn []
@@ -43,32 +44,27 @@
                 get-delete-btns #(.querySelectorAll container ".delete-btn")]
 
             
-              ;; Add 5 items
-              (dotimes [_ 5] (.click add-btn))
-              (th/assert-equal (.-length (get-items)) 5)
+            ;; Add 5 items
+            (dotimes [_ 5] (.click add-btn))
+            (th/assert-equal (.-length (get-items)) 5)
 
-              ;; Delete 3rd item
-              
-                (.click (aget (get-delete-btns) 2))
-              (th/assert-equal (.-length (get-items)) 4)
+            ;; Delete 3rd item
+            (.click (aget (get-delete-btns) 2))
+            (th/assert-equal (.-length (get-items)) 4)
 
-              ;; Delete 3rd item again
-              
-                (.click (aget (get-delete-btns) 2))
-              (th/assert-equal (.-length (get-items)) 3)
+            ;; Delete 3rd item again
+            (.click (aget (get-delete-btns) 2))
+            (th/assert-equal (.-length (get-items)) 3)
 
-              ;; Add two more items
-              
-               
-               (.click add-btn)
-              (.click add-btn)
-              (th/assert-equal (.-length (get-items)) 5)
+            ;; Add two more items
+            (.click add-btn)
+            (.click add-btn)
+            (th/assert-equal (.-length (get-items)) 5)
 
-              ;; Delete all items
-              
-               (loop []
-                 (when (> (.-length (get-delete-btns)) 0)
-                   (.click (aget (get-delete-btns) 0))
-                   (recur)))
+            ;; Delete all items
+            (loop []
+              (when (> (.-length (get-delete-btns)) 0)
+                (.click (aget (get-delete-btns) 0))
+                (recur)))
               (comment
                 (th/assert-equal (.-length (get-items)) 0))))))))

@@ -75,7 +75,7 @@
                   (app []
                     [:div
                      (for [v (:values @state)]
-                       ^{:key v} [entry v])
+                       (with-meta [entry v] {:key v}))
                      [:button "First Button"]
                      [:button "Second Button"]
                      [:button "Third Button"]])]

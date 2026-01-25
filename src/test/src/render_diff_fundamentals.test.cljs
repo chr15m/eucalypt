@@ -39,9 +39,9 @@
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [:ul
-                     ^{:key "a"} [:li "a"]
-                     ^{:key "b"} [:li "b"]
-                     ^{:key "c"} [:li "c"]]
+                     (with-meta [:li "a"] {:key "a"})
+                     (with-meta [:li "b"] {:key "b"})
+                     (with-meta [:li "c"] {:key "c"})]
                     container)
           (let [li-a (-> container .-firstChild (.querySelector "li:nth-child(1)"))
                 li-b (-> container .-firstChild (.querySelector "li:nth-child(2)"))
@@ -51,9 +51,9 @@
             (th/assert-equal (.-textContent li-c) "c")
 
             (r/render [:ul
-                       ^{:key "a"} [:li "x"]
-                       ^{:key "b"} [:li "y"]
-                       ^{:key "c"} [:li "z"]]
+                       (with-meta [:li "x"] {:key "a"})
+                       (with-meta [:li "y"] {:key "b"})
+                       (with-meta [:li "z"] {:key "c"})]
                       container)
 
             (let [li-a-after (-> container .-firstChild (.querySelector "li:nth-child(1)"))
@@ -104,7 +104,7 @@
         (let [list-state (r/atom ["A" "B" "C" "D" "E"])
               list-component (fn []
                                [:ul (for [item @list-state]
-                                      ^{:key item} [:li item])])
+                                      (with-meta [:li item] {:key item}))])
               container (.createElement js/document "div")]
           (.appendChild js/document.body container)
 
