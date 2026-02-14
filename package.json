@@ -11,6 +11,7 @@
     "watch": "pnpm dev",
     "dev": "pnpm demo:dev",
     "test": "pnpm clean; pnpm test:compile && vitest run --config src/test/vitest.config.js",
+    "test:reagent": "npx nbb src/test/reagent-runner/runreagent.cljs",
     "test:ci": "pnpm test:compile && vitest run --reporter=default --reporter=json --outputFile=./test-results.json --config src/test/vitest.config.js",
     "coverage": "pnpm test:compile && vitest run --coverage --config src/test/vitest.config.js",
     "demo:build": "cd src/demo && squint compile && vite build && SRC=small.html vite build && SRC=games.html vite build",
