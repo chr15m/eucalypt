@@ -21,7 +21,10 @@
       react (js/require "react")
       window (hd/Window.)
       document (aget window "document")]
-  ;; Set up global environment
+  ;; Set up global environment - copy all window properties to globalThis
+  (doseq [k (js/Object.keys window)]
+    (when-not (aget js/globalThis k)
+      (aset js/globalThis k (aget window k))))
   (aset js/globalThis "ReactDOM" react-dom)
   (aset js/globalThis "React" react)
   (aset js/globalThis "document" document)
