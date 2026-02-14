@@ -20,3 +20,14 @@
 
 (defn rand [] ; shim for missing rand in squint
   (js/Math.random))
+
+(defn wait-for-render
+  "Returns a promise that resolves after the next requestAnimationFrame.
+   Use this in tests after triggering events to wait for re-renders.
+   Reagent batches updates and schedules re-renders asynchronously via rAF.
+   Eucalypt re-renders synchronously but this helper ensures compatibility
+   with both libraries in the test environment."
+  []
+  (js/Promise.
+    (fn [resolve]
+      (js/requestAnimationFrame resolve))))
