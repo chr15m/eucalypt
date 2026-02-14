@@ -40,13 +40,16 @@
 
             ;; Simulate user unchecking
             (.click checkbox-el)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-checked checkbox-el) false)
+                         (th/assert-equal (.-textContent output) "Checked: false")
+                         (th/assert-equal (:checked? @checkbox-state) false)
 
-            (th/assert-equal (.-checked checkbox-el) false)
-            (th/assert-equal (.-textContent output) "Checked: false")
-            (th/assert-equal (:checked? @checkbox-state) false)
-
-            ;; Control component by clicking button
-            (.click button)
-            (th/assert-equal (.-checked checkbox-el) true)
-            (th/assert-equal (.-textContent output) "Checked: true")
-            (th/assert-equal (:checked? @checkbox-state) true))))))) 
+                         ;; Control component by clicking button
+                         (.click button)))
+                (.then th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-checked checkbox-el) true)
+                         (th/assert-equal (.-textContent output) "Checked: true")
+                         (th/assert-equal (:checked? @checkbox-state) true)))))))))) 

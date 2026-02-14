@@ -13,7 +13,7 @@
     (fn []
       [:div {:class (when @editing? "editing")}
        (if @editing?
-         [:input {:type "text" :value "Editing..."}]
+         [:input {:type "text" :defaultValue "Editing..."}]
          [:p "Not editing"])
        [:button {:id "edit-btn"
                  :on-click #(reset! editing? true)}
@@ -39,6 +39,8 @@
             (.click button)
 
             ;; Assert DOM has updated
-            (th/assert-equal (.querySelector container "p") nil)
-            (th/assert-not-nil (.querySelector container "input"))
-            (th/assert-equal (.contains (.-classList div) "editing") true))))))) 
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.querySelector container "p") nil)
+                         (th/assert-not-nil (.querySelector container "input"))
+                         (th/assert-equal (.contains (.-classList div) "editing") true)))))))))) 

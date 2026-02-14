@@ -29,4 +29,6 @@
           (let [button (.querySelector container "#increment")]
             (.click button))
 
-          (th/assert-equal (.-textContent (.querySelector container "p")) "The current count is: 1"))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent (.querySelector container "p")) "The current count is: 1")))))))))
