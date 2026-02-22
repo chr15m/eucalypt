@@ -49,5 +49,5 @@
   ;; Run the test file
   (js/scittle.core.eval_string test-script)
 
-  ;; Print test summary
-  (js/scittle.core.eval_string "(vitest/print-summary)"))
+  ;; Await the sequential test promise chain, then print summary
+  (js/scittle.core.eval_string "(.then vitest/test-promise (fn [] (vitest/print-summary)))"))
