@@ -1,4 +1,4 @@
-(ns vitest)
+#_:clj-kondo/ignore (ns vitest)
 
 ;; Test state tracking
 (def ^:dynamic *current-suite* nil)
