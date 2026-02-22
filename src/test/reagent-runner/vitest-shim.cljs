@@ -16,7 +16,9 @@
   (swap! test-results update :total inc)
   (let [hooks @after-each-hooks
         result (try (testfunc) (catch js/Error e e))]
-    (-> (js/Promise.resolve result)
+    (-> (if (instance? js/Error result)
+          (js/Promise.reject result)
+          (js/Promise.resolve result))
         (.then (fn [_]
                  (doseq [hook hooks] (hook))
                  (swap! test-results update :passed inc)
