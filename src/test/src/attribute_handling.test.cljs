@@ -107,13 +107,16 @@
 
             ;; After clicking, class should be "active"
             (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "class") true)
-            (th/assert-equal (.-className test-element) "active")
-
-            ;; After clicking again, class should be removed
-            (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "class") false)
-            (th/assert-equal (.-className test-element) "")))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "class") true)
+                         (th/assert-equal (.-className test-element) "active")
+                         ;; After clicking again, class should be removed
+                         (.click toggle-btn)))
+                (.then th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "class") false)
+                         (th/assert-equal (.-className test-element) ""))))))))
 
     (it "should handle title attribute with nil/null values correctly"
       (fn []
@@ -136,12 +139,15 @@
 
             ;; After clicking, title should be set
             (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "title") true)
-            (th/assert-equal (.getAttribute test-element "title") "This is a tooltip")
-
-            ;; After clicking again, title should be removed
-            (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "title") false)))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "title") true)
+                         (th/assert-equal (.getAttribute test-element "title") "This is a tooltip")
+                         ;; After clicking again, title should be removed
+                         (.click toggle-btn)))
+                (.then th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "title") false))))))))
 
     (it "should handle data attributes with nil/null values correctly"
       (fn []
@@ -164,12 +170,15 @@
 
             ;; After clicking, data-test should be set
             (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "data-test") true)
-            (th/assert-equal (.getAttribute test-element "data-test") "test-value")
-
-            ;; After clicking again, data-test should be removed
-            (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "data-test") false)))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "data-test") true)
+                         (th/assert-equal (.getAttribute test-element "data-test") "test-value")
+                         ;; After clicking again, data-test should be removed
+                         (.click toggle-btn)))
+                (.then th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "data-test") false))))))))
 
     (it "should handle boolean attributes (disabled, checked) correctly"
       (fn []
@@ -196,14 +205,17 @@
             ;; After clicking, inputs should be disabled/checked
             (.click toggle-disabled-btn)
             (.click toggle-checked-btn)
-            (th/assert-equal (.-disabled disabled-input) true)
-            (th/assert-equal (.-checked checked-input) true)
-
-            ;; After clicking again, inputs should not be disabled/checked
-            (.click toggle-disabled-btn)
-            (.click toggle-checked-btn)
-            (th/assert-equal (.-disabled disabled-input) false)
-            (th/assert-equal (.-checked checked-input) false)))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-disabled disabled-input) true)
+                         (th/assert-equal (.-checked checked-input) true)
+                         ;; After clicking again, inputs should not be disabled/checked
+                         (.click toggle-disabled-btn)
+                         (.click toggle-checked-btn)))
+                (.then th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-disabled disabled-input) false)
+                         (th/assert-equal (.-checked checked-input) false))))))))
 
     (it "should handle selected attribute correctly"
       (fn []
@@ -228,11 +240,14 @@
 
             ;; After clicking set, option2 should be selected
             (.click set-btn)
-            (th/assert-equal (.-selected option2) true)
-
-            ;; After clicking clear, option2 should not be selected
-            (.click clear-btn)
-            (th/assert-equal (.-selected option2) false)))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-selected option2) true)
+                         ;; After clicking clear, option2 should not be selected
+                         (.click clear-btn)))
+                (.then th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-selected option2) false))))))))
 
     (it "should handle style attributes with nil/null values correctly"
       (fn []
@@ -256,8 +271,11 @@
 
             ;; After clicking set, color should be red
             (.click set-btn)
-            (th/assert-equal (.. test-element -style -color) "red")
-
-            ;; After clicking clear, color should be empty again
-            (.click clear-btn)
-            (th/assert-equal (.. test-element -style -color) "")))))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.. test-element -style -color) "red")
+                         ;; After clicking clear, color should be empty again
+                         (.click clear-btn)))
+                (.then th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.. test-element -style -color) ""))))))))))
