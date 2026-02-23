@@ -34,14 +34,17 @@
           (.appendChild js/document.body container)
           (r/render [main-component] container)
 
-          (th/assert-not-nil @ref-val)
-          (th/assert-equal (.-tagName @ref-val) "DIV")
-          (th/assert-equal (.-id @ref-val) "ref-div")
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-not-nil @ref-val)
+                       (th/assert-equal (.-tagName @ref-val) "DIV")
+                       (th/assert-equal (.-id @ref-val) "ref-div")
 
-          ;; Toggle to unmount
-          (.click (.querySelector container "#toggle"))
-
-          (th/assert-equal @ref-val nil))))
+                       ;; Toggle to unmount
+                       (.click (.querySelector container "#toggle"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal @ref-val nil)))))))
 
     (it "should not call stale refs"
       (fn []
@@ -55,17 +58,20 @@
           (.appendChild js/document.body container)
 
           (r/render [app] container)
-          (let [div-el (-> container .-firstChild)]
-            (th/assert-equal @ref1-calls [div-el])
-            (th/assert-equal @ref2-calls []))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (let [div-el (-> container .-firstChild)]
+                         (th/assert-equal @ref1-calls [div-el])
+                         (th/assert-equal @ref2-calls []))
 
-          (reset! show-ref1 false)
-
-          (let [div-el (-> container .-firstChild)]
-            (th/assert-equal (count @ref1-calls) 2)
-            (th/assert-equal (first @ref1-calls) div-el)
-            (th/assert-equal (second @ref1-calls) nil)
-            (th/assert-equal @ref2-calls [div-el])))))
+                       (reset! show-ref1 false)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (let [div-el (-> container .-firstChild)]
+                         (th/assert-equal (count @ref1-calls) 2)
+                         (th/assert-equal (first @ref1-calls) div-el)
+                         (th/assert-equal (second @ref1-calls) nil)
+                         (th/assert-equal @ref2-calls [div-el]))))))))
 
     (it "should null and re-invoke refs when swapping component root element type"
       (fn []
@@ -79,19 +85,22 @@
           (.appendChild js/document.body container)
 
           (r/render [app] container)
-          (th/assert-equal (count @calls) 1)
-          (let [first-call (first @calls)]
-            (th/assert-not-nil first-call)
-            (th/assert-equal (.-nodeName first-call) "DIV"))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (count @calls) 1)
+                       (let [first-call (first @calls)]
+                         (th/assert-not-nil first-call)
+                         (th/assert-equal (.-nodeName first-call) "DIV"))
 
-          (reset! show-div false)
-
-          (th/assert-equal (count @calls) 3)
-          (let [[div-mount div-unmount span-mount] @calls]
-            (th/assert-equal (.-nodeName div-mount) "DIV")
-            (th/assert-equal div-unmount nil)
-            (th/assert-not-nil span-mount)
-            (th/assert-equal (.-nodeName span-mount) "SPAN")))))
+                       (reset! show-div false)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count @calls) 3)
+                       (let [[div-mount div-unmount span-mount] @calls]
+                         (th/assert-equal (.-nodeName div-mount) "DIV")
+                         (th/assert-equal div-unmount nil)
+                         (th/assert-not-nil span-mount)
+                         (th/assert-equal (.-nodeName span-mount) "SPAN"))))))))
 
     (it "should have a consistent order"
       (fn []
@@ -106,14 +115,17 @@
           (.appendChild js/document.body container)
 
           (r/render [app] container)
-          (r/render [app] container)
-
-          ;; Observed Preact behavior from console logs:
-          ;; 1. Mount: H1, DIV (bottom-up)
-          ;; 2. Update -> Unmount: null-H1, null-DIV (bottom-up)
-          ;; 3. Update -> Mount: H1, DIV (bottom-up)
-          ;; Total: ["H1", "DIV", "null-H1", "null-DIV", "H1", "DIV"]
-          (th/assert-equal @events ["H1" "DIV" "null-H1" "null-DIV" "H1" "DIV"]))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (r/render [app] container)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       ;; Observed Preact behavior from console logs:
+                       ;; 1. Mount: H1, DIV (bottom-up)
+                       ;; 2. Update -> Unmount: null-H1, null-DIV (bottom-up)
+                       ;; 3. Update -> Mount: H1, DIV (bottom-up)
+                       ;; Total: ["H1", "DIV", "null-H1", "null-DIV", "H1", "DIV"]
+                       (th/assert-equal @events ["H1" "DIV" "null-H1" "null-DIV" "H1" "DIV"])))))))
 
     (it "should call ref after children are rendered"
       (fn []
@@ -125,7 +137,9 @@
               container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [parent] container)
-          (th/assert-equal @events [:child :parent]))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal @events [:child :parent])))))))
 
     (it "should correctly set nested child refs"
       (fn []
@@ -140,8 +154,12 @@
           (.appendChild js/document.body container)
 
           (r/render [app false] container)
-          (th/assert-not-nil @ref-val)
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-not-nil @ref-val)
 
-          (reset! ref-val nil)
-          (r/render [app true] container)
-          (th/assert-not-nil @ref-val))))))
+                       (reset! ref-val nil)
+                       (r/render [app true] container)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-not-nil @ref-val)))))))))

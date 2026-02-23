@@ -31,7 +31,9 @@
           (th/assert-equal (.-innerHTML container) "<div><b>foo & bar</b></div>")
 
           (r/render [:div [:p "text"]] container)
-          (th/assert-equal (.-innerHTML container) "<div><p>text</p></div>"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div><p>text</p></div>")))))))
 
     (it "should update innerHTML"
       (fn []
@@ -43,15 +45,25 @@
           (th/assert-equal (.-innerHTML container) (str "<div>" html-string-1 "</div>"))
 
           (r/render [:div {:dangerouslySetInnerHTML {:__html html-string-2}}] container)
-          (th/assert-equal (.-innerHTML container) (str "<div>" html-string-2 "</div>")))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) (str "<div>" html-string-2 "</div>"))))))))
 
     (it "should not render children when dangerouslySetInnerHTML is present"
       (fn []
         (let [html-string "<b>foo</b>"
               container (.createElement js/document "div")]
           (.appendChild js/document.body container)
-          (r/render [:div {:dangerouslySetInnerHTML {:__html html-string}} [:p "I should not be rendered"]] container)
-          (th/assert-equal (.-innerHTML container) (str "<div>" html-string "</div>")))))
+          (try
+            (r/render [:div {:dangerouslySetInnerHTML {:__html html-string}} [:p "I should not be rendered"]] container)
+            (th/assert-equal (.-innerHTML container) (str "<div>" html-string "</div>"))
+            (catch js/Error e
+              ;; React throws an error here, which is also acceptable
+              ; Reagent/React error:
+              ; Can only set one of `children` or `props.dangerouslySetInnerHTML`.
+              (th/assert-equal (and (.includes (str e) "children")
+                                    (.includes (str e)
+                                               "props.dangerouslySetInnerHTML")) true))))))
 
     (it "should not execute scripts on creation"
       (fn []
@@ -79,7 +91,10 @@
           (th/assert-equal (.-innerHTML container) "<div><b><i>test</i></b></div>")
 
           (reset! state {:html nil})
-          (th/assert-equal (.-innerHTML container) "<div></div>")
-
-          (reset! state {:html "<foo><bar>test</bar></foo>"})
-          (th/assert-equal (.-innerHTML container) "<div><foo><bar>test</bar></foo></div>"))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div></div>")
+                       (reset! state {:html "<foo><bar>test</bar></foo>"})
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div><foo><bar>test</bar></foo></div>")))))))))

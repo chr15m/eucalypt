@@ -58,13 +58,17 @@
 
             ;; After clicking, class should be "active"
             (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "class") true)
-            (th/assert-equal (.-className test-element) "active")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "class") true)
+                         (th/assert-equal (.-className test-element) "active")
 
-            ;; After clicking again, class should be removed
-            (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "class") false)
-            (th/assert-equal (.-className test-element) "")))))
+                         ;; After clicking again, class should be removed
+                         (.click toggle-btn)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "class") false)
+                         (th/assert-equal (.-className test-element) ""))))))))
 
     (it "should handle title attribute with nil/null values correctly"
       (fn []
@@ -83,12 +87,16 @@
 
             ;; After clicking, title should be set
             (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "title") true)
-            (th/assert-equal (.getAttribute test-element "title") "This is a tooltip")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "title") true)
+                         (th/assert-equal (.getAttribute test-element "title") "This is a tooltip")
 
-            ;; After clicking again, title should be removed
-            (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "title") false)))))
+                         ;; After clicking again, title should be removed
+                         (.click toggle-btn)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "title") false))))))))
 
     (it "should handle data attributes with nil/null values correctly"
       (fn []
@@ -107,39 +115,49 @@
 
             ;; After clicking, data-test should be set
             (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "data-test") true)
-            (th/assert-equal (.getAttribute test-element "data-test") "test-value")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "data-test") true)
+                         (th/assert-equal (.getAttribute test-element "data-test") "test-value")
 
-            ;; After clicking again, data-test should be removed
-            (.click toggle-btn)
-            (th/assert-equal (.hasAttribute test-element "data-test") false)))))
+                         ;; After clicking again, data-test should be removed
+                         (.click toggle-btn)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.hasAttribute test-element "data-test") false))))))))
 
     (it "should set data attributes to 'false' string for false boolean value"
       (fn []
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [:div {:data-test false}] container)
-          (let [test-element (.querySelector container "div")]
-            (th/assert-equal (.hasAttribute test-element "data-test") true)
-            (th/assert-equal (.getAttribute test-element "data-test") "false")))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (let [test-element (.querySelector container "div")]
+                         (th/assert-equal (.hasAttribute test-element "data-test") true)
+                         (th/assert-equal (.getAttribute test-element "data-test") "false"))))))))
 
     (it "should set aria attributes to 'false' string for false boolean value"
       (fn []
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [:div {:aria-checked false}] container)
-          (let [test-element (.querySelector container "div")]
-            (th/assert-equal (.hasAttribute test-element "aria-checked") true)
-            (th/assert-equal (.getAttribute test-element "aria-checked") "false")))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (let [test-element (.querySelector container "div")]
+                         (th/assert-equal (.hasAttribute test-element "aria-checked") true)
+                         (th/assert-equal (.getAttribute test-element "aria-checked") "false"))))))))
 
     (it "should support false string aria-* attributes"
       (fn []
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [:div {:aria-checked "false"}] container)
-          (let [test-element (.querySelector container "div")]
-            (th/assert-equal (.hasAttribute test-element "aria-checked") true)
-            (th/assert-equal (.getAttribute test-element "aria-checked") "false")))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (let [test-element (.querySelector container "div")]
+                         (th/assert-equal (.hasAttribute test-element "aria-checked") true)
+                         (th/assert-equal (.getAttribute test-element "aria-checked") "false"))))))))
 
     (it "should unset href if nil or undefined"
       (fn []
@@ -151,8 +169,10 @@
                      [:a {:href nil} "href=\"null\""]
                      [:a {:href ""} "href=\"''\""]]
                     container)
-          (let [links (.querySelectorAll container "a")]
-            (th/assert-equal (.hasAttribute (aget links 0) "href") true)
-            (th/assert-equal (.hasAttribute (aget links 1) "href") false)
-            (th/assert-equal (.hasAttribute (aget links 2) "href") false)
-            (th/assert-equal (.hasAttribute (aget links 3) "href") true)))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (let [links (.querySelectorAll container "a")]
+                         (th/assert-equal (.hasAttribute (aget links 0) "href") true)
+                         (th/assert-equal (.hasAttribute (aget links 1) "href") false)
+                         (th/assert-equal (.hasAttribute (aget links 2) "href") false)
+                         (th/assert-equal (.hasAttribute (aget links 3) "href") true))))))))))

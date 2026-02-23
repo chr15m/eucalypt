@@ -27,12 +27,14 @@
           
           (r/render [test-component] container)
           
-          ;; The component should render once
-          ;; The ref should be called once
-          ;; Even though the ref modifies a reactive atom that the component doesn't deref
-          (th/assert-equal @render-count 1)
-          (th/assert-equal @ref-call-count 1)
-          (th/assert-equal (:mounted @state) true))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       ;; The component should render once
+                       ;; The ref should be called once
+                       ;; Even though the ref modifies a reactive atom that the component doesn't deref
+                       (th/assert-equal @render-count 1)
+                       (th/assert-equal @ref-call-count 1)
+                       (th/assert-equal (:mounted @state) true)))))))
     
     (it "should call ref with nil and then the element on every render for inline functions"
       (fn []
@@ -52,17 +54,21 @@
 
           (r/render [test-component] container)
 
-          ;; Initial render - ref should be called once with element
-          (th/assert-equal @ref-calls ["mounted"])
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       ;; Initial render - ref should be called once with element
+                       (th/assert-equal @ref-calls ["mounted"])
 
-          ;; Trigger a re-render by clicking the button
-          (.click (.querySelector container "#inc-btn"))
+                       ;; Trigger a re-render by clicking the button
+                       (.click (.querySelector container "#inc-btn"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       ;; Ref should be called with nil, then with element
+                       (th/assert-equal @ref-calls ["mounted" "unmounted" "mounted"])
 
-          ;; Ref should be called with nil, then with element
-          (th/assert-equal @ref-calls ["mounted" "unmounted" "mounted"])
-
-          ;; Click again
-          (.click (.querySelector container "#inc-btn"))
-
-          ;; And again
-          (th/assert-equal @ref-calls ["mounted" "unmounted" "mounted" "unmounted" "mounted"]))))))
+                       ;; Click again
+                       (.click (.querySelector container "#inc-btn"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       ;; And again
+                       (th/assert-equal @ref-calls ["mounted" "unmounted" "mounted" "unmounted" "mounted"])))))))))

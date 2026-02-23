@@ -35,14 +35,18 @@
           (.appendChild js/document.body container)
 
           (r/render [foo {:condition true}] container)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>Hello</div><div>bar</div></div>")
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>Hello</div><div>bar</div></div>")
 
-          (r/render [foo {:condition false}] container)
-          (th/assert-equal (.-innerHTML container) "<div><div>Hello</div></div>")
+                       (r/render [foo {:condition false}] container)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div><div>Hello</div></div>")
 
-          ;; root + "Hello" div
-          (th/assert-equal (.-length (.querySelectorAll container "div")) 2))))
+                       ;; root + "Hello" div
+                       (th/assert-equal (.-length (.querySelectorAll container "div")) 2)))))))
 
     (it "should efficiently replace null placeholders in parent rerenders (#2350)"
       (fn []
@@ -59,16 +63,22 @@
           (.appendChild js/document.body container)
 
           (r/render [app] container)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>false</div><div>the middle</div></div>")
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>false</div><div>the middle</div></div>")
 
-          (reset! show? true)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>true</div>Nullable 1<div>the middle</div>Nullable 2</div>")
+                       (reset! show? true)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>true</div>Nullable 1<div>the middle</div>Nullable 2</div>")
 
-          (reset! show? false)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>false</div><div>the middle</div></div>"))))
+                       (reset! show? false)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>false</div><div>the middle</div></div>")))))))
 
     (it "should efficiently replace self-updating null placeholders"
       (fn []
@@ -86,18 +96,24 @@
           (.appendChild js/document.body container)
 
           (r/render [app] container)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>1</div><div>Nullable</div><div>3</div><div>Nullable2</div></div>")
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>1</div><div>Nullable</div><div>3</div><div>Nullable2</div></div>")
 
-          (@toggle-2)
-          (@toggle-1)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>1</div><div>3</div></div>")
+                       (@toggle-2)
+                       (@toggle-1)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>1</div><div>3</div></div>")
 
-          (@toggle-2)
-          (@toggle-1)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>1</div><div>Nullable</div><div>3</div><div>Nullable2</div></div>"))))
+                       (@toggle-2)
+                       (@toggle-1)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>1</div><div>Nullable</div><div>3</div><div>Nullable2</div></div>")))))))
 
     (it "should only call unmount once when removing placeholders (#4104)"
       (fn []
@@ -115,17 +131,22 @@
           (.appendChild js/document.body container)
 
           (r/render [app] container)
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>Test2</div><div>Test3</div><div>Iframe</div></div>")
-          (th/assert-equal @ref-calls [:mount])
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>Test2</div><div>Test3</div><div>Iframe</div></div>")
+                       (th/assert-equal @ref-calls [:mount])
 
-          (reset! ref-calls [])
-          (reset! show? false)
+                       (reset! ref-calls [])
+                       (reset! show? false)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container)
+                                        "<div><div>Test2</div><div>Iframe</div></div>")
+                       (th/assert-equal @ref-calls [:nil])
 
-          (th/assert-equal (.-innerHTML container)
-                           "<div><div>Test2</div><div>Iframe</div></div>")
-          (th/assert-equal @ref-calls [:nil])
-
-          (reset! ref-calls [])
-          (reset! show? false)
-          (th/assert-equal @ref-calls []))))))
+                       (reset! ref-calls [])
+                       (reset! show? false)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal @ref-calls [])))))))))

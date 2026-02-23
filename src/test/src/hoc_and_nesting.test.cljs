@@ -53,12 +53,16 @@
 
           ;; Update and re-render
           (.click (.querySelector container "#updater"))
-          (th/assert-equal (-> container .-firstChild .-innerHTML)
-                           "<div i=\"2\">inner</div><button id=\"updater\"></button><button id=\"switcher\"></button>")
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (-> container .-firstChild .-innerHTML)
+                                        "<div i=\"2\">inner</div><button id=\"updater\"></button><button id=\"switcher\"></button>")
 
-          ;; Switch to alt view
-          (.click (.querySelector container "#switcher"))
-          (th/assert-equal (.-innerHTML container) "<div class=\"is-alt\"></div>"))))
+                       ;; Switch to alt view
+                       (.click (.querySelector container "#switcher"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div class=\"is-alt\"></div>")))))))
 
     (it "should unmount children of HOCs without unmounting parent"
       (fn []
@@ -86,10 +90,12 @@
 
           (.click (.querySelector container "#switcher"))
 
-          (th/assert-equal (.-innerHTML container) "<div><div>Inner B</div><button id=\"switcher\">Switch</button></div>")
-          (th/assert-equal (:a @unmount-counts) 1)
-          (th/assert-equal (not (:b @unmount-counts)) true)
-          (th/assert-equal (not (:outer @unmount-counts)) true))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div><div>Inner B</div><button id=\"switcher\">Switch</button></div>")
+                       (th/assert-equal (:a @unmount-counts) 1)
+                       (th/assert-equal (not (:b @unmount-counts)) true)
+                       (th/assert-equal (not (:outer @unmount-counts)) true)))))))))
 
 ;;; --- Component Nesting ---
 
@@ -110,8 +116,10 @@
           (th/assert-equal (.-innerHTML container) "<div>inner</div>")
 
           (r/render [:p "unmounted"] container)
-          (th/assert-equal (.-innerHTML container) "<p>unmounted</p>")
-          (th/assert-equal (:inner @unmount-counts) 1))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<p>unmounted</p>")
+                       (th/assert-equal (:inner @unmount-counts) 1)))))))
 
     (it "should handle deeply nested stateful components"
       (fn []
@@ -139,11 +147,15 @@
 
           ;; Update leaf component state
           (.click (.querySelector container "#leaf button"))
-          (th/assert-equal (.-textContent (.querySelector container "#leaf")) "Leaf: 1Inc Leaf")
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent (.querySelector container "#leaf")) "Leaf: 1Inc Leaf")
 
-          ;; Update root component state
-          (.click (.querySelector container "#root-inc"))
-          (th/assert-equal (.-textContent (.querySelector container "p")) "Root state: 1")
+                       ;; Update root component state
+                       (.click (.querySelector container "#root-inc"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent (.querySelector container "p")) "Root state: 1")
 
-          ;; Check that leaf component state was preserved
-          (th/assert-equal (.-textContent (.querySelector container "#leaf")) "Leaf: 1Inc Leaf"))))))
+                       ;; Check that leaf component state was preserved
+                       (th/assert-equal (.-textContent (.querySelector container "#leaf")) "Leaf: 1Inc Leaf")))))))))
