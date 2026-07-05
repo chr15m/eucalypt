@@ -27,4 +27,4 @@
             (.click button)
             (th/assert-equal @state {:counter 1})
             (let [p (.querySelector container "p")]
-              (th/assert-equal (.-textContent p) "{\"counter\":1}"))))))))
+              (th/assert-equal (.-textContent p) "{:counter 1}"))))))))
