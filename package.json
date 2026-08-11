@@ -1,6 +1,6 @@
 {
   "name": "eucalypt",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "exports": "./eucalypt.mjs",
   "description": "Reagent compatible-ish Squint-cljs library with no React. Builds tiny frontends.",
   "type": "module",
@@ -24,7 +24,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "concurrently": "8.2.2",
     "happy-dom": "14.12.3",
-    "squint-cljs": "0.14.201",
+    "squint-cljs": "0.14.207",
     "vite": "7.1.2",
     "vite-bundle-analyzer": "^1.2.3",
     "vite-plugin-singlefile": "2.3.0",
