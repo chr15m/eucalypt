@@ -825,54 +825,84 @@
       (when container (swap! roots assoc container {:container container :component normalized-component :runtime runtime})))
     (finally (swap! render-state assoc :active false))))
 
-; mirrored as atom below
+; mirrored as atom below. A deftype implementing the squint ref protocols:
+; deref registers the active watcher, reset!/swap! notify watchers and
+; cursors. add-watch etc delegate to the backing atom.
+(deftype RAtom [base watchers cursors]
+  IDeref
+  (-deref [this]
+    (ensure-watcher-registered! this watchers)
+    @base)
+  IReset
+  (-reset! [_this new-val]
+    (let [res (reset! base new-val)]
+      (notify-watchers watchers)
+      (doseq [c @cursors]
+        (notify-watchers (aget c "watchers")))
+      res))
+  ISwap
+  (-swap! [this f] (-reset! this (f @base)))
+  (-swap! [this f a] (-reset! this (f @base a)))
+  (-swap! [this f a b] (-reset! this (f @base a b)))
+  (-swap! [this f a b xs] (-reset! this (apply f @base a b xs)))
+  IWatchable
+  (-add-watch [this k f]
+    (add-watch base k (fn [k _ o n] (f k this o n)))
+    this)
+  (-remove-watch [_this k]
+    (remove-watch base k))
+  (-notify-watches [this _oldv _newv]
+    (notify-watchers watchers)
+    this))
+
 (defn- ratom [initial-value]
-  (let [a (core-atom initial-value)
-        orig-deref (aget a "_deref")
-        orig-reset_BANG_ (aget a "_reset_BANG_")]
-    (aset a "watchers" (core-atom (empty-js-map)))
-    (aset a "cursors" (core-atom #{}))
-    (aset a "_deref" (fn []
-                       (ensure-watcher-registered! a (aget a "watchers"))
-                       (.call orig-deref a)))
-    (aset a "_reset_BANG_" (fn [new-val]
-                             (let [res (.call orig-reset_BANG_ a new-val)]
-                               (notify-watchers (aget a "watchers"))
-                               (doseq [c @(aget a "cursors")]
-                                 (notify-watchers (aget c "watchers")))
-                               res)))
-    a))
+  (->RAtom (core-atom initial-value) (core-atom (empty-js-map)) (core-atom #{})))
 
 ; *** Reagent API functions *** ;
 
+(deftype Cursor [the-ratom path watchers]
+  IDeref
+  (-deref [this]
+    (ensure-watcher-registered! this watchers)
+    (let [old-watcher *watcher*]
+      (try
+        (set! *watcher* nil)
+        (get-in @the-ratom path)
+        (finally
+          (set! *watcher* old-watcher)))))
+  ISwap
+  (-swap! [_this f]
+    (swap! the-ratom
+           (fn [state] (assoc-in state path (f (get-in state path))))))
+  (-swap! [_this f a]
+    (swap! the-ratom
+           (fn [state] (assoc-in state path (f (get-in state path) a)))))
+  (-swap! [_this f a b]
+    (swap! the-ratom
+           (fn [state] (assoc-in state path (f (get-in state path) a b)))))
+  (-swap! [_this f a b xs]
+    (swap! the-ratom
+           (fn [state] (assoc-in state path (apply f (get-in state path) a b xs)))))
+  IReset
+  (-reset! [this new-val] (-swap! this (constantly new-val))))
+
 ;; Reagent API
 (defn cursor [the-ratom path]
-  (let [cursors (aget the-ratom "cursors")
+  (let [cursors (.-cursors the-ratom)
         found-cursor (some (fn [c] (when (= path (aget c "path")) c)) @cursors)]
     (if (nil? found-cursor)
-      (let [watchers (core-atom (empty-js-map))
-            this-cursor (js-obj)]
-        (aset this-cursor "_deref"
-              (fn []
-                (ensure-watcher-registered! this-cursor watchers)
-                (let [old-watcher *watcher*]
-                  (try
-                    (set! *watcher* nil)
-                    (get-in @the-ratom path)
-                    (finally
-                      (set! *watcher* old-watcher))))))
-        (aset this-cursor "_swap"
-              (fn [f & args]
-                (swap! the-ratom
-                  (fn [current-state]
-                    (let [current-cursor-value (get-in current-state path)
-                          new-cursor-value (apply f current-cursor-value args)]
-                      (assoc-in current-state path new-cursor-value))))))
-        (aset this-cursor "watchers" watchers)
-        (aset this-cursor "path" path)
+      (let [this-cursor (->Cursor the-ratom path (core-atom (empty-js-map)))]
         (swap! cursors conj this-cursor)
         this-cursor)
       found-cursor)))
+
+(deftype Reaction [ra]
+  IDeref
+  (-deref [_this] @ra)
+  ISwap
+  (-swap! [_this _f] (throw (js/Error. "Reactions are readonly")))
+  IReset
+  (-reset! [_this _v] (throw (js/Error. "Reactions are readonly"))))
 
 ;; Reagent API
 (defn reaction [f & params]
@@ -882,11 +912,7 @@
     (try
       (set! *watcher* watcher)
       (watcher)
-      (let [reaction-obj (js-obj
-                           "_deref" (fn [] @ra)
-                           "_swap" (fn [& _] (throw (js/Error. "Reactions are readonly"))))]
-        (aset reaction-obj "watchers" (aget ra "watchers"))
-        reaction-obj)
+      (->Reaction ra)
       (finally
         (set! *watcher* old-watcher)))))
 

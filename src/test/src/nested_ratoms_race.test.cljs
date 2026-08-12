@@ -1,5 +1,6 @@
 (ns nested-ratoms-race.test
   (:require ["vitest" :refer [describe it afterEach]]
+            [clojure.edn :as edn]
             [clojure.string :as str]
             [eucalypt :as r]
             [helpers :as th]))
@@ -46,7 +47,7 @@
 (defn single-state [container]
   (let [pre-values (texts-by-selector container "pre.app-state")]
     (th/assert-equal (count pre-values) 1)
-    (js/JSON.parse (first pre-values))))
+    (edn/read-string (first pre-values))))
 
 ;; --- Components under test (mirrors demo/games.cljs) ---
 
