@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      squint-cljs:
+        specifier: 0.14.208
+        version: 0.14.208
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^3.2.4
@@ -17,9 +21,6 @@ importers:
       happy-dom:
         specifier: 14.12.3
         version: 14.12.3
-      squint-cljs:
-        specifier: 0.14.208
-        version: 0.14.208
       vite:
         specifier: 7.1.2
         version: 7.1.2(@types/node@20.19.23)(terser@5.44.0)
