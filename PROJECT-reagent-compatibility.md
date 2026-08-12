@@ -56,3 +56,6 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
     - **23 files passed 100%** under real Reagent.
     - **27 files had assertion failures** (mostly due to synchronous DOM checks requiring `(th/wait-for-render)` for Reagent's asynchronous rendering).
     - **4 files timed out / errored**: `multiple_select`, `radio_buttons`, `reentrant_render`, `todomvc`.
+  - Added `beforeEach` hook support to `src/test/reagent-runner/vitest-shim.cljs`.
+  - Updated string formatting in `src/test/src/multiple_select.test.cljs` using `.join` on `clj->js` vector for consistent string representation across ClojureScript and Squint.
+  - Diagnosed `multiple_select.test.cljs` error under Reagent runner: React 17 synthetic event system attempts to set `eventPhase` on raw Happy-DOM `js/Event`, throwing `TypeError: Cannot set property eventPhase of #<Event> which has only a getter`.
