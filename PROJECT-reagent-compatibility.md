@@ -63,3 +63,4 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - Added `th/fire-event` helper in `src/test/src/helpers.cljs` that uses `ReactTestUtils.Simulate` when available (under Reagent runner / React 17) and standard `dispatchEvent` under Eucalypt.
   - Updated `multiple_select.test.cljs` to use `(th/fire-event select-el "change")` and `(th/wait-for-render)`.
   - Confirmed `multiple_select.test.cljs` now passes 100% in both Eucalypt (`pnpm test`) and Reagent runner (`pnpm test:reagent`).
+  - Updated `select.test.cljs` to use `(th/fire-event select-el "change")` and `(th/wait-for-render)`. Confirmed 100% pass in both Eucalypt and Reagent runner.

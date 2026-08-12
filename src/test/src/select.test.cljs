@@ -73,14 +73,18 @@
 
             ;; Simulate user changing selection
             (set! (.-value select-el) "c")
-            (.dispatchEvent select-el (new js/Event "change" #js {:bubbles true}))
+            (th/fire-event select-el "change")
 
-            (th/assert-equal (.-value select-el) "c")
-            (th/assert-equal (.-textContent output) "You selected: c")
-            (th/assert-equal (:selected @select-state) "c")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-value select-el) "c")
+                         (th/assert-equal (.-textContent output) "You selected: c")
+                         (th/assert-equal (:selected @select-state) "c")
 
-            ;; Control component by clicking button
-            (.click button)
-            (th/assert-equal (.-value select-el) "a")
-            (th/assert-equal (.-textContent output) "You selected: a")
-            (th/assert-equal (:selected @select-state) "a")))))))
+                         ;; Control component by clicking button
+                         (.click button)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-value select-el) "a")
+                         (th/assert-equal (.-textContent output) "You selected: a")
+                         (th/assert-equal (:selected @select-state) "a"))))))))))
