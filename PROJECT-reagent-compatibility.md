@@ -59,3 +59,4 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - Added `beforeEach` hook support to `src/test/reagent-runner/vitest-shim.cljs`.
   - Updated string formatting in `src/test/src/multiple_select.test.cljs` using `.join` on `clj->js` vector for consistent string representation across ClojureScript and Squint.
   - Diagnosed `multiple_select.test.cljs` error under Reagent runner: React 17 synthetic event system attempts to set `eventPhase` on raw Happy-DOM `js/Event`, throwing `TypeError: Cannot set property eventPhase of #<Event> which has only a getter`.
+  - Added `eventPhase` prototype patch in `src/test/reagent-runner/runreagent.cljs` to allow React 17 synthetic event dispatching on Happy-DOM events.

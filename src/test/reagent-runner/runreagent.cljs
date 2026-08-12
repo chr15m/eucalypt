@@ -30,6 +30,17 @@
   (aset js/globalThis "document" document)
   (aset js/globalThis "window" window)
 
+  ;; Patch Happy DOM / Node Event.prototype.eventPhase getter-only quirk for React 17
+  (doseq [event-cls [(aget window "Event") js/globalThis.Event]]
+    (when (and event-cls (.-prototype event-cls))
+      (js/Object.defineProperty
+       (.-prototype event-cls)
+       "eventPhase"
+       #js {:get (js/Function. "return this._eventPhase || 0;")
+            :set (js/Function. "v" "this._eventPhase = v;")
+            :configurable true
+            :enumerable true})))
+
   ;; Create #app div
   (let [app-div (doto (.createElement document "div")
                   (aset "id" "app"))]
