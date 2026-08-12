@@ -25,11 +25,13 @@
   "Fires a DOM event on an element. Uses ReactTestUtils.Simulate if available (under Reagent runner),
    otherwise dispatches a standard DOM event."
   [el event-type & [opts]]
-  (if (and (exists? js/ReactTestUtils)
-           (aget js/ReactTestUtils "Simulate")
-           (aget (.-Simulate js/ReactTestUtils) event-type))
-    ((aget (.-Simulate js/ReactTestUtils) event-type) el)
-    (.dispatchEvent el (new js/Event event-type (clj->js (or opts {:bubbles true}))))))
+  (if (and (= event-type "click") (fn? (.-click el)))
+    (.click el)
+    (if (and (exists? js/ReactTestUtils)
+             (aget js/ReactTestUtils "Simulate")
+             (aget (.-Simulate js/ReactTestUtils) event-type))
+      ((aget (.-Simulate js/ReactTestUtils) event-type) el)
+      (.dispatchEvent el (new js/Event event-type (clj->js (or opts {:bubbles true})))))))
 
 (defn wait-for-render
   "Returns a promise that resolves after the next requestAnimationFrame.

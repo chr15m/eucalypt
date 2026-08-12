@@ -55,18 +55,22 @@
             (th/assert-equal (.-checked radio-b) true)
             (th/assert-equal (.-textContent output) "Selected: b")
 
-            ;; Simulate user clicking radio A
+            ;; Simulate user selecting radio A natively
             (.click radio-a)
 
-            (th/assert-equal (.-checked radio-a) true)
-            (th/assert-equal (.-checked radio-b) false)
-            (th/assert-equal (.-textContent output) "Selected: a")
-            (th/assert-equal (:selected @radio-state) "a")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-checked radio-a) true)
+                         (th/assert-equal (.-checked radio-b) false)
+                         (th/assert-equal (.-textContent output) "Selected: a")
+                         (th/assert-equal (:selected @radio-state) "a")
 
-            ;; Control component by clicking button
-            (.click button)
-            (let [radio-c (.querySelector container "#radio-c")]
-              (th/assert-equal (.-checked radio-a) false)
-              (th/assert-equal (.-checked radio-c) true)
-              (th/assert-equal (.-textContent output) "Selected: c")
-              (th/assert-equal (:selected @radio-state) "c"))))))))
+                         ;; Control component by clicking button
+                         (.click button)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (let [radio-c (.querySelector container "#radio-c")]
+                           (th/assert-equal (.-checked radio-a) false)
+                           (th/assert-equal (.-checked radio-c) true)
+                           (th/assert-equal (.-textContent output) "Selected: c")
+                           (th/assert-equal (:selected @radio-state) "c")))))))))))

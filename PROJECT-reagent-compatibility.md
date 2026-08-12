@@ -64,3 +64,5 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - Updated `multiple_select.test.cljs` to use `(th/fire-event select-el "change")` and `(th/wait-for-render)`.
   - Confirmed `multiple_select.test.cljs` now passes 100% in both Eucalypt (`pnpm test`) and Reagent runner (`pnpm test:reagent`).
   - Updated `select.test.cljs` to use `(th/fire-event select-el "change")` and `(th/wait-for-render)`. Confirmed 100% pass in both Eucalypt and Reagent runner.
+  - Updated `radio_buttons.test.cljs` to use native `(.click radio-a)` and `(th/wait-for-render)` promise chains. Confirmed 100% pass rate in both Eucalypt (`pnpm test`) and Reagent runner (`pnpm test:reagent`).
+  - Updated `helpers/fire-event` to default `"click"` events to native `(.click el)` in all environments because `ReactTestUtils.Simulate.click` does not toggle native `checked` DOM state or fire React `onChange` handlers on radio/checkbox inputs.
