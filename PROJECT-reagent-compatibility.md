@@ -29,7 +29,9 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 ### Phase 2: Merge & Re-baseline `reagent-runner` Branch (Completed)
 - [x] Checkout `reagent-runner` branch.
 - [x] Merge clean `main` into `reagent-runner`.
-- [ ] Re-run full test audit (`pnpm test` and `pnpm test:reagent-all`).
+- [x] Re-run full test audit:
+  - [x] `pnpm test` (54/54 test files passing, 185 tests total).
+  - [x] `pnpm test:reagent-all` (Installed missing `react`, `react-dom`, `scittle` devDeps; 23 files passed completely, 27 had failures, 4 timed out).
 
 ### Phase 3: Reagent Runner Test Alignment
 - [ ] Fix timeout/hanging tests under Reagent runner (`multiple_select`, `radio_buttons`, `reentrant_render`, `todomvc`).
@@ -47,3 +49,10 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - Confirmed `pnpm test` on `main` is 100% green (42 passed, 112 tests, 0 failures).
   - Checked out `reagent-runner` branch and merged `main` into it.
   - Resolved `package.json` merge conflict by keeping updated `squint-cljs@0.14.207` from `main` and regenerated `pnpm-lock.yaml`.
+  - Updated `click_swap.test.cljs` and `nested_ratoms_race.test.cljs` components to use `pr-str` instead of `js/JSON.stringify` to align with EDN test assertions.
+  - Confirmed `pnpm test` on `reagent-runner` branch is 100% green (54/54 test files, 185 total tests passing).
+  - Re-installed missing devDependencies (`react@17.0.2`, `react-dom@17.0.2`, `scittle@0.8.32`) to restore Reagent runner test environment.
+  - Completed `pnpm test:reagent-all` audit on `reagent-runner` branch:
+    - **23 files passed 100%** under real Reagent.
+    - **27 files had assertion failures** (mostly due to synchronous DOM checks requiring `(th/wait-for-render)` for Reagent's asynchronous rendering).
+    - **4 files timed out / errored**: `multiple_select`, `radio_buttons`, `reentrant_render`, `todomvc`.
