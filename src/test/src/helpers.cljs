@@ -21,6 +21,16 @@
 (defn rand [] ; shim for missing rand in squint
   (js/Math.random))
 
+(defn fire-event
+  "Fires a DOM event on an element. Uses ReactTestUtils.Simulate if available (under Reagent runner),
+   otherwise dispatches a standard DOM event."
+  [el event-type & [opts]]
+  (if (and (exists? js/ReactTestUtils)
+           (aget js/ReactTestUtils "Simulate")
+           (aget (.-Simulate js/ReactTestUtils) event-type))
+    ((aget (.-Simulate js/ReactTestUtils) event-type) el)
+    (.dispatchEvent el (new js/Event event-type (clj->js (or opts {:bubbles true}))))))
+
 (defn wait-for-render
   "Returns a promise that resolves after the next requestAnimationFrame.
    Use this in tests after triggering events to wait for re-renders.
