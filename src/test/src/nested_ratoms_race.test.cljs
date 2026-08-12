@@ -118,7 +118,7 @@
       [nav-link :fail-case-pre "Fail case pre"]
       [nav-link :fail-case "Fail case"]]
      [:hr]
-     [:pre {:class "app-state"} (js/JSON.stringify (clj->js @app-state))]
+     [:pre {:class "app-state"} (pr-str @app-state)]
      (case page
        :home [home-page]
        :fail-case-pre [fail-case-pre]
