@@ -31,7 +31,7 @@
     [:option {:value "a"} "Option A"]
     [:option {:value "b"} "Option B"]
     [:option {:value "c"} "Option C"]]
-   [:p {:id "output"} "You selected: " (str (vec (:selected @select-state)))]
+   [:p {:id "output"} "You selected: " (.join (clj->js (:selected @select-state)) ",")]
    [:button {:id "change-selection" :on-click #(reset! select-state {:selected ["a" "c"]})} "Set to A & C"]])
 
 (describe "Multiple Select Component"
