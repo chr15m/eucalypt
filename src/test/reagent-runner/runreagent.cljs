@@ -19,6 +19,7 @@
                                 "[vitest :refer [$1]]"))
       react-dom (js/require "react-dom")
       react (js/require "react")
+      test-utils (js/require "react-dom/test-utils")
       window (hd/Window.)
       document (aget window "document")]
   ;; Set up global environment - copy all window properties to globalThis
@@ -27,6 +28,7 @@
       (aset js/globalThis k (aget window k))))
   (aset js/globalThis "ReactDOM" react-dom)
   (aset js/globalThis "React" react)
+  (aset js/globalThis "ReactTestUtils" test-utils)
   (aset js/globalThis "document" document)
   (aset js/globalThis "window" window)
 
@@ -36,8 +38,8 @@
       (js/Object.defineProperty
        (.-prototype event-cls)
        "eventPhase"
-       #js {:get (js/Function. "return this._eventPhase || 0;")
-            :set (js/Function. "v" "this._eventPhase = v;")
+       #js {:get (js/eval "(function() { return this._eventPhase || 0; })")
+            :set (js/eval "(function(v) { this._eventPhase = v; })")
             :configurable true
             :enumerable true})))
 

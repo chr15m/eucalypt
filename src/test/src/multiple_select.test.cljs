@@ -15,7 +15,8 @@
 (def select-state (r/atom {:selected ["b"]}))
 
 (defn handle-change [e]
-  (let [selected-values (->> (.. e -target -selectedOptions)
+  (let [opts (.. e -target -selectedOptions)
+        selected-values (->> opts
                              (js/Array.from)
                              (map #(.-value %))
                              vec)]
@@ -26,7 +27,7 @@
    [:h2 "Multiple Select Test"]
    [:select {:id "select-input"
              :multiple true
-             :value (:selected @select-state)
+             :value (clj->js (:selected @select-state))
              :on-change handle-change}
     [:option {:value "a"} "Option A"]
     [:option {:value "b"} "Option B"]
@@ -55,22 +56,27 @@
                       (th/assert-equal (.-selected option-c) false)
                       (th/assert-equal (.-textContent output) "You selected: b")
 
-                      ;; Simulate user changing selection (selecting A and C, deselecting B)
+                      ;; Update selected options
                       (set! (.-selected option-a) true)
                       (set! (.-selected option-b) false)
                       (set! (.-selected option-c) true)
-                      (.dispatchEvent select-el (new js/Event "change" #js {:bubbles true}))
 
-                      (th/assert-equal (.-selected option-a) true)
-                      (th/assert-equal (.-selected option-b) false)
-                      (th/assert-equal (.-selected option-c) true)
-                      (th/assert-equal (.-textContent output) "You selected: a,c")
-                      (th/assert-equal (= (:selected @select-state) ["a" "c"]) true)
+                      (th/fire-event select-el "change")
 
-                      ;; Control component by clicking button
-                      (.click button)
-                      (th/assert-equal (.-selected option-a) true)
-                      (th/assert-equal (.-selected option-b) false)
-                      (th/assert-equal (.-selected option-c) true)
-                      (th/assert-equal (.-textContent output) "You selected: a,c")
-                      (th/assert-equal (= (:selected @select-state) ["a" "c"]) true)))))))
+                      (-> (th/wait-for-render)
+                          (.then (fn []
+                                   (th/assert-equal (.-selected option-a) true)
+                                   (th/assert-equal (.-selected option-b) false)
+                                   (th/assert-equal (.-selected option-c) true)
+                                   (th/assert-equal (.-textContent output) "You selected: a,c")
+                                   (th/assert-equal (= (:selected @select-state) ["a" "c"]) true)
+
+                                   ;; Control component by clicking button
+                                   (.click button)
+                                   (th/wait-for-render)))
+                          (.then (fn []
+                                   (th/assert-equal (.-selected option-a) true)
+                                   (th/assert-equal (.-selected option-b) false)
+                                   (th/assert-equal (.-selected option-c) true)
+                                   (th/assert-equal (.-textContent output) "You selected: a,c")
+                                   (th/assert-equal (= (:selected @select-state) ["a" "c"]) true))))))))))

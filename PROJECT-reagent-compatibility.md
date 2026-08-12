@@ -60,5 +60,6 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - Updated string formatting in `src/test/src/multiple_select.test.cljs` using `.join` on `clj->js` vector for consistent string representation across ClojureScript and Squint.
   - Diagnosed `multiple_select.test.cljs` error under Reagent runner: React 17 synthetic event system attempts to set `eventPhase` on raw Happy-DOM `js/Event`, throwing `TypeError: Cannot set property eventPhase of #<Event> which has only a getter`.
   - Added `eventPhase` prototype patch in `src/test/reagent-runner/runreagent.cljs` to allow React 17 synthetic event dispatching on Happy-DOM events.
-  - Updated `multiple_select.test.cljs` with `(th/wait-for-render)` after DOM updates to support asynchronous rendering in Reagent.
-  - Investigating `multiple_select.test.cljs` under Reagent: `handle-change` is not being invoked by React 17's `ChangeEventPlugin` when simulating changes on Happy-DOM multi-select elements. Testing Happy-DOM property vs attribute handling and inspecting React's internal Fiber node props.
+  - Added `th/fire-event` helper in `src/test/src/helpers.cljs` that uses `ReactTestUtils.Simulate` when available (under Reagent runner / React 17) and standard `dispatchEvent` under Eucalypt.
+  - Updated `multiple_select.test.cljs` to use `(th/fire-event select-el "change")` and `(th/wait-for-render)`.
+  - Confirmed `multiple_select.test.cljs` now passes 100% in both Eucalypt (`pnpm test`) and Reagent runner (`pnpm test:reagent`).
