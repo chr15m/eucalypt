@@ -1,10 +1,14 @@
 #_:clj-kondo/ignore (ns vitest)
 
 ;; Test state tracking
+(def before-each-hooks (atom []))
 (def after-each-hooks (atom []))
 (def registered-tests (atom []))
 (def test-results (atom {:total 0 :passed 0 :failed 0}))
 (def test-promise nil)
+
+(defn beforeEach [hook-fn]
+  (swap! before-each-hooks conj hook-fn))
 
 (defn afterEach [hook-fn]
   (swap! after-each-hooks conj hook-fn))
@@ -14,6 +18,7 @@
 
 (defn run-test [{:keys [test-name testfunc]}]
   (swap! test-results update :total inc)
+  (doseq [hook @before-each-hooks] (hook))
   (let [hooks @after-each-hooks
         result (try (testfunc) (catch js/Error e e))]
     (-> (if (instance? js/Error result)
