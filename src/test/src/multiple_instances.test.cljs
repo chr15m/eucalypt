@@ -42,9 +42,10 @@
             (th/assert-equal (.-textContent p-b) "Counter B: 0")
 
             (.click btn-a)
-
-            (th/assert-equal (.-textContent p-a) "Counter A: 1")
-            (th/assert-equal (.-textContent p-b) "Counter B: 0")))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-textContent p-a) "Counter A: 1")
+                         (th/assert-equal (.-textContent p-b) "Counter B: 0"))))))))
 
     (it "should have independent state with explicit keys"
       (fn []
@@ -68,8 +69,10 @@
             ;; Click B once
             (.click btn-b)
 
-            (th/assert-equal (.-textContent p-a) "Counter A: 2")
-            (th/assert-equal (.-textContent p-b) "Counter B: 1")))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-textContent p-a) "Counter A: 2")
+                         (th/assert-equal (.-textContent p-b) "Counter B: 1"))))))))
 
     (it "should maintain state when components are reordered with keys"
       (fn []
@@ -94,20 +97,23 @@
             (.click btn-a)
             (.click btn-b)
 
-            (let [all-ps-before (.querySelectorAll container "p")
-                  p-a-before (aget all-ps-before 0)
-                  p-b-before (aget all-ps-before 1)]
-              (th/assert-equal (.-textContent p-a-before) "Counter A: 2")
-              (th/assert-equal (.-textContent p-b-before) "Counter B: 1"))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [all-ps-before (.querySelectorAll container "p")
+                               p-a-before (aget all-ps-before 0)
+                               p-b-before (aget all-ps-before 1)]
+                           (th/assert-equal (.-textContent p-a-before) "Counter A: 2")
+                           (th/assert-equal (.-textContent p-b-before) "Counter B: 1"))
 
-            ;; Reorder the components
-            (.click reorder-btn)
-
-            ;; After reordering, the state should follow the components
-            (let [all-ps-after (.querySelectorAll container "p")
-                  first-p-after (aget all-ps-after 0)
-                  second-p-after (aget all-ps-after 1)]
-              ;; B should now be first (with its state of 1)
-              (th/assert-equal (.-textContent first-p-after) "Counter B: 1")
-              ;; A should now be second (with its state of 2)
-              (th/assert-equal (.-textContent second-p-after) "Counter A: 2"))))))))
+                         ;; Reorder the components
+                         (.click reorder-btn)))
+                (.then (fn [] (th/wait-for-render)))
+                (.then (fn []
+                         ;; After reordering, the state should follow the components
+                         (let [all-ps-after (.querySelectorAll container "p")
+                               first-p-after (aget all-ps-after 0)
+                               second-p-after (aget all-ps-after 1)]
+                           ;; B should now be first (with its state of 1)
+                           (th/assert-equal (.-textContent first-p-after) "Counter B: 1")
+                           ;; A should now be second (with its state of 2)
+                           (th/assert-equal (.-textContent second-p-after) "Counter A: 2")))))))))))
