@@ -60,7 +60,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/click_swap.test.cljs` — Button click that updates a `nil` atom.
 - [ ] `src/test/src/fragment_switching.test.cljs` — `reset!` on atom to switch page component.
 - [x] `src/test/src/multiple_instances.test.cljs` — Counter button clicks on independent components.
-- [ ] `src/test/src/list_rerender.test.cljs` — Clicks to select/remove list items.
+- [x] `src/test/src/list_rerender.test.cljs` — Clicks to select/remove list items.
 
 #### Tier 2: Easy-Medium (Input & Keyboard Events)
 *Requires handling form input events (`"input"`, `"keydown"`) via `th/fire-event` or `.dispatchEvent` followed by `(th/wait-for-render)`.*

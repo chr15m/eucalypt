@@ -49,12 +49,17 @@
             (th/assert-equal (.contains (.-classList item3) "selected") false)
 
             ;; Click to select the first item
-            (.click select-btn1)
+            (th/fire-event select-btn1 "click")
 
-            ;; Assert only the first item is selected
-            (th/assert-equal (.contains (.-classList item1) "selected") true)
-            (th/assert-equal (.contains (.-classList item2) "selected") false)
-            (th/assert-equal (.contains (.-classList item3) "selected") false))))) 
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [item1 (.querySelector container "#item-1")
+                               item2 (.querySelector container "#item-2")
+                               item3 (.querySelector container "#item-3")]
+                           ;; Assert only the first item is selected
+                           (th/assert-equal (.contains (.-classList item1) "selected") true)
+                           (th/assert-equal (.contains (.-classList item2) "selected") false)
+                           (th/assert-equal (.contains (.-classList item3) "selected") false)))))))))
 
     (it "should correctly re-render when an item is removed"
       (fn []
@@ -68,15 +73,19 @@
                 remove-btn (.querySelector container "#remove-B")]
 
             ;; Select the first item
-            (.click select-btn1)
-            (th/assert-equal (.contains (.-classList item1) "selected") true)
+            (th/fire-event select-btn1 "click")
 
-            ;; Remove the second item
-            (.click remove-btn)
-
-            ;; Assert list is shorter and item 1 is still selected
-            (th/assert-equal (.-length (.querySelectorAll container "li")) 2)
-            (let [item1-after-remove (.querySelector container "#item-1")]
-              (th/assert-not-nil item1-after-remove)
-              (th/assert-equal (.contains (.-classList item1-after-remove) "selected") true))
-            (th/assert-equal (.querySelector container "#item-2") nil)))))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [item1 (.querySelector container "#item-1")]
+                           (th/assert-equal (.contains (.-classList item1) "selected") true)
+                           ;; Remove the second item
+                           (th/fire-event remove-btn "click"))))
+                (.then #(th/wait-for-render))
+                (.then (fn []
+                         ;; Assert list is shorter and item 1 is still selected
+                         (th/assert-equal (.-length (.querySelectorAll container "li")) 2)
+                         (let [item1-after-remove (.querySelector container "#item-1")]
+                           (th/assert-not-nil item1-after-remove)
+                           (th/assert-equal (.contains (.-classList item1-after-remove) "selected") true))
+                         (th/assert-equal (.querySelector container "#item-2") nil))))))))))
