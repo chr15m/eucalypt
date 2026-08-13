@@ -9,7 +9,7 @@
 (defn component:main [state]
   [:<>
    [:p "Hello world! The counter is: " (:counter @state)]
-   [:pre (js/JSON.stringify @state)]
+   [:pre (js/JSON.stringify (clj->js @state))]
    [:button {:on-click #(swap! state update :counter (fnil inc 0))} "inc"]
    [:button {:on-click #(swap! state update :counter (fnil dec 0))} "dec"]])
 
@@ -42,14 +42,18 @@
 
             ;; Increment via first root updates both
             (.click (button-at container-a 0))
-            (th/assert-equal (counter-text container-a) "Hello world! The counter is: 1")
-            (th/assert-equal (counter-text container-b) "Hello world! The counter is: 1")
-            (th/assert-equal (json-text container-a) "{\"counter\":1,\"other\":[\"foo\",\"bar\"]}")
-            (th/assert-equal (json-text container-b) "{\"counter\":1,\"other\":[\"foo\",\"bar\"]}")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (counter-text container-a) "Hello world! The counter is: 1")
+                         (th/assert-equal (counter-text container-b) "Hello world! The counter is: 1")
+                         (th/assert-equal (json-text container-a) "{\"counter\":1,\"other\":[\"foo\",\"bar\"]}")
+                         (th/assert-equal (json-text container-b) "{\"counter\":1,\"other\":[\"foo\",\"bar\"]}")
 
-            ;; Decrement via second root updates both
-            (.click (button-at container-b 1))
-            (th/assert-equal (counter-text container-a) "Hello world! The counter is: 0")
-            (th/assert-equal (counter-text container-b) "Hello world! The counter is: 0")
-            (th/assert-equal (json-text container-a) "{\"counter\":0,\"other\":[\"foo\",\"bar\"]}")
-            (th/assert-equal (json-text container-b) "{\"counter\":0,\"other\":[\"foo\",\"bar\"]}")))))))
+                         ;; Decrement via second root updates both
+                         (.click (button-at container-b 1))
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (counter-text container-a) "Hello world! The counter is: 0")
+                         (th/assert-equal (counter-text container-b) "Hello world! The counter is: 0")
+                         (th/assert-equal (json-text container-a) "{\"counter\":0,\"other\":[\"foo\",\"bar\"]}")
+                         (th/assert-equal (json-text container-b) "{\"counter\":0,\"other\":[\"foo\",\"bar\"]}"))))))))))
