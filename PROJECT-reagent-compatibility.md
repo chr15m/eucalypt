@@ -57,7 +57,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/boolean_attributes.test.cljs` — Toggles checkboxes/disabled attributes via button clicks.
 - [x] `src/test/src/empty_fragment.test.cljs` — `reset!` on atom to hide fragment child.
 - [x] `src/test/src/fragment_clickable.test.cljs` — Clicks on section element to convert slots to coins.
-- [ ] `src/test/src/click_swap.test.cljs` — Button click that updates a `nil` atom.
+- [x] `src/test/src/click_swap.test.cljs` — Button click that updates a `nil` atom.
 - [ ] `src/test/src/fragment_switching.test.cljs` — `reset!` on atom to switch page component.
 - [ ] `src/test/src/multiple_instances.test.cljs` — Counter button clicks on independent components.
 - [ ] `src/test/src/list_rerender.test.cljs` — Clicks to select/remove list items.

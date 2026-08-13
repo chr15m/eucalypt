@@ -25,6 +25,8 @@
 
           (let [button (.querySelector container "button")]
             (.click button)
-            (th/assert-equal @state {:counter 1})
-            (let [p (.querySelector container "p")]
-              (th/assert-equal (.-textContent p) "{:counter 1}"))))))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal @state {:counter 1})
+                         (let [p (.querySelector container "p")]
+                           (th/assert-equal (.-textContent p) "{:counter 1}")))))))))))
