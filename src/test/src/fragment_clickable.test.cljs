@@ -66,21 +66,28 @@
 
             ;; Click once
             (.click section)
-            (th/log "innerHTML after one click:" (.-innerHTML container))
-            (th/assert-equal (.-length (get-coins)) 1)
-            (th/assert-equal (.-length (get-slots)) 14)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-length (get-coins)) 1)
+                         (th/assert-equal (.-length (get-slots)) 14)
 
-            ;; Click five more times
-            (dotimes [_ 5] (.click section))
-            (th/assert-equal (.-length (get-coins)) 6)
-            (th/assert-equal (.-length (get-slots)) 9)
+                         ;; Click five more times
+                         (dotimes [_ 5] (.click section))))
+                (.then (fn [] (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (get-coins)) 6)
+                         (th/assert-equal (.-length (get-slots)) 9)
 
-            ;; Click until all are coins
-            (dotimes [_ 9] (.click section))
-            (th/assert-equal (.-length (get-coins)) 15)
-            (th/assert-equal (.-length (get-slots)) 0)
+                         ;; Click until all are coins
+                         (dotimes [_ 9] (.click section))))
+                (.then (fn [] (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (get-coins)) 15)
+                         (th/assert-equal (.-length (get-slots)) 0)
 
-            ;; Click again (should have no effect)
-            (.click section)
-            (th/assert-equal (.-length (get-coins)) 15)
-            (th/assert-equal (.-length (get-slots)) 0)))))))
+                         ;; Click again (should have no effect)
+                         (.click section)))
+                (.then (fn [] (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (get-coins)) 15)
+                         (th/assert-equal (.-length (get-slots)) 0))))))))))
