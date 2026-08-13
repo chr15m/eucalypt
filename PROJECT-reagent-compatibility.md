@@ -34,9 +34,65 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - [x] `pnpm test:reagent-all` (Installed missing `react`, `react-dom`, `scittle` devDeps; 23 files passed completely, 27 had failures, 4 timed out).
 
 ### Phase 3: Reagent Runner Test Alignment
-- [ ] Fix timeout/hanging tests under Reagent runner (`multiple_select`, `radio_buttons`, `reentrant_render`, `todomvc`).
-- [ ] Update synchronous DOM assertions to async `(th/wait-for-render)` for Reagent compatibility.
+- [ ] Fix timeout/hanging tests under Reagent runner (`reentrant_render`). (Note: `multiple_select` and `radio_buttons` fixed!).
+- [ ] Category 1: Update synchronous DOM assertions to async `(th/wait-for-render)` for Reagent compatibility.
+- [ ] Category 2: Standardize event dispatching using `th/fire-event`.
+- [ ] Category 3: Fix EDN / string representation differences under Scittle/ClojureScript.
+- [ ] Category 4: Address deep reconciliation and structural test failures.
 - [ ] Ensure 100% test pass rate in both Eucalypt and Reagent runner modes.
+
+---
+
+## Failure Categories & Tracking List
+
+### Category 1: Asynchronous Rendering / Missing `(th/wait-for-render)`
+*Cause*: Reagent batches DOM updates asynchronously via `requestAnimationFrame` / React event loop. Tests performing synchronous DOM assertions right after state updates or clicks fail under Reagent.
+*Fix*: Wrap post-event/update assertions inside `(th/wait-for-render)` promise chains.
+
+- [ ] `src/test/src/boolean_attributes.test.cljs`
+- [ ] `src/test/src/click_swap.test.cljs`
+- [ ] `src/test/src/empty_fragment.test.cljs`
+- [ ] `src/test/src/enter_to_submit.test.cljs`
+- [ ] `src/test/src/fragment_clickable.test.cljs`
+- [ ] `src/test/src/fragment_switching.test.cljs`
+- [ ] `src/test/src/list_demo.test.cljs`
+- [ ] `src/test/src/list_rerender.test.cljs`
+- [ ] `src/test/src/multiple_instances.test.cljs`
+- [ ] `src/test/src/numeric_input.test.cljs`
+- [ ] `src/test/src/prop_change_rerender.test.cljs`
+- [ ] `src/test/src/range_slider.test.cljs`
+- [ ] `src/test/src/select_attribute.test.cljs`
+- [ ] `src/test/src/textarea.test.cljs`
+- [ ] `src/test/src/text_input.test.cljs`
+- [ ] `src/test/src/timer.test.cljs`
+- [ ] `src/test/src/todomvc.test.cljs`
+- [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
+
+### Category 2: Event Simulation (`th/fire-event`)
+*Cause*: Direct `.dispatchEvent` calls on Happy-DOM nodes don't trigger React 17 synthetic event delegation.
+*Fix*: Replace `.dispatchEvent` with `th/fire-event` (and chain `(th/wait-for-render)`).
+
+- [ ] `src/test/src/various_events.test.cljs`
+- [ ] `src/test/src/camel_case_events.test.cljs`
+
+### Category 3: EDN / String Representation Differences
+*Cause*: Printing values using `pr-str` or map serialisation differs between Squint and ClojureScript/Scittle.
+*Fix*: Standardise output formatting or assertion parsing across runtimes.
+
+- [ ] `src/test/src/shared_state_multiple_roots.test.cljs`
+- [ ] `src/test/src/nested_ratoms_race.test.cljs`
+
+### Category 4: Deep Reconciliation & Structural Test Differences
+*Cause*: Tests expecting exact React container lifecycle/cleanup, raw DOM manipulation, string style props, or complex keyed node reordering.
+
+- [ ] `src/test/src/component_reconciliation.test.cljs`
+- [ ] `src/test/src/event_handler_registration.test.cljs`
+- [ ] `src/test/src/keyed_list_reordering.test.cljs`
+- [ ] `src/test/src/nested_fors.test.cljs`
+- [ ] `src/test/src/ref_cleanup.test.cljs`
+- [ ] `src/test/src/render_diff_fundamentals.test.cljs`
+- [ ] `src/test/src/style_attribute.test.cljs`
+- [ ] `src/test/src/reentrant_render.test.cljs`
 
 ---
 
