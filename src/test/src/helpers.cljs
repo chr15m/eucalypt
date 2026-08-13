@@ -30,8 +30,15 @@
     (if (and (exists? js/ReactTestUtils)
              (aget js/ReactTestUtils "Simulate")
              (aget (.-Simulate js/ReactTestUtils) event-type))
-      ((aget (.-Simulate js/ReactTestUtils) event-type) el)
-      (.dispatchEvent el (new js/Event event-type (clj->js (or opts {:bubbles true})))))))
+      ((aget (.-Simulate js/ReactTestUtils) event-type) el (clj->js (or opts #js {})))
+      (let [tag (and (.-tagName el) (.toUpperCase (.-tagName el)))
+            is-text-input? (contains? #{"INPUT" "TEXTAREA"} tag)
+            evt-opts (clj->js (or opts {:bubbles true}))]
+        (when-let [v (get-in opts [:target :value])]
+          (set! (.-value el) v))
+        (.dispatchEvent el (new js/Event event-type evt-opts))
+        (when (and (= event-type "change") is-text-input?)
+          (.dispatchEvent el (new js/Event "input" evt-opts)))))))
 
 (defn wait-for-render
   "Returns a promise that resolves after the next requestAnimationFrame.

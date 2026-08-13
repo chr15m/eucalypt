@@ -64,7 +64,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 
 #### Tier 2: Easy-Medium (Input & Keyboard Events)
 *Requires handling form input events (`"input"`, `"keydown"`) via `th/fire-event` or `.dispatchEvent` followed by `(th/wait-for-render)`.*
-- [ ] `src/test/src/text_input.test.cljs` — Typing into `<input type="text">`.
+- [x] `src/test/src/text_input.test.cljs` — Typing into `<input type="text">`.
 - [ ] `src/test/src/textarea.test.cljs` — Typing into `<textarea>`.
 - [ ] `src/test/src/numeric_input.test.cljs` — Input events on `<input type="number">`.
 - [ ] `src/test/src/range_slider.test.cljs` — Input events on `<input type="range">`.
@@ -111,6 +111,9 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 
 ## Log & Observations
 
+- **2026-08-13**:
+  - Updated `helpers/fire-event` to dispatch both `"change"` and `"input"` events for text inputs (`<input>` and `<textarea>`) under Eucalypt, aligning event dispatch with Reagent/React synthetic event handling.
+  - Updated `src/test/src/text_input.test.cljs` to use `th/fire-event` and `(th/wait-for-render)` promise chains. Verified 100% pass in both Eucalypt and Reagent runner. Marked `text_input.test.cljs` as complete.
 - **2026-08-12**:
   - Performed initial test audit of 55 test files across Eucalypt and Reagent runner. Created `PROJECT-reagent-compatibility.md` to track progress and state across LLM sessions.
   - Switched to `main` branch to inspect base health.
