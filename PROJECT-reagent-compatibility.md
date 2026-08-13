@@ -82,7 +82,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 *Fix*: Standardise output formatting or assertion parsing across runtimes.
 
 - [x] `src/test/src/shared_state_multiple_roots.test.cljs`
-- [ ] `src/test/src/nested_ratoms_race.test.cljs`
+- [x] `src/test/src/nested_ratoms_race.test.cljs`
 
 ### Category 4: Deep Reconciliation & Structural Test Differences
 *Cause*: Tests expecting exact React container lifecycle/cleanup, raw DOM manipulation, string style props, or complex keyed node reordering.

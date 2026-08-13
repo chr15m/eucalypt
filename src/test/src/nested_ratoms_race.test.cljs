@@ -146,7 +146,7 @@
                                    (th/assert-equal (.-textContent (.querySelector container "p"))
                                                     "Failing tests.")
                                    (let [state (single-state container)]
-                                     (th/assert-equal (aget state "page") "home"))
+                                     (th/assert-equal (:page state) :home))
                                    nil))
                                (.then
                                  (fn []
@@ -163,7 +163,7 @@
                                      (th/assert-not-nil a-btn)
                                      (th/assert-equal (.-textContent a-btn) "A button")
                                      (th/assert-equal 1 (count (filter #(= % "Wat A") p-texts)))
-                                     (th/assert-equal (aget state "page") "fail-case"))
+                                     (th/assert-equal (:page state) :fail-case))
                                    nil))
                                (.then
                                  (fn []
@@ -178,8 +178,8 @@
                                      (th/assert-equal (first modes) "Mode B")
                                      (th/assert-not-nil b-btn)
                                      (th/assert-equal (.-textContent b-btn) "B button")
-                                     (th/assert-equal (aget state "page") "fail-case")
-                                     (th/assert-equal (aget state "fail-case") true))
+                                     (th/assert-equal (:page state) :fail-case)
+                                     (th/assert-equal (:fail-case state) true))
                                    (sleep 250)))
                                (.then
                                  (fn []
@@ -204,8 +204,8 @@
                                      (th/assert-not-nil b-btn)
                                      (th/assert-equal (.-textContent b-btn) "B button")
                                      (th/assert-equal 1 (count (texts-by-selector container "button")))
-                                     (th/assert-equal (aget state "page") "fail-case")
-                                     (th/assert-equal (aget state "fail-case") true))
+                                     (th/assert-equal (:page state) :fail-case)
+                                     (th/assert-equal (:fail-case state) true))
                                    nil))
                                (.then
                                  (fn []
@@ -222,8 +222,8 @@
                                      (th/assert-not-nil a-btn)
                                      (th/assert-equal (.-textContent a-btn) "A button")
                                      (th/assert-equal 1 (count (filter #(= % "Wat A") p-texts)))
-                                     (th/assert-equal (aget state "page") "fail-case")
-                                     (th/assert-equal (aget state "fail-case") js/undefined))
+                                     (th/assert-equal (:page state) :fail-case)
+                                     (th/assert-equal (nil? (:fail-case state)) true))
                                    nil))
                                (.then
                                  (fn []
@@ -236,7 +236,7 @@
                                    (th/assert-equal (.-textContent (.querySelector container "p"))
                                                     "Failing tests.")
                                    (let [state (single-state container)]
-                                     (th/assert-equal (aget state "page") "home"))
+                                     (th/assert-equal (:page state) :home))
                                    (reset! app-state {:page :home})
                                    (resolve nil)
                                    nil)))]
