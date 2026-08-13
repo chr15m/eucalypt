@@ -51,11 +51,15 @@
             ;; After clicking, inputs should be disabled/checked
             (.click toggle-disabled-btn)
             (.click toggle-checked-btn)
-            (th/assert-equal (.-disabled disabled-input) true)
-            (th/assert-equal (.-checked checked-input) true)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-disabled disabled-input) true)
+                         (th/assert-equal (.-checked checked-input) true)
 
-            ;; After clicking again, inputs should not be disabled/checked
-            (.click toggle-disabled-btn)
-            (.click toggle-checked-btn)
-            (th/assert-equal (.-disabled disabled-input) false)
-            (th/assert-equal (.-checked checked-input) false)))))))
+                         ;; After clicking again, inputs should not be disabled/checked
+                         (.click toggle-disabled-btn)
+                         (.click toggle-checked-btn)))
+                (.then (fn [] (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-disabled disabled-input) false)
+                         (th/assert-equal (.-checked checked-input) false))))))))))
