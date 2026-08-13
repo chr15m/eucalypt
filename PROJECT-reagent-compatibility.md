@@ -55,7 +55,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 *Simple button clicks or atom resets. Adding `(th/wait-for-render)` promise chains after clicks/resets fixes them directly.*
 - [x] `src/test/src/prop_change_rerender.test.cljs` — Toggles atom via button click.
 - [x] `src/test/src/boolean_attributes.test.cljs` — Toggles checkboxes/disabled attributes via button clicks.
-- [ ] `src/test/src/empty_fragment.test.cljs` — `reset!` on atom to hide fragment child.
+- [x] `src/test/src/empty_fragment.test.cljs` — `reset!` on atom to hide fragment child.
 - [ ] `src/test/src/fragment_clickable.test.cljs` — Clicks on section element to convert slots to coins.
 - [ ] `src/test/src/click_swap.test.cljs` — Button click that updates a `nil` atom.
 - [ ] `src/test/src/fragment_switching.test.cljs` — `reset!` on atom to switch page component.

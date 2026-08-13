@@ -28,4 +28,6 @@
 
           (reset! show-p false)
 
-          (th/assert-equal (.-innerHTML container) "<h1>Fragment Test</h1>"))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<h1>Fragment Test</h1>")))))))))
