@@ -45,6 +45,8 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 
 ## Failure Categories & Tracking List
 
+*Note: Only check items off this list after confirming the test passes in both Eucalypt (`pnpm test`) and Reagent runner (`pnpm test:reagent`).*
+
 ### Category 1: Asynchronous Rendering / Missing `(th/wait-for-render)`
 *Cause*: Reagent batches DOM updates asynchronously via `requestAnimationFrame` / React event loop. Tests performing synchronous DOM assertions right after state updates or clicks fail under Reagent.
 *Fix*: Wrap post-event/update assertions inside `(th/wait-for-render)` promise chains.
@@ -79,7 +81,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 *Cause*: Printing values using `pr-str` or map serialisation differs between Squint and ClojureScript/Scittle.
 *Fix*: Standardise output formatting or assertion parsing across runtimes.
 
-- [ ] `src/test/src/shared_state_multiple_roots.test.cljs`
+- [x] `src/test/src/shared_state_multiple_roots.test.cljs`
 - [ ] `src/test/src/nested_ratoms_race.test.cljs`
 
 ### Category 4: Deep Reconciliation & Structural Test Differences
