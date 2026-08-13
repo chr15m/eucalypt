@@ -51,24 +51,35 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 *Cause*: Reagent batches DOM updates asynchronously via `requestAnimationFrame` / React event loop. Tests performing synchronous DOM assertions right after state updates or clicks fail under Reagent.
 *Fix*: Wrap post-event/update assertions inside `(th/wait-for-render)` promise chains.
 
-- [ ] `src/test/src/boolean_attributes.test.cljs`
-- [ ] `src/test/src/click_swap.test.cljs`
-- [ ] `src/test/src/empty_fragment.test.cljs`
-- [ ] `src/test/src/enter_to_submit.test.cljs`
-- [ ] `src/test/src/fragment_clickable.test.cljs`
-- [ ] `src/test/src/fragment_switching.test.cljs`
-- [ ] `src/test/src/list_demo.test.cljs`
-- [ ] `src/test/src/list_rerender.test.cljs`
-- [ ] `src/test/src/multiple_instances.test.cljs`
-- [ ] `src/test/src/numeric_input.test.cljs`
-- [ ] `src/test/src/prop_change_rerender.test.cljs`
-- [ ] `src/test/src/range_slider.test.cljs`
-- [ ] `src/test/src/select_attribute.test.cljs`
-- [ ] `src/test/src/textarea.test.cljs`
-- [ ] `src/test/src/text_input.test.cljs`
-- [ ] `src/test/src/timer.test.cljs`
-- [ ] `src/test/src/todomvc.test.cljs`
-- [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
+#### Tier 1: Easiest & Most Obvious (Simple State Swaps & Clicks)
+*Simple button clicks or atom resets. Adding `(th/wait-for-render)` promise chains after clicks/resets fixes them directly.*
+- [ ] `src/test/src/prop_change_rerender.test.cljs` — Toggles atom via button click.
+- [ ] `src/test/src/boolean_attributes.test.cljs` — Toggles checkboxes/disabled attributes via button clicks.
+- [ ] `src/test/src/empty_fragment.test.cljs` — `reset!` on atom to hide fragment child.
+- [ ] `src/test/src/fragment_clickable.test.cljs` — Clicks on section element to convert slots to coins.
+- [ ] `src/test/src/click_swap.test.cljs` — Button click that updates a `nil` atom.
+- [ ] `src/test/src/fragment_switching.test.cljs` — `reset!` on atom to switch page component.
+- [ ] `src/test/src/multiple_instances.test.cljs` — Counter button clicks on independent components.
+- [ ] `src/test/src/list_rerender.test.cljs` — Clicks to select/remove list items.
+
+#### Tier 2: Easy-Medium (Input & Keyboard Events)
+*Requires handling form input events (`"input"`, `"keydown"`) via `th/fire-event` or `.dispatchEvent` followed by `(th/wait-for-render)`.*
+- [ ] `src/test/src/text_input.test.cljs` — Typing into `<input type="text">`.
+- [ ] `src/test/src/textarea.test.cljs` — Typing into `<textarea>`.
+- [ ] `src/test/src/numeric_input.test.cljs` — Input events on `<input type="number">`.
+- [ ] `src/test/src/range_slider.test.cljs` — Input events on `<input type="range">`.
+- [ ] `src/test/src/select_attribute.test.cljs` — Changing option selection.
+- [ ] `src/test/src/enter_to_submit.test.cljs` — Input event followed by Enter `keydown` event.
+- [ ] `src/test/src/list_demo.test.cljs` — Multi-step additions/deletions in a loop (needs promise chaining across steps).
+
+#### Tier 3: Medium (Timing & DOM Selection Management)
+*Involves `setInterval` timers or re-renders affecting `js/document.activeElement`.*
+- [ ] `src/test/src/timer.test.cljs` — Uses `sleep` promises, but clicking toggle button needs `wait-for-render` before checking hidden state.
+- [ ] `src/test/src/uncontrolled_and_focus.test.cljs` — 9 of 11 tests pass; 2 failing focus tests call `r/render` directly and need `wait-for-render` for activeElement.
+
+#### Tier 4: Most Gnarly (Full App Integration)
+*Heavy multi-step interactions with double-clicks, blur handlers, keydowns (Enter/Escape), and editing states.*
+- [ ] `src/test/src/todomvc.test.cljs` — Multi-step assertions across editing, filtering, toggling, and clearing todos require async promise chains.
 
 ### Category 2: Event Simulation (`th/fire-event`)
 *Cause*: Direct `.dispatchEvent` calls on Happy-DOM nodes don't trigger React 17 synthetic event delegation.
