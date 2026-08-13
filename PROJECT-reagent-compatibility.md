@@ -53,7 +53,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 
 #### Tier 1: Easiest & Most Obvious (Simple State Swaps & Clicks)
 *Simple button clicks or atom resets. Adding `(th/wait-for-render)` promise chains after clicks/resets fixes them directly.*
-- [ ] `src/test/src/prop_change_rerender.test.cljs` — Toggles atom via button click.
+- [x] `src/test/src/prop_change_rerender.test.cljs` — Toggles atom via button click.
 - [ ] `src/test/src/boolean_attributes.test.cljs` — Toggles checkboxes/disabled attributes via button clicks.
 - [ ] `src/test/src/empty_fragment.test.cljs` — `reset!` on atom to hide fragment child.
 - [ ] `src/test/src/fragment_clickable.test.cljs` — Clicks on section element to convert slots to coins.
@@ -135,3 +135,4 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - Updated `select.test.cljs` to use `(th/fire-event select-el "change")` and `(th/wait-for-render)`. Confirmed 100% pass in both Eucalypt and Reagent runner.
   - Updated `radio_buttons.test.cljs` to use native `(.click radio-a)` and `(th/wait-for-render)` promise chains. Confirmed 100% pass rate in both Eucalypt (`pnpm test`) and Reagent runner (`pnpm test:reagent`).
   - Updated `helpers/fire-event` to default `"click"` events to native `(.click el)` in all environments because `ReactTestUtils.Simulate.click` does not toggle native `checked` DOM state or fire React `onChange` handlers on radio/checkbox inputs.
+  - Updated `src/test/src/prop_change_rerender.test.cljs` with `(th/wait-for-render)` promise chains after button clicks. Confirmed 100% pass rate in both Eucalypt and Reagent runner.

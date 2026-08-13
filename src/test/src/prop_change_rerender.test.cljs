@@ -40,13 +40,16 @@
 
             ;; Click button to change state
             (.click button)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         ;; Assert DOM has updated
+                         (th/assert-equal (.-textContent p) "Task is done")
+                         (th/assert-equal (.contains (.-classList p) "completed") true)
 
-            ;; Assert DOM has updated
-            (th/assert-equal (.-textContent p) "Task is done")
-            (th/assert-equal (.contains (.-classList p) "completed") true)
-
-            ;; Click again to toggle back
-            (.click button)
-
-            (th/assert-equal (.-textContent p) "Task is not done")
-            (th/assert-equal (.contains (.-classList p) "completed") false))))))) 
+                         ;; Click again to toggle back
+                         (.click button)))
+                (.then (fn []
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-textContent p) "Task is not done")
+                         (th/assert-equal (.contains (.-classList p) "completed") false))))))))))
