@@ -39,13 +39,16 @@
           ;; Switch to fragments page
           (reset! app-state {:page :fragments})
 
-          ;; Check fragments are rendered
-          (th/assert-equal (.-length (.querySelectorAll container "section")) 3)
-          (th/assert-equal (.-textContent (.querySelector container "#fragment-div")) "This is from the fragment")
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       ;; Check fragments are rendered
+                       (th/assert-equal (.-length (.querySelectorAll container "section")) 3)
+                       (th/assert-equal (.-textContent (.querySelector container "#fragment-div")) "This is from the fragment")
 
-          ;; Switch back to simple page
-          (reset! app-state {:page :simple})
-
-          ;; Check that fragments are gone. This is expected to fail.
-          (th/assert-equal (.-innerHTML container) "<div><p>Simple Page</p></div>")
-          (th/assert-equal (.-length (.querySelectorAll container "section")) 0)))))) 
+                       ;; Switch back to simple page
+                       (reset! app-state {:page :simple})))
+              (.then (fn [] (th/wait-for-render)))
+              (.then (fn []
+                       ;; Check that fragments are gone.
+                       (th/assert-equal (.-innerHTML container) "<div><p>Simple Page</p></div>")
+                       (th/assert-equal (.-length (.querySelectorAll container "section")) 0)))))))))
