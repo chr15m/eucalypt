@@ -80,16 +80,16 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 ### Category 4: Deep Reconciliation & Structural Test Differences
 *Cause*: Tests expecting exact React container lifecycle/cleanup, raw DOM manipulation, string style props, or complex keyed node reordering.
 
-- [ ] `src/test/src/component_reconciliation.test.cljs`
+- [ ] `src/test/src/camel_case_events.test.cljs` — Uses `(aget el "on...")` DOM property checks and unsupported `:onFocusIn`/`:onFocusOut` props. Potential fix: Refactor DOM property checks to behavioral event tests.
 - [ ] `src/test/src/event_handler_registration.test.cljs` — Uses `(aget el "onclick")` property checks. Potential fix: Replace DOM property checks with behavioral event testing (`th/fire-event` + `wait-for-render`).
 - [ ] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/nested_fors.test.cljs`
 - [ ] `src/test/src/ref_cleanup.test.cljs`
 - [ ] `src/test/src/render_diff_fundamentals.test.cljs`
-- [ ] `src/test/src/style_attribute.test.cljs`
+- [ ] `src/test/src/component_reconciliation.test.cljs`
 - [ ] `src/test/src/reentrant_render.test.cljs`
 - [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
-- [ ] `src/test/src/camel_case_events.test.cljs` — Uses `(aget el "on...")` DOM property checks and unsupported `:onFocusIn`/`:onFocusOut` props. Potential fix: Refactor DOM property checks to behavioral event tests.
+- [ ] `src/test/src/style_attribute.test.cljs`
 
 ---
 
