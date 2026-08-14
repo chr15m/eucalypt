@@ -33,6 +33,16 @@
                           "keypress" "keyPress"
                           "doubleclick" "doubleClick"
                           "dblclick" "doubleClick"
+                          "mousedown" "mouseDown"
+                          "mouseup" "mouseUp"
+                          "mouseover" "mouseOver"
+                          "mouseout" "mouseOut"
+                          "mousemove" "mouseMove"
+                          "mouseenter" "mouseEnter"
+                          "mouseleave" "mouseLeave"
+                          "focusin" "focusIn"
+                          "focusout" "focusOut"
+                          "animationend" "animationEnd"
                           event-type)
           simulate-fn (and (exists? js/ReactTestUtils)
                            (aget js/ReactTestUtils "Simulate")

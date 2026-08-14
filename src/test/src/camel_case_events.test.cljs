@@ -26,11 +26,15 @@
           (r/render [click-component] container)
           (let [button (.querySelector container "#click-btn")]
             (th/assert-equal (:mouse-down? @click-state) false)
-            (.dispatchEvent button (new js/Event "mousedown" #js {:bubbles true}))
-            (th/assert-equal (:mouse-down? @click-state) true)
-            (th/assert-equal (:clicked? @click-state) false)
-            (.dispatchEvent button (new js/Event "click" #js {:bubbles true}))
-            (th/assert-equal (:clicked? @click-state) true)))))))
+            (th/fire-event button "mousedown")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (:mouse-down? @click-state) true)
+                         (th/assert-equal (:clicked? @click-state) false)
+                         (th/fire-event button "click")
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (:clicked? @click-state) true))))))))))
 
 ;;; onFocusIn/onFocusOut test
 (def focus-state (r/atom {:focus-in? false :focus-out? false}))
@@ -51,11 +55,15 @@
           (r/render [focus-component] container)
           (let [input (.querySelector container "#focus-input")]
             (th/assert-equal (:focus-in? @focus-state) false)
-            (.dispatchEvent input (new js/Event "focusin" #js {:bubbles true}))
-            (th/assert-equal (:focus-in? @focus-state) true)
-            (th/assert-equal (:focus-out? @focus-state) false)
-            (.dispatchEvent input (new js/Event "focusout" #js {:bubbles true}))
-            (th/assert-equal (:focus-out? @focus-state) true)))))))
+            (th/fire-event input "focusin")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (:focus-in? @focus-state) true)
+                         (th/assert-equal (:focus-out? @focus-state) false)
+                         (th/fire-event input "focusout")
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (:focus-out? @focus-state) true))))))))))
 
 ;;; onMouseOver test
 (def mouse-over-state (r/atom {:count 0}))
@@ -75,7 +83,11 @@
           (r/render [mouse-over-component] container)
           (let [div (.querySelector container "#mouse-over-div")]
             (th/assert-equal (:count @mouse-over-state) 0)
-            (.dispatchEvent div (new js/Event "mouseover" #js {:bubbles true}))
-            (th/assert-equal (:count @mouse-over-state) 1)
-            (.dispatchEvent div (new js/Event "mouseover" #js {:bubbles true}))
-            (th/assert-equal (:count @mouse-over-state) 2)))))))
+            (th/fire-event div "mouseover")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (:count @mouse-over-state) 1)
+                         (th/fire-event div "mouseover")
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (:count @mouse-over-state) 2))))))))))
