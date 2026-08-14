@@ -46,25 +46,36 @@
             
             ;; Add 5 items
             (dotimes [_ 5] (.click add-btn))
-            (th/assert-equal (.-length (get-items)) 5)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-length (get-items)) 5)
 
-            ;; Delete 3rd item
-            (.click (aget (get-delete-btns) 2))
-            (th/assert-equal (.-length (get-items)) 4)
+                         ;; Delete 3rd item
+                         (.click (aget (get-delete-btns) 2))
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (get-items)) 4)
 
-            ;; Delete 3rd item again
-            (.click (aget (get-delete-btns) 2))
-            (th/assert-equal (.-length (get-items)) 3)
+                         ;; Delete 3rd item again
+                         (.click (aget (get-delete-btns) 2))
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (get-items)) 3)
 
-            ;; Add two more items
-            (.click add-btn)
-            (.click add-btn)
-            (th/assert-equal (.-length (get-items)) 5)
+                         ;; Add two more items
+                         (.click add-btn)
+                         (.click add-btn)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (get-items)) 5)
 
-            ;; Delete all items
-            (loop []
-              (when (> (.-length (get-delete-btns)) 0)
-                (.click (aget (get-delete-btns) 0))
-                (recur)))
-              (comment
-                (th/assert-equal (.-length (get-items)) 0))))))))
+                         ;; Delete all items
+                         (let [delete-all (fn delete-all []
+                                            (if (> (.-length (get-delete-btns)) 0)
+                                              (do
+                                                (.click (aget (get-delete-btns) 0))
+                                                (.then (th/wait-for-render) delete-all))
+                                              (js/Promise.resolve)))]
+                           (delete-all))))
+                (.then (fn []
+                         (th/assert-equal (.-length (get-items)) 0))))))))))
