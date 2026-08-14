@@ -68,7 +68,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/textarea.test.cljs` — Typing into `<textarea>`.
 - [x] `src/test/src/numeric_input.test.cljs` — Input events on `<input type="number">`.
 - [x] `src/test/src/range_slider.test.cljs` — Input events on `<input type="range">`.
-- [ ] `src/test/src/select_attribute.test.cljs` — Changing option selection.
+- [x] `src/test/src/select_attribute.test.cljs` — Changing option selection.
 - [ ] `src/test/src/enter_to_submit.test.cljs` — Input event followed by Enter `keydown` event.
 - [ ] `src/test/src/list_demo.test.cljs` — Multi-step additions/deletions in a loop (needs promise chaining across steps).
 

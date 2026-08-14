@@ -45,8 +45,12 @@
 
             ;; After clicking set, option2 should be selected
             (.click set-btn)
-            (th/assert-equal (.-selected option2) true)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-selected option2) true)
 
-            ;; After clicking clear, option2 should not be selected
-            (.click clear-btn)
-            (th/assert-equal (.-selected option2) false)))))))
+                         ;; After clicking clear, option2 should not be selected
+                         (.click clear-btn)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-selected option2) false))))))))))
