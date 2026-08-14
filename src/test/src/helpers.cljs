@@ -40,8 +40,6 @@
                           "mousemove" "mouseMove"
                           "mouseenter" "mouseEnter"
                           "mouseleave" "mouseLeave"
-                          "focusin" "focusIn"
-                          "focusout" "focusOut"
                           "animationend" "animationEnd"
                           event-type)
           simulate-fn (and (exists? js/ReactTestUtils)

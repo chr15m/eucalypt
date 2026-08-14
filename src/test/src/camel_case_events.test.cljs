@@ -36,34 +36,34 @@
                 (.then (fn []
                          (th/assert-equal (:clicked? @click-state) true))))))))))
 
-;;; onFocusIn/onFocusOut test
-(def focus-state (r/atom {:focus-in? false :focus-out? false}))
+;;; onFocus/onBlur test
+(def focus-state (r/atom {:focused? false :blurred? false}))
 
 (defn focus-component []
   [:input {:type "text"
            :id "focus-input"
-           :onFocusIn #(swap! focus-state assoc :focus-in? true)
-           :onFocusOut #(swap! focus-state assoc :focus-out? true)}])
+           :onFocus #(swap! focus-state assoc :focused? true)
+           :onBlur #(swap! focus-state assoc :blurred? true)}])
 
 (describe "Camel case focus events"
   (fn []
-    (it "should support onFocusIn and onFocusOut"
+    (it "should support onFocus and onBlur"
       (fn []
-        (reset! focus-state {:focus-in? false :focus-out? false})
+        (reset! focus-state {:focused? false :blurred? false})
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [focus-component] container)
           (let [input (.querySelector container "#focus-input")]
-            (th/assert-equal (:focus-in? @focus-state) false)
-            (th/fire-event input "focusin")
+            (th/assert-equal (:focused? @focus-state) false)
+            (th/fire-event input "focus")
             (-> (th/wait-for-render)
                 (.then (fn []
-                         (th/assert-equal (:focus-in? @focus-state) true)
-                         (th/assert-equal (:focus-out? @focus-state) false)
-                         (th/fire-event input "focusout")
+                         (th/assert-equal (:focused? @focus-state) true)
+                         (th/assert-equal (:blurred? @focus-state) false)
+                         (th/fire-event input "blur")
                          (th/wait-for-render)))
                 (.then (fn []
-                         (th/assert-equal (:focus-out? @focus-state) true))))))))))
+                         (th/assert-equal (:blurred? @focus-state) true))))))))))
 
 ;;; onMouseOver test
 (def mouse-over-state (r/atom {:count 0}))

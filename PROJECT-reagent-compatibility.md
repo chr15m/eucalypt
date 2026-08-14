@@ -80,7 +80,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 ### Category 4: Deep Reconciliation & Structural Test Differences
 *Cause*: Tests expecting exact React container lifecycle/cleanup, raw DOM manipulation, string style props, or complex keyed node reordering.
 
-- [ ] `src/test/src/camel_case_events.test.cljs` — Uses `(aget el "on...")` DOM property checks and unsupported `:onFocusIn`/`:onFocusOut` props. Potential fix: Refactor DOM property checks to behavioral event tests.
+- [x] `src/test/src/camel_case_events.test.cljs` — Uses `(aget el "on...")` DOM property checks and unsupported `:onFocusIn`/`:onFocusOut` props. Potential fix: Refactor DOM property checks to behavioral event tests.
 - [ ] `src/test/src/event_handler_registration.test.cljs` — Uses `(aget el "onclick")` property checks. Potential fix: Replace DOM property checks with behavioral event testing (`th/fire-event` + `wait-for-render`).
 - [ ] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/nested_fors.test.cljs`
@@ -96,6 +96,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 ## Log & Observations
 
 - **2026-08-14**:
+  - Updated `src/test/src/camel_case_events.test.cljs` to test `:onFocus` and `:onBlur` instead of unsupported `:onFocusIn` and `:onFocusOut`, and removed unused `focusin`/`focusout` mappings in `helpers.cljs`. Verified 100% pass rate in both Eucalypt and Reagent runner. Marked `camel_case_events.test.cljs` as complete.
   - Updated `src/test/src/todomvc.test.cljs` to use `th/fire-event` and `(th/wait-for-render)` promise chains across all multi-step interactive tests (add, toggle, delete, edit, escape, blur, clear, complete-all, filter). Verified 100% pass rate (10/10 tests) in both Eucalypt and Reagent runner. Marked `todomvc.test.cljs` as complete.
   - Documented potential solution for `event_handler_registration.test.cljs` and `camel_case_events.test.cljs`: replace `(aget el "on<event>")` DOM property assertions with behavioral event firing (`th/fire-event` + `wait-for-render` + state assertions) since React/Reagent uses event delegation instead of direct DOM node event properties.
   - Fixed `helpers/fire-event` to map `"doubleclick"`/`"dblclick"` to standard `"dblclick"` DOM events under Eucalypt.
