@@ -168,14 +168,16 @@
           (r/render [todomvc-page] container)
 
           (let [input (.querySelector container "#new-todo")]
-            (set! (.-value input) "four")
-            (.dispatchEvent input (new js/Event "input" #js {:bubbles true}))
-            (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:code "Enter", :bubbles true}))
-
-            (let [todo-items (.querySelectorAll container "#todo-list li")]
-              (th/assert-equal (.-length todo-items) 4)
-              (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "3")
-              (th/assert-equal (.-textContent (.querySelector (aget todo-items 3) "label")) "four")))))) 
+            (th/fire-event input "change" {:target {:value "four"}})
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/fire-event input "keydown" {:code "Enter" :key "Enter"})
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (let [todo-items (.querySelectorAll container "#todo-list li")]
+                           (th/assert-equal (.-length todo-items) 4)
+                           (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "3")
+                           (th/assert-equal (.-textContent (.querySelector (aget todo-items 3) "label")) "four")))))))))
 
     (it "should toggle a todo"
       (fn []
@@ -185,8 +187,10 @@
 
           (let [item1-checkbox (.querySelector (aget (.querySelectorAll container "#todo-list li") 0) ".toggle")]
             (.click item1-checkbox)
-            (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "1")
-            (th/assert-equal (.contains (.-classList (aget (.querySelectorAll container "#todo-list li") 0)) "completed") true))))) 
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "1")
+                         (th/assert-equal (.contains (.-classList (aget (.querySelectorAll container "#todo-list li") 0)) "completed") true))))))))
 
     (it "should delete a todo"
       (fn []
@@ -196,9 +200,11 @@
 
           (let [delete-btn (.querySelector (aget (.querySelectorAll container "#todo-list li") 0) ".destroy")]
             (.click delete-btn)
-            (let [todo-items (.querySelectorAll container "#todo-list li")]
-              (th/assert-equal (.-length todo-items) 2)
-              (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "1"))))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [todo-items (.querySelectorAll container "#todo-list li")]
+                           (th/assert-equal (.-length todo-items) 2)
+                           (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "1")))))))))
 
     (it "should edit a todo"
       (fn []
@@ -208,19 +214,22 @@
 
           (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)
                 item1-label (.querySelector item1-li "label")]
-
-            (.dispatchEvent item1-label (new js/Event "dblclick" #js {:bubbles true}))
-
-            (let [edit-input (.querySelector item1-li ".edit")]
-              (th/assert-not-nil edit-input)
-              (th/assert-equal (.-value edit-input) "one")
-
-              (set! (.-value edit-input) "one (edited)")
-              (.dispatchEvent edit-input (new js/Event "input" #js {:bubbles true}))
-              (.dispatchEvent edit-input (new js/KeyboardEvent "keydown" #js {:code "Enter", :bubbles true}))
-
-              (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
-              (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one (edited)"))))))
+            (th/fire-event item1-label "doubleclick")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [edit-input (.querySelector container "li .edit")]
+                           (th/assert-not-nil edit-input)
+                           (th/assert-equal (.-value edit-input) "one")
+                           (th/fire-event edit-input "change" {:target {:value "one (edited)"}})
+                           (th/wait-for-render))))
+                (.then (fn []
+                         (let [edit-input (.querySelector container "li .edit")]
+                           (th/fire-event edit-input "keydown" {:code "Enter" :key "Enter"})
+                           (th/wait-for-render))))
+                (.then (fn []
+                         (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)]
+                           (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
+                           (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one (edited)")))))))))
 
     (it "should cancel editing on Escape"
       (fn []
@@ -230,16 +239,20 @@
 
           (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)
                 item1-label (.querySelector item1-li "label")]
-
-            (.dispatchEvent item1-label (new js/Event "dblclick" #js {:bubbles true}))
-
-            (let [edit-input (.querySelector item1-li ".edit")]
-              (set! (.-value edit-input) "one (edited)")
-              (.dispatchEvent edit-input (new js/Event "input" #js {:bubbles true}))
-              (.dispatchEvent edit-input (new js/KeyboardEvent "keydown" #js {:code "Escape", :bubbles true}))
-
-              (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
-              (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one"))))))
+            (th/fire-event item1-label "doubleclick")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [edit-input (.querySelector container "li .edit")]
+                           (th/fire-event edit-input "change" {:target {:value "one (edited)"}})
+                           (th/wait-for-render))))
+                (.then (fn []
+                         (let [edit-input (.querySelector container "li .edit")]
+                           (th/fire-event edit-input "keydown" {:code "Escape" :key "Escape"})
+                           (th/wait-for-render))))
+                (.then (fn []
+                         (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)]
+                           (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
+                           (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one")))))))))
 
     (it "should save on blur"
       (fn []
@@ -249,16 +262,20 @@
 
           (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)
                 item1-label (.querySelector item1-li "label")]
-
-            (.dispatchEvent item1-label (new js/Event "dblclick" #js {:bubbles true}))
-
-            (let [edit-input (.querySelector item1-li ".edit")]
-              (set! (.-value edit-input) "one (blurred)")
-              (.dispatchEvent edit-input (new js/Event "input" #js {:bubbles true}))
-              (.dispatchEvent edit-input (new js/Event "blur" #js {:bubbles true}))
-
-              (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
-              (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one (blurred)"))))))
+            (th/fire-event item1-label "doubleclick")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [edit-input (.querySelector container "li .edit")]
+                           (th/fire-event edit-input "change" {:target {:value "one (blurred)"}})
+                           (th/wait-for-render))))
+                (.then (fn []
+                         (let [edit-input (.querySelector container "li .edit")]
+                           (th/fire-event edit-input "blur")
+                           (th/wait-for-render))))
+                (.then (fn []
+                         (let [item1-li (aget (.querySelectorAll container "#todo-list li") 0)]
+                           (th/assert-equal (.-length (.querySelectorAll container "li .edit")) 0)
+                           (th/assert-equal (.-textContent (.querySelector item1-li "label")) "one (blurred)")))))))))
 
     (it "should clear completed todos"
       (fn []
@@ -268,9 +285,11 @@
 
           (let [clear-btn (.querySelector container "#clear-completed")]
             (.click clear-btn)
-            (let [todo-items (.querySelectorAll container "#todo-list li")]
-              (th/assert-equal (.-length todo-items) 2)
-              (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "2")))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [todo-items (.querySelectorAll container "#todo-list li")]
+                           (th/assert-equal (.-length todo-items) 2)
+                           (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "2")))))))))
 
     (it "should complete all todos"
       (fn []
@@ -280,12 +299,15 @@
 
           (let [toggle-all-checkbox (.querySelector container "#toggle-all")]
             (.click toggle-all-checkbox)
-            (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "0")
-            (th/assert-equal (.-length (.querySelectorAll container "#todo-list li.completed")) 3)
-
-            (.click toggle-all-checkbox)
-            (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "3")
-            (th/assert-equal (.-length (.querySelectorAll container "#todo-list li.completed")) 0)))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "0")
+                         (th/assert-equal (.-length (.querySelectorAll container "#todo-list li.completed")) 3)
+                         (.click toggle-all-checkbox)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-textContent (.querySelector container "#todo-count strong")) "3")
+                         (th/assert-equal (.-length (.querySelectorAll container "#todo-list li.completed")) 0))))))))
 
     (it "should filter todos"
       (fn []
@@ -299,10 +321,14 @@
                 completed-filter (aget (.querySelectorAll filters-el "a") 2)]
 
             (.click active-filter)
-            (th/assert-equal (.-length (.querySelectorAll container "#todo-list li")) 2)
-
-            (.click completed-filter)
-            (th/assert-equal (.-length (.querySelectorAll container "#todo-list li")) 1)
-
-            (.click all-filter)
-            (th/assert-equal (.-length (.querySelectorAll container "#todo-list li")) 3)))))))) 
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-length (.querySelectorAll container "#todo-list li")) 2)
+                         (.click completed-filter)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (.querySelectorAll container "#todo-list li")) 1)
+                         (.click all-filter)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-length (.querySelectorAll container "#todo-list li")) 3))))))))))

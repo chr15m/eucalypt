@@ -68,7 +68,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/list_demo.test.cljs` — Multi-step additions/deletions in a loop (needs promise chaining across steps).
 - [x] `src/test/src/timer.test.cljs` — Uses `sleep` promises, but clicking toggle button needs `wait-for-render` before checking hidden state.
 - [x] `src/test/src/various_events.test.cljs` — Dispatches events like blur/dblclick; test with `wait-for-render` first, then `fire-event` if needed.
-- [ ] `src/test/src/todomvc.test.cljs` — Multi-step assertions across editing, filtering, toggling, and clearing todos require async promise chains.
+- [x] `src/test/src/todomvc.test.cljs` — Multi-step assertions across editing, filtering, toggling, and clearing todos require async promise chains.
 
 ### Category 3: EDN / String Representation Differences
 *Cause*: Printing values using `pr-str` or map serialisation differs between Squint and ClojureScript/Scittle.
@@ -96,6 +96,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 ## Log & Observations
 
 - **2026-08-14**:
+  - Updated `src/test/src/todomvc.test.cljs` to use `th/fire-event` and `(th/wait-for-render)` promise chains across all multi-step interactive tests (add, toggle, delete, edit, escape, blur, clear, complete-all, filter). Verified 100% pass rate (10/10 tests) in both Eucalypt and Reagent runner. Marked `todomvc.test.cljs` as complete.
   - Documented potential solution for `event_handler_registration.test.cljs` and `camel_case_events.test.cljs`: replace `(aget el "on<event>")` DOM property assertions with behavioral event firing (`th/fire-event` + `wait-for-render` + state assertions) since React/Reagent uses event delegation instead of direct DOM node event properties.
   - Fixed `helpers/fire-event` to map `"doubleclick"`/`"dblclick"` to standard `"dblclick"` DOM events under Eucalypt.
   - Updated `src/test/src/various_events.test.cljs` to use `th/fire-event` and `(th/wait-for-render)` promise chains. Verified 100% pass rate in both Eucalypt and Reagent runner. Marked `various_events.test.cljs` as complete.
