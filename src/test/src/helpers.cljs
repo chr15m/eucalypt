@@ -27,18 +27,29 @@
   [el event-type & [opts]]
   (if (and (= event-type "click") (fn? (.-click el)))
     (.click el)
-    (if (and (exists? js/ReactTestUtils)
-             (aget js/ReactTestUtils "Simulate")
-             (aget (.-Simulate js/ReactTestUtils) event-type))
-      ((aget (.-Simulate js/ReactTestUtils) event-type) el (clj->js (or opts #js {})))
-      (let [tag (and (.-tagName el) (.toUpperCase (.-tagName el)))
-            is-text-input? (contains? #{"INPUT" "TEXTAREA"} tag)
-            evt-opts (clj->js (or opts {:bubbles true}))]
-        (when-let [v (get-in opts [:target :value])]
-          (set! (.-value el) v))
-        (.dispatchEvent el (new js/Event event-type evt-opts))
-        (when (and (= event-type "change") is-text-input?)
-          (.dispatchEvent el (new js/Event "input" evt-opts)))))))
+    (let [simulate-name (case event-type
+                          "keydown" "keyDown"
+                          "keyup" "keyUp"
+                          "keypress" "keyPress"
+                          "doubleclick" "doubleClick"
+                          "dblclick" "doubleClick"
+                          event-type)
+          simulate-fn (and (exists? js/ReactTestUtils)
+                           (aget js/ReactTestUtils "Simulate")
+                           (aget (.-Simulate js/ReactTestUtils) simulate-name))]
+      (if simulate-fn
+        (simulate-fn el (clj->js (or opts #js {})))
+        (let [tag (and (.-tagName el) (.toUpperCase (.-tagName el)))
+              is-text-input? (contains? #{"INPUT" "TEXTAREA"} tag)
+              evt-opts (clj->js (merge {:bubbles true} opts))
+              evt (if (contains? #{"keydown" "keyup" "keypress"} event-type)
+                    (new js/KeyboardEvent event-type evt-opts)
+                    (new js/Event event-type evt-opts))]
+          (when-let [v (get-in opts [:target :value])]
+            (set! (.-value el) v))
+          (.dispatchEvent el evt)
+          (when (and (= event-type "change") is-text-input?)
+            (.dispatchEvent el (new js/Event "input" evt-opts))))))))
 
 (defn wait-for-render
   "Returns a promise that resolves after the next requestAnimationFrame.
