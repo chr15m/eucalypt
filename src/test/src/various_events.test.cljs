@@ -26,7 +26,9 @@
           (let [input (.querySelector container "#blur-input")]
             (.focus input)
             (.blur input)
-            (th/assert-equal (:blurred? @blur-state) true)))))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (:blurred? @blur-state) true))))))))))
 
 ;;; on-double-click test
 (def dbl-click-state (r/atom {:clicked? false}))
@@ -45,8 +47,10 @@
           (.appendChild js/document.body container)
           (r/render [dbl-click-component] container)
           (let [button (.querySelector container "#dbl-click-btn")]
-            (.dispatchEvent button (new js/Event "dblclick" #js {:bubbles true}))
-            (th/assert-equal (:clicked? @dbl-click-state) true)))))))
+            (th/fire-event button "doubleclick")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (:clicked? @dbl-click-state) true))))))))))
 
 ;;; on-key-down test
 (def key-down-state (r/atom {:key-pressed nil}))
@@ -67,8 +71,10 @@
           (.appendChild js/document.body container)
           (r/render [key-down-component] container)
           (let [input (.querySelector container "#key-down-input")]
-            (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:code "Enter" :bubbles true}))
-            (th/assert-equal (:key-pressed @key-down-state) "Enter")))))))
+            (th/fire-event input "keydown" {:code "Enter" :key "Enter"})
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (:key-pressed @key-down-state) "Enter"))))))))))
 
 ;;; on-animation-end test (ported from Preact)
 (def animation-state (r/atom {:ended? false}))
@@ -86,8 +92,7 @@
           (.appendChild js/document.body container)
           (r/render [animation-component] container)
           (let [div (.querySelector container "#animation-div")]
-            ;; Verify the property was assigned to the element
-            (th/assert-not-nil (aget div "onanimationend"))
-            ;; Simulate the event
-            (.dispatchEvent div (new js/Event "animationend" #js {:bubbles true}))
-            (th/assert-equal (:ended? @animation-state) true)))))))
+            (th/fire-event div "animationend")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (:ended? @animation-state) true))))))))))

@@ -67,7 +67,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/enter_to_submit.test.cljs` — Input event followed by Enter `keydown` event.
 - [x] `src/test/src/list_demo.test.cljs` — Multi-step additions/deletions in a loop (needs promise chaining across steps).
 - [x] `src/test/src/timer.test.cljs` — Uses `sleep` promises, but clicking toggle button needs `wait-for-render` before checking hidden state.
-- [ ] `src/test/src/various_events.test.cljs` — Dispatches events like blur/dblclick; test with `wait-for-render` first, then `fire-event` if needed.
+- [x] `src/test/src/various_events.test.cljs` — Dispatches events like blur/dblclick; test with `wait-for-render` first, then `fire-event` if needed.
 - [ ] `src/test/src/todomvc.test.cljs` — Multi-step assertions across editing, filtering, toggling, and clearing todos require async promise chains.
 
 ### Category 3: EDN / String Representation Differences
@@ -95,6 +95,9 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 
 ## Log & Observations
 
+- **2026-08-14**:
+  - Fixed `helpers/fire-event` to map `"doubleclick"`/`"dblclick"` to standard `"dblclick"` DOM events under Eucalypt.
+  - Updated `src/test/src/various_events.test.cljs` to use `th/fire-event` and `(th/wait-for-render)` promise chains. Verified 100% pass rate in both Eucalypt and Reagent runner. Marked `various_events.test.cljs` as complete.
 - **2026-08-13**:
   - Updated `helpers/fire-event` to dispatch both `"change"` and `"input"` events for text inputs (`<input>` and `<textarea>`) under Eucalypt, aligning event dispatch with Reagent/React synthetic event handling.
   - Updated `src/test/src/text_input.test.cljs` to use `th/fire-event` and `(th/wait-for-render)` promise chains. Verified 100% pass in both Eucalypt and Reagent runner. Marked `text_input.test.cljs` as complete.
