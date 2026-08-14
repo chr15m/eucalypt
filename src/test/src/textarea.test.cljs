@@ -34,7 +34,8 @@
             (th/assert-equal (.-textContent output) "Content: Initial text")
 
             ;; Simulate user typing
-            (set! (.-value textarea) "New text")
-            (.dispatchEvent textarea (new js/Event "input" #js {:bubbles true}))
-            (th/assert-equal (.-textContent output) "Content: New text")
-            (th/assert-equal (:text @textarea-state) "New text")))))))
+            (th/fire-event textarea "change" {:target {:value "New text"}})
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-textContent output) "Content: New text")
+                         (th/assert-equal (:text @textarea-state) "New text"))))))))))

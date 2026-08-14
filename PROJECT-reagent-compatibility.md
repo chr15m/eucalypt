@@ -65,7 +65,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 #### Tier 2: Easy-Medium (Input & Keyboard Events)
 *Requires handling form input events (`"input"`, `"keydown"`) via `th/fire-event` or `.dispatchEvent` followed by `(th/wait-for-render)`.*
 - [x] `src/test/src/text_input.test.cljs` — Typing into `<input type="text">`.
-- [ ] `src/test/src/textarea.test.cljs` — Typing into `<textarea>`.
+- [x] `src/test/src/textarea.test.cljs` — Typing into `<textarea>`.
 - [ ] `src/test/src/numeric_input.test.cljs` — Input events on `<input type="number">`.
 - [ ] `src/test/src/range_slider.test.cljs` — Input events on `<input type="range">`.
 - [ ] `src/test/src/select_attribute.test.cljs` — Changing option selection.
