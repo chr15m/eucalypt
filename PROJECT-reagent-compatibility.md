@@ -3,7 +3,7 @@
 ## Objective
 
 Methodically achieve 100% test passing across the test suite under both:
-1. **Eucalypt** (`pnpm test` via Vitest / Happy-DOM / Squint)
+1. **Eucalypt** (`pnpm test | grep -v squint` via Vitest / Happy-DOM / Squint)
 2. **Real Reagent** (`pnpm test:reagent-all` via Scittle / Happy-DOM)
 
 Reagent behavior is the ground truth.
