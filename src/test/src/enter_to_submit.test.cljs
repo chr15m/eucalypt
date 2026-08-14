@@ -58,18 +58,14 @@
             (th/assert-equal (.-textContent output) "Submitted: ")
 
             ;; Simulate typing and pressing enter
-            (set! (.-value input) "hello world")
-            (th/log "input value set to:" (.-value input))
-            (th/log "--- before dispatching input event ---")
-            (.dispatchEvent input (new js/Event "input" #js {:bubbles true}))
-            (th/log "--- after dispatching input event ---")
-            (th/log "--- before dispatching keydown event ---")
-            (.dispatchEvent input (new js/KeyboardEvent "keydown" #js {:code "Enter", :bubbles true}))
-            (th/log "--- after dispatching keydown event ---")
+            (th/fire-event input "change" {:target {:value "hello world"}})
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/fire-event input "keydown" {:code "Enter" :key "Enter"})
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-textContent output) "Submitted: hello world")
+                         (th/assert-equal @submitted-text "hello world")
 
-            (th/log "output textContent after events:" (.-textContent output))
-            (th/assert-equal (.-textContent output) "Submitted: hello world")
-            (th/assert-equal @submitted-text "hello world")
-
-            ;; Input should be cleared after submit
-            (th/assert-equal (.-value input) "")))))))
+                         ;; Input should be cleared after submit
+                         (th/assert-equal (.-value input) ""))))))))))
