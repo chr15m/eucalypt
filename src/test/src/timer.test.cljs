@@ -16,12 +16,8 @@
   (let [timer-id (atom nil)
         ref-fn (fn [el]
                  (if el
-                   (do
-                     (th/log "Setting up timer")
-                     (reset! timer-id (js/setInterval #(swap! timer-state update :seconds inc) 100)))
-                   (do
-                     (th/log "Tearing down timer")
-                     (js/clearInterval @timer-id))))]
+                   (reset! timer-id (js/setInterval #(swap! timer-state update :seconds inc) 100))
+                   (js/clearInterval @timer-id)))]
     (fn []
       [:div
        [:p "Seconds: " (:seconds @timer-state)]
@@ -57,7 +53,8 @@
                                      "Seconds: 2"))))
                         (.then (fn []
                                  ;; Hide timer
-                                 (.click (.querySelector container "#toggle"))))
+                                 (.click (.querySelector container "#toggle"))
+                                 (th/wait-for-render)))
                         (.then (fn []
                                  (th/assert-equal
                                    (.-textContent (.querySelector container "p"))
@@ -69,7 +66,8 @@
                                    (:seconds @timer-state)
                                    2)
                                  ;; Show timer again
-                                 (.click (.querySelector container "#toggle"))))
+                                 (.click (.querySelector container "#toggle"))
+                                 (th/wait-for-render)))
                         (.then (fn []
                                  (th/assert-equal
                                    (.-textContent (.querySelector container "p"))
@@ -78,4 +76,7 @@
                         (.then (fn []
                                  (th/assert-equal
                                    (.-textContent (.querySelector container "p"))
-                                   "Seconds: 4")))))))))
+                                   "Seconds: 4")
+                                 ;; Toggle off to stop interval for clean test process exit
+                                 (.click (.querySelector container "#toggle"))
+                                 (th/wait-for-render)))))))))
