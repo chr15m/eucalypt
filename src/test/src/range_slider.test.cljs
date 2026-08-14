@@ -39,18 +39,20 @@
             (th/assert-equal (.-textContent output) "Value: 50")
 
             ;; Simulate user changing slider
-            (set! (.-value slider-el) "25")
-            (.dispatchEvent slider-el (new js/Event "input" #js {:bubbles true}))
+            (th/fire-event slider-el "input" {:target {:value "25"}})
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-value slider-el) "25")
+                         (th/assert-equal (.-textContent output) "Value: 25")
+                         (th/assert-equal (:value @slider-state) 25)
 
-            (th/assert-equal (.-value slider-el) "25")
-            (th/assert-equal (.-textContent output) "Value: 25")
-            (th/assert-equal (:value @slider-state) 25)
-
-            ;; Control component by clicking button
-            (.click button)
-            (th/assert-equal (.-value slider-el) "75")
-            (th/assert-equal (.-textContent output) "Value: 75")
-            (th/assert-equal (:value @slider-state) 75)))))
+                         ;; Control component by clicking button
+                         (.click button)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-value slider-el) "75")
+                         (th/assert-equal (.-textContent output) "Value: 75")
+                         (th/assert-equal (:value @slider-state) 75))))))))
 
     (it "should be controllable and then update on input"
       (fn []
@@ -67,14 +69,16 @@
 
             ;; Control component by swapping atom directly
             (swap! slider-state assoc :value 90)
-            (th/assert-equal (.-value slider-el) "90")
-            (th/assert-equal (.-textContent output) "Value: 90")
-            (th/assert-equal (:value @slider-state) 90)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-value slider-el) "90")
+                         (th/assert-equal (.-textContent output) "Value: 90")
+                         (th/assert-equal (:value @slider-state) 90)
 
-            ;; Simulate user changing slider
-            (set! (.-value slider-el) "45")
-            (.dispatchEvent slider-el (new js/Event "input" #js {:bubbles true}))
-
-            (th/assert-equal (.-value slider-el) "45")
-            (th/assert-equal (.-textContent output) "Value: 45")
-            (th/assert-equal (:value @slider-state) 45)))))))
+                         ;; Simulate user changing slider
+                         (th/fire-event slider-el "input" {:target {:value "45"}})
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-value slider-el) "45")
+                         (th/assert-equal (.-textContent output) "Value: 45")
+                         (th/assert-equal (:value @slider-state) 45))))))))))
