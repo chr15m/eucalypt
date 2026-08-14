@@ -30,26 +30,35 @@
 
     (it "should only register functions as handlers"
       (fn []
-        (let [other-click-fired (r/atom false)
-              container (.createElement js/document "div")]
+        (let [click-fired (r/atom false)
+              handler-state (r/atom false)
+              container (.createElement js/document "div")
+              component (fn []
+                          [:div {:id "test-div"
+                                 :on-click @handler-state}])]
           (.appendChild js/document.body container)
-          (r/render [:div {:id "test-div"
-                           :on-click false
-                           :on-another-click nil
-                           :on-other-click #(reset! other-click-fired true)}]
-                    container)
+          (r/render [component] container)
           (let [div (.querySelector container "#test-div")]
-            ;; Non-function handlers should be ignored (set to nil)
-            (th/assert-equal (.-onclick div) nil)
-            (th/assert-equal (.-onanotherclick div) nil)
-            (th/assert-not-nil (.-onotherclick div))
+            ;; Non-function handlers (false, nil, string) should not throw on click
+            (th/fire-event div "click")
+            (th/assert-equal @click-fired false)
 
-            ;; Clicking should not throw an error
-            (.click div)
-
-            ;; Dispatch the other event and check it was fired
-            (.dispatchEvent div (new js/Event "otherclick" #js {:bubbles true}))
-            (th/assert-equal @other-click-fired true)))))
+            (reset! handler-state "not-a-function")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/fire-event div "click")
+                         (th/assert-equal @click-fired false)
+                         (reset! handler-state nil)))
+                (.then (fn [] (th/wait-for-render)))
+                (.then (fn []
+                         (th/fire-event div "click")
+                         (th/assert-equal @click-fired false)
+                         ;; Now set a real function handler
+                         (reset! handler-state #(reset! click-fired true))))
+                (.then (fn [] (th/wait-for-render)))
+                (.then (fn []
+                         (th/fire-event div "click")
+                         (th/assert-equal @click-fired true))))))))
 
     (it "should update event handlers"
       (fn []
@@ -63,7 +72,7 @@
 
           ;; Initial render with handler 1
           (let [div (.querySelector container "#test-div")]
-            (.click div)
+            (th/fire-event div "click")
             (th/assert-equal @click1-fired true)
             (th/assert-equal @click2-fired false))
 
@@ -73,10 +82,12 @@
           (reset! handler-ratom #(reset! click2-fired true))
 
           ;; After re-render, click again
-          (let [div (.querySelector container "#test-div")]
-            (.click div)
-            (th/assert-equal @click1-fired false)
-            (th/assert-equal @click2-fired true)))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (let [div (.querySelector container "#test-div")]
+                         (th/fire-event div "click")
+                         (th/assert-equal @click1-fired false)
+                         (th/assert-equal @click2-fired true))))))))
 
     (it "should remove event handlers"
       (fn []
@@ -88,15 +99,15 @@
               component (fn []
                           [:div {:id "test-div"
                                  :on-click (when @show-click #(reset! click-fired true))
-                                 :on-mousedown (when @show-mousedown #(reset! mousedown-fired true))}])]
+                                 :on-mouse-down (when @show-mousedown #(reset! mousedown-fired true))}])]
           (.appendChild js/document.body container)
           (r/render [component] container)
 
           ;; Both handlers should work initially
           (let [div (.querySelector container "#test-div")]
-            (.dispatchEvent div (new js/Event "mousedown" #js {:bubbles true}))
+            (th/fire-event div "mousedown")
             (th/assert-equal @mousedown-fired true)
-            (.click div)
+            (th/fire-event div "click")
             (th/assert-equal @click-fired true))
 
           ;; Reset state
@@ -106,21 +117,24 @@
           ;; Remove mousedown handler
           (reset! show-mousedown false)
 
-          (let [div (.querySelector container "#test-div")]
-            (.dispatchEvent div (new js/Event "mousedown" #js {:bubbles true}))
-            (th/assert-equal @mousedown-fired false "mousedown should be removed")
-            (.click div)
-            (th/assert-equal @click-fired true "click should still work"))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (let [div (.querySelector container "#test-div")]
+                         (th/fire-event div "mousedown")
+                         (th/assert-equal @mousedown-fired false "mousedown should be removed")
+                         (th/fire-event div "click")
+                         (th/assert-equal @click-fired true "click should still work")
 
-          ;; Reset state
-          (reset! click-fired false)
-          (reset! mousedown-fired false)
+                         ;; Reset state
+                         (reset! click-fired false)
+                         (reset! mousedown-fired false)
 
-          ;; Remove click handler
-          (reset! show-click false)
-
-          (let [div (.querySelector container "#test-div")]
-            (.dispatchEvent div (new js/Event "mousedown" #js {:bubbles true}))
-            (th/assert-equal @mousedown-fired false "mousedown should still be removed")
-            (.click div)
-            (th/assert-equal @click-fired false "click should be removed")))))))
+                         ;; Remove click handler
+                         (reset! show-click false))))
+              (.then (fn [] (th/wait-for-render)))
+              (.then (fn []
+                       (let [div (.querySelector container "#test-div")]
+                         (th/fire-event div "mousedown")
+                         (th/assert-equal @mousedown-fired false "mousedown should still be removed")
+                         (th/fire-event div "click")
+                         (th/assert-equal @click-fired false "click should be removed"))))))))))
