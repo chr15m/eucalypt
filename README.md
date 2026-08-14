@@ -3,8 +3,9 @@
 <p align="center" id="logo"><img src="docs/eucalypt.svg" alt="Eucalypt leaf logo" width="128"/></p>
 
 Eucalypt is a frontend library for [Squint ClojureScript](https://github.com/squint-cljs/squint).
-It replaces [Reagent & React](https://reagent-project.github.io/) with a compatible-ish subset of the Reagent API.
-It supports form-1 and form-2 Reagent components.
+It replaces [Reagent & React](https://reagent-project.github.io/) with a lightweight, standalone DOM reconciler.
+
+The project aims for behavioral backwards compatibility with Reagent 1.0 for the most commonly used core functions, macros, and patterns (such as `r/atom`, `r/render`, `r/cursor`, `r/reaction`, form-1 and form-2 components, `:ref` callbacks, and Reagent-style Hiccup rendering).
 
 The goal is to build very small frontend artifacts (~10k) using "Reagent" and "ClojureScript" (if you squint hard enough).
 It's suitable for small pieces of one-off frontend code that do something simple, not large production web apps.
@@ -20,7 +21,7 @@ Eucalypt is itself very small and fits in a single cljs file.
 
 *What's with the name?* Eucalyptus oil, which is sometimes used in cleaning, looks like a reagent if you squint hard enough.
 
-[Use](#use) | [Bugs](#bugs) | [Gotchas](#gotchas) | [Dev](#dev) | [Tests](#tests) | [Build](#build) | [Use of AI](#use-of-ai) | [Mr Clean](#mr-clean-original-readme)
+[Use](#use) | [Eucalypt extensions](#eucalypt-extensions) | [Bugs](#bugs) | [Gotchas](#gotchas) | [Dev](#dev) | [Tests](#tests) | [Build](#build) | [Use of AI](#use-of-ai) | [Mr Clean](#mr-clean-original-readme)
 
 ## Use
 
@@ -85,6 +86,13 @@ function myComponent () {
 
 render([myComponent], document.getElementById("app"))
 ```
+
+## Eucalypt extensions
+
+Eucalypt provides backwards-compatible extensions beyond standard React/Reagent:
+
+- **Custom DOM event handlers**: You can attach arbitrary event listeners using `on-<event>` (e.g. `:on-other-click`, `:on-custom-event`) or camelCase equivalents without requiring React synthetic event whitelist support. This makes integrating with Web Components and custom DOM events straightforward.
+- **Custom attribute pass-through**: Non-standard and custom HTML attributes (e.g. `:click "value"`) are set directly on DOM elements rather than filtered out.
 
 ## Bugs
 
