@@ -68,7 +68,6 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/list_demo.test.cljs` — Multi-step additions/deletions in a loop (needs promise chaining across steps).
 - [x] `src/test/src/timer.test.cljs` — Uses `sleep` promises, but clicking toggle button needs `wait-for-render` before checking hidden state.
 - [ ] `src/test/src/various_events.test.cljs` — Dispatches events like blur/dblclick; test with `wait-for-render` first, then `fire-event` if needed.
-- [ ] `src/test/src/camel_case_events.test.cljs` — CamelCase event attributes; test with `wait-for-render` first, then `fire-event` if needed.
 - [ ] `src/test/src/todomvc.test.cljs` — Multi-step assertions across editing, filtering, toggling, and clearing todos require async promise chains.
 
 ### Category 3: EDN / String Representation Differences
@@ -90,6 +89,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [ ] `src/test/src/style_attribute.test.cljs`
 - [ ] `src/test/src/reentrant_render.test.cljs`
 - [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
+- [ ] `src/test/src/camel_case_events.test.cljs` — React/Reagent does not support `:onFocusIn`/`:onFocusOut` synthetic event props (uses `:onFocus`/`:onBlur` instead).
 
 ---
 
