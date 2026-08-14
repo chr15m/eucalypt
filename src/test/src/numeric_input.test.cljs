@@ -37,15 +37,17 @@
             (th/assert-equal (.-textContent output) "Value: 10")
 
             ;; Simulate user changing value
-            (set! (.-value input-el) "25")
-            (.dispatchEvent input-el (new js/Event "input" #js {:bubbles true}))
+            (th/fire-event input-el "input" {:target {:value "25"}})
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-value input-el) "25")
+                         (th/assert-equal (.-textContent output) "Value: 25")
+                         (th/assert-equal (:value @numeric-state) 25)
 
-            (th/assert-equal (.-value input-el) "25")
-            (th/assert-equal (.-textContent output) "Value: 25")
-            (th/assert-equal (:value @numeric-state) 25)
-
-            ;; Control component by clicking button
-            (.click button)
-            (th/assert-equal (.-value input-el) "42")
-            (th/assert-equal (.-textContent output) "Value: 42")
-            (th/assert-equal (:value @numeric-state) 42)))))))
+                         ;; Control component by clicking button
+                         (.click button)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-value input-el) "42")
+                         (th/assert-equal (.-textContent output) "Value: 42")
+                         (th/assert-equal (:value @numeric-state) 42))))))))))
