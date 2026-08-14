@@ -52,9 +52,12 @@
         (let [tag (and (.-tagName el) (.toUpperCase (.-tagName el)))
               is-text-input? (contains? #{"INPUT" "TEXTAREA"} tag)
               evt-opts (clj->js (merge {:bubbles true} opts))
-              evt (if (contains? #{"keydown" "keyup" "keypress"} event-type)
-                    (new js/KeyboardEvent event-type evt-opts)
-                    (new js/Event event-type evt-opts))]
+              dom-event-type (if (or (= event-type "doubleclick") (= event-type "dblclick"))
+                               "dblclick"
+                               event-type)
+              evt (if (contains? #{"keydown" "keyup" "keypress"} dom-event-type)
+                    (new js/KeyboardEvent dom-event-type evt-opts)
+                    (new js/Event dom-event-type evt-opts))]
           (when-let [v (get-in opts [:target :value])]
             (set! (.-value el) v))
           (.dispatchEvent el evt)
