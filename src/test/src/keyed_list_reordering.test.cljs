@@ -34,21 +34,31 @@
 
           ;; Move to beginning
           (reset! list-data ["b" "c" "a"])
-          (th/assert-equal (.-textContent container) "bca")
-          (reset! list-data (move @list-data 2 0))
-          (th/assert-equal (.-textContent container) "abc")
-
-          ;; Swap
-          (reset! list-data ["a" "b"])
-          (th/assert-equal (.-textContent container) "ab")
-          (reset! list-data ["b" "a"])
-          (th/assert-equal (.-textContent container) "ba")
-
-          ;; Move to end
-          (reset! list-data ["a" "b" "c" "d"])
-          (th/assert-equal (.-textContent container) "abcd")
-          (reset! list-data (move @list-data 0 3))
-          (th/assert-equal (.-textContent container) "bcda"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "bca")
+                       (reset! list-data (move @list-data 2 0))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "abc")
+                       ;; Swap
+                       (reset! list-data ["a" "b"])
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "ab")
+                       (reset! list-data ["b" "a"])
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "ba")
+                       ;; Move to end
+                       (reset! list-data ["a" "b" "c" "d"])
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "abcd")
+                       (reset! list-data (move @list-data 0 3))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "bcda")))))))
 
     (it "should reverse keyed children"
       (fn []
@@ -60,7 +70,9 @@
           (th/assert-equal (.-textContent container) (str/join "" values))
 
           (reset! list-data (vec (reverse @list-data)))
-          (th/assert-equal (.-textContent container) (str/join "" (reverse values))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) (str/join "" (reverse values)))))))))
 
     (it "should handle full reorders (sorting)"
       (fn []
@@ -73,11 +85,14 @@
 
           ;; Sort ascending
           (reset! list-data (vec (sort @list-data)))
-          (th/assert-equal (.-textContent container) "AppleBananaCherryGrapeOrange")
-
-          ;; Sort descending
-          (reset! list-data (vec (sort-by identity (comp - (partial compare)) @list-data)))
-          (th/assert-equal (.-textContent container) "OrangeGrapeCherryBananaApple"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "AppleBananaCherryGrapeOrange")
+                       ;; Sort descending
+                       (reset! list-data (vec (sort-by identity (comp - (partial compare)) @list-data)))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) "OrangeGrapeCherryBananaApple")))))))
 
     (it "should handle shuffled child ordering"
       (fn []
@@ -92,13 +107,17 @@
           (th/assert-equal (.-textContent container) (str/join "" a))
 
           (reset! list-data b)
-          (th/assert-equal (.-textContent container) (str/join "" b))
-
-          (reset! list-data c)
-          (th/assert-equal (.-textContent container) (str/join "" c))
-
-          (reset! list-data a)
-          (th/assert-equal (.-textContent container) (str/join "" a)))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) (str/join "" b))
+                       (reset! list-data c)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) (str/join "" c))
+                       (reset! list-data a)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent container) (str/join "" a))))))))))
 
 ;;; --- Stateful list reordering ---
 
@@ -134,20 +153,23 @@
 
             ;; Click A's button
             (.click (.querySelector (get-item-a) "button"))
-            (th/assert-equal (.-textContent (get-item-a)) "Item A, count: 1Inc")
-            (th/assert-equal (.-textContent (get-item-b)) "Item B, count: 0Inc")
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-textContent (get-item-a)) "Item A, count: 1Inc")
+                         (th/assert-equal (.-textContent (get-item-b)) "Item B, count: 0Inc")
 
-            ;; Reorder
-            (reset! reorder-state ["B" "A"])
+                         ;; Reorder
+                         (reset! reorder-state ["B" "A"])
+                         (th/wait-for-render)))
+                (.then (fn []
+                         ;; Check state is preserved
+                         (th/assert-equal (.-textContent (get-item-a)) "Item A, count: 1Inc")
+                         (th/assert-equal (.-textContent (get-item-b)) "Item B, count: 0Inc")
 
-            ;; Check state is preserved
-            (th/assert-equal (.-textContent (get-item-a)) "Item A, count: 1Inc")
-            (th/assert-equal (.-textContent (get-item-b)) "Item B, count: 0Inc")
-
-            ;; Check order in DOM
-            (let [items (.querySelectorAll container "li")]
-              (th/assert-equal (.-id (aget items 0)) "item-B")
-              (th/assert-equal (.-id (aget items 1)) "item-A"))))))))
+                         ;; Check order in DOM
+                         (let [items (.querySelectorAll container "li")]
+                           (th/assert-equal (.-id (aget items 0)) "item-B")
+                           (th/assert-equal (.-id (aget items 1)) "item-A")))))))))))
 
 ;;; --- Keyed replacements and holes ---
 
@@ -183,7 +205,9 @@
 
           (reset! mounted-actions [])
           (reset! replacement-state {:y "2"})
-          (th/assert-equal @mounted-actions ["mounted 1"]))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal @mounted-actions ["mounted 1"])))))))))
 
 (def hole-state (r/atom {:y "1"}))
 
@@ -213,7 +237,9 @@
 
           (reset! mounted-actions [])
           (reset! hole-state {:y "2"})
-          (th/assert-equal @mounted-actions []))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal @mounted-actions [])))))))))
 
 (defn hole-replace-app []
   (let [y (:y @hole-state)]
@@ -240,11 +266,14 @@
 
           (reset! mounted-actions [])
           (reset! hole-state {:y "2"})
-          (th/assert-equal @mounted-actions [])
-
-          (reset! mounted-actions [])
-          (reset! hole-state {:y "1"})
-          (th/assert-equal @mounted-actions ["mounted 2"]))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal @mounted-actions [])
+                       (reset! mounted-actions [])
+                       (reset! hole-state {:y "1"})
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal @mounted-actions ["mounted 2"])))))))))
 
 (defn hole-insert-app []
   (let [y (:y @hole-state)]
@@ -272,7 +301,9 @@
 
           (reset! mounted-actions [])
           (reset! hole-state {:y "2"})
-          (th/assert-equal @mounted-actions []))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal @mounted-actions [])))))))))
 
 (defn hole-append-app []
   (let [y (:y @hole-state)]
@@ -300,4 +331,6 @@
 
           (reset! mounted-actions [])
           (reset! hole-state {:y "2"})
-          (th/assert-equal @mounted-actions []))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal @mounted-actions [])))))))))

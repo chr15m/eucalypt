@@ -87,7 +87,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/style_attribute.test.cljs`
 - [x] `src/test/src/ref_cleanup.test.cljs` (moved to `eucalypt_extensions.test.cljs`)
 - [x] `src/test/src/render_diff_fundamentals.test.cljs`
-- [ ] `src/test/src/keyed_list_reordering.test.cljs`
+- [x] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
 - [ ] `src/test/src/component_reconciliation.test.cljs`
 
@@ -119,6 +119,7 @@ This section documents verified behavioral differences between React/Reagent 1.0
 ## Log & Observations
 
 - **2026-08-22**:
+  - Updated `src/test/src/keyed_list_reordering.test.cljs` to wrap reactive atom updates and button clicks with `(th/wait-for-render)` promise chains.
   - Updated `src/test/src/render_diff_fundamentals.test.cljs` to use `(th/wait-for-render)` promise chains and keyed child reordering. Moved unkeyed child pair DOM identity check to `src/test/src/eucalypt_extensions.test.cljs`. Verified 100% pass rate (6/6 tests) in both Eucalypt and Reagent runner. Marked `render_diff_fundamentals.test.cljs` as complete.
 - **2026-08-14**:
   - Updated `src/test/src/event_handler_registration.test.cljs` to use standard `:on-mouse-down`, `th/fire-event`, and `(th/wait-for-render)` promise chains. Extracted Eucalypt-specific custom event/attribute assertions into `src/test/src/eucalypt_extensions.test.cljs`. Verified 100% pass rate in both Eucalypt and Reagent runner. Marked `event_handler_registration.test.cljs` as complete.
