@@ -15,7 +15,9 @@
           (.appendChild js/document.body container)
           (r/render [:span "Bad"] container)
           (r/render [:div "Good"] container)
-          (th/assert-equal (.-innerHTML container) "<div>Good</div>"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div>Good</div>")))))))
 
     (it "should reorder child pairs"
       (fn []
@@ -29,10 +31,11 @@
             (th/assert-equal (.-nodeName b-el) "B")
 
             (r/render [:div [:b "b"] [:a "a"]] container)
-
-            ;; After re-render, the DOM nodes should be the same instances, just reordered.
-            (th/assert-equal (identical? (-> container .-firstChild .-firstChild) b-el) true)
-            (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true)))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         ;; After re-render, the DOM nodes should be the same instances, just reordered.
+                         (th/assert-equal (identical? (-> container .-firstChild .-firstChild) b-el) true)
+                         (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true))))))))
 
     (it "should update in-place keyed DOM nodes"
       (fn []
@@ -56,15 +59,17 @@
                        (with-meta [:li "z"] {:key "c"})]
                       container)
 
-            (let [li-a-after (-> container .-firstChild (.querySelector "li:nth-child(1)"))
-                  li-b-after (-> container .-firstChild (.querySelector "li:nth-child(2)"))
-                  li-c-after (-> container .-firstChild (.querySelector "li:nth-child(3)"))]
-              (th/assert-equal (identical? li-a li-a-after) true)
-              (th/assert-equal (identical? li-b li-b-after) true)
-              (th/assert-equal (identical? li-c li-c-after) true)
-              (th/assert-equal (.-textContent li-a-after) "x")
-              (th/assert-equal (.-textContent li-b-after) "y")
-              (th/assert-equal (.-textContent li-c-after) "z"))))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (let [li-a-after (-> container .-firstChild (.querySelector "li:nth-child(1)"))
+                               li-b-after (-> container .-firstChild (.querySelector "li:nth-child(2)"))
+                               li-c-after (-> container .-firstChild (.querySelector "li:nth-child(3)"))]
+                           (th/assert-equal (identical? li-a li-a-after) true)
+                           (th/assert-equal (identical? li-b li-b-after) true)
+                           (th/assert-equal (identical? li-c li-c-after) true)
+                           (th/assert-equal (.-textContent li-a-after) "x")
+                           (th/assert-equal (.-textContent li-b-after) "y")
+                           (th/assert-equal (.-textContent li-c-after) "z")))))))))
 
     (it "should not lead to stale DOM nodes"
       (fn []
@@ -78,13 +83,17 @@
           (th/assert-equal (.-innerHTML container) "<div></div>")
 
           (reset! state 1)
-          (th/assert-equal (.-innerHTML container) "<div></div>")
-
-          (reset! state 2)
-          (th/assert-equal (.-innerHTML container) "<div><div>foo</div></div>")
-
-          (reset! state 3)
-          (th/assert-equal (.-innerHTML container) "<div><div>foo</div></div>"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div></div>")
+                       (reset! state 2)))
+              (.then (fn [] (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div><div>foo</div></div>")
+                       (reset! state 3)))
+              (.then (fn [] (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-innerHTML container) "<div><div>foo</div></div>")))))))
 
     (it "should remove attributes on re-render"
       (fn []
@@ -95,9 +104,11 @@
           (th/assert-equal (-> container .-firstChild (.getAttribute "title")) "a title")
 
           (r/render [:div [:span "Bye"]] container)
-          (th/assert-equal (-> container .-firstChild (.hasAttribute "class")) false)
-          (th/assert-equal (-> container .-firstChild (.hasAttribute "title")) false)
-          (th/assert-equal (.-textContent (-> container .-firstChild .-firstChild)) "Bye"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (-> container .-firstChild (.hasAttribute "class")) false)
+                       (th/assert-equal (-> container .-firstChild (.hasAttribute "title")) false)
+                       (th/assert-equal (.-textContent (-> container .-firstChild .-firstChild)) "Bye")))))))
 
     (it "should reconcile children in right order"
       (fn []
@@ -112,4 +123,6 @@
           (th/assert-equal (.-textContent (.querySelector container "ul")) "ABCDE")
 
           (reset! list-state ["B" "E" "C" "D"])
-          (th/assert-equal (.-textContent (.querySelector container "ul")) "BECD"))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent (.querySelector container "ul")) "BECD")))))))))
