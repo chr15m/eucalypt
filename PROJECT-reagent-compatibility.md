@@ -83,8 +83,8 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/camel_case_events.test.cljs` — Uses `(aget el "on...")` DOM property checks and unsupported `:onFocusIn`/`:onFocusOut` props. Potential fix: Refactor DOM property checks to behavioral event tests.
 - [x] `src/test/src/event_handler_registration.test.cljs` — Uses `(aget el "onclick")` property checks. Potential fix: Replace DOM property checks with behavioral event testing (`th/fire-event` + `wait-for-render`).
 - [x] `src/test/src/reentrant_render.test.cljs` (moved remaining failing test to behavioural differences list)
-- [ ] `src/test/src/keyed_list_reordering.test.cljs`
 - [x] `src/test/src/nested_fors.test.cljs`
+- [ ] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/ref_cleanup.test.cljs`
 - [ ] `src/test/src/render_diff_fundamentals.test.cljs`
 - [ ] `src/test/src/component_reconciliation.test.cljs`
@@ -103,6 +103,12 @@ This section documents verified behavioral differences between React/Reagent 1.0
   - **React/Reagent Behavior**: React treats the difference in parent DOM container / node type at the root as a tree unmount, destroying all child component state and remounting `child-counter` with initial state (`0`).
   - **Eucalypt Behavior**: Eucalypt's keyed component cache preserves the child component's internal state atom even across parent node hierarchy restructuring, keeping the count (`1`).
   - **Resolution needed**: Align Eucalypt's tree unmounting/reconciliation with React when root container node types change, then align the test assertion accordingly.
+
+- [ ] **DOM Attribute Emission for `:key` in Props Map**:
+  - **Scenario**: In Hiccup, `:key` can be specified either via metadata `(with-meta [:span ...] {:key "foo"})` or in the attributes/props map `[:span {:key "foo"} ...]`.
+  - **React/Reagent Behavior**: `:key` (along with `:ref`) is a reserved reconciler prop and is never emitted to the DOM as an HTML attribute (`key="foo"`).
+  - **Eucalypt Behavior**: Due to custom attribute pass-through, `[:span {:key "foo"} ...]` currently sets `key="foo"` on the DOM node.
+  - **Resolution needed**: Exclude `:key` (and verify `:ref`) from being rendered into DOM element attributes during reconciliation in `src/eucalypt.cljs`, then run full test suites across both Eucalypt and Reagent runner to ensure no regressions.
 
 ## Log & Observations
 
