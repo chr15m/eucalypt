@@ -5,6 +5,7 @@
 ;;; - Direct custom DOM event listeners (e.g. :on-other-click, Web Components)
 ;;; - Setting arbitrary non-standard HTML attributes directly on elements
 ;;; - Direct DOM property inspection and access
+;;; - Components returning raw sequences without a wrapping fragment
 
 (ns eucalypt-extensions.test
   (:require ["vitest" :refer [describe it afterEach]]
@@ -38,4 +39,15 @@
 
             ;; Dispatch the custom event and check handler was fired
             (.dispatchEvent div (new js/Event "otherclick" #js {:bubbles true}))
-            (th/assert-equal @other-click-fired true)))))))
+            (th/assert-equal @other-click-fired true)))))
+
+    (it "should render component functions that return raw lazy sequences directly"
+      (fn []
+        (letfn [(raw-seq-comp []
+                  (map (fn [item] [:span {:key item} item]) ["A" "B" "C"]))]
+          (let [container (.createElement js/document "div")]
+            (.appendChild js/document.body container)
+            (r/render [raw-seq-comp] container)
+            (let [spans (.querySelectorAll container "span")]
+              (th/assert-equal (.-length spans) 3)
+              (th/assert-equal (.-textContent container) "ABC"))))))))
