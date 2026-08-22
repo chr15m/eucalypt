@@ -89,7 +89,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/render_diff_fundamentals.test.cljs`
 - [x] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
-- [ ] `src/test/src/component_reconciliation.test.cljs`
+- [x] `src/test/src/component_reconciliation.test.cljs`
 
 ---
 

@@ -41,9 +41,9 @@
 
             ;; Check internal state before render
             #_ (let [root-info (get @r/roots container)
-                  runtime (:runtime root-info)
-                  mounted (:mounted-components @runtime)]
-              (js/console.log "Mounted components count:" (count mounted)))
+                     runtime (:runtime root-info)
+                     mounted (:mounted-components @runtime)]
+                 (js/console.log "Mounted components count:" (count mounted)))
 
             (r/render [app-comp {:i 1}] container)
             ; (js/console.log "HTML after swap:" (.-innerHTML container))
@@ -59,7 +59,9 @@
     (it "should not orphan children"
       (fn []
         (let [state-c (r/atom {:show? false})
-              state-a (r/atom {:show? false})]
+              state-a (r/atom {:show? false})
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
           (letfn [(component-b []
                     [:p "B"])
                   (component-c []
@@ -73,50 +75,66 @@
                       [component-b]
                       [wrap-c]))]
 
-            (r/render [component-a] js/document.body)
-            (th/assert-equal (.-innerHTML js/document.body) "<p>Loading</p>")
+            (r/render [component-a] container)
+            (th/assert-equal (.-innerHTML container) "<p>Loading</p>")
 
             (swap! state-c assoc :show? true)
-            (th/assert-equal (.-innerHTML js/document.body) "<div>data</div>")
-
-            (swap! state-a assoc :show? true)
-            (th/assert-equal (.-innerHTML js/document.body) "<p>B</p>")))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-innerHTML container) "<div>data</div>")
+                         (swap! state-a assoc :show? true)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-innerHTML container) "<p>B</p>"))))))))
 
     (it "should remove orphaned elements replaced by Components"
       (fn []
-        (letfn [(comp-span []
-                  [:span "span in a component"])]
-          (r/render [comp-span] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<span>span in a component</span>")
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (letfn [(comp-span []
+                    [:span "span in a component"])]
+            (r/render [comp-span] container)
+            (th/assert-equal (.-innerHTML container) "<span>span in a component</span>")
 
-          (r/render [:div "just a div"] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>just a div</div>")
-
-          (r/render [comp-span] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<span>span in a component</span>"))))
+            (r/render [:div "just a div"] container)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-innerHTML container) "<div>just a div</div>")
+                         (r/render [comp-span] container)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-innerHTML container) "<span>span in a component</span>"))))))))
 
     (it "should remove children when root changes to text node"
       (fn []
-        (let [state (r/atom {:alt false})]
+        (let [state (r/atom {:alt false})
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
           (letfn [(comp []
                     (if (:alt @state)
                       "asdf"
                       [:div "test"]))]
-            (r/render [comp] js/document.body)
-            (th/assert-equal (.-innerHTML js/document.body) "<div>test</div>")
+            (r/render [comp] container)
+            (th/assert-equal (.-innerHTML container) "<div>test</div>")
 
             (reset! state {:alt true})
-            (th/assert-equal (.-innerHTML js/document.body) "asdf")
-
-            (reset! state {:alt false})
-            (th/assert-equal (.-innerHTML js/document.body) "<div>test</div>")
-
-            (reset! state {:alt true})
-            (th/assert-equal (.-innerHTML js/document.body) "asdf")))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.-innerHTML container) "asdf")
+                         (reset! state {:alt false})
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-innerHTML container) "<div>test</div>")
+                         (reset! state {:alt true})
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.-innerHTML container) "asdf"))))))))
 
     (it "should maintain order when setting state (that inserts dom-elements)"
       (fn []
-        (let [state (r/atom {:values ["abc"]})]
+        (let [state (r/atom {:values ["abc"]})
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
           (letfn [(entry [value]
                     [:div value])
                   (app []
@@ -127,92 +145,109 @@
                      [:button "Second Button"]
                      [:button "Third Button"]])]
 
-            (r/render [app] js/document.body)
-            (th/assert-equal (-> js/document.body .-firstChild .-innerHTML)
+            (r/render [app] container)
+            (th/assert-equal (-> container .-firstChild .-innerHTML)
                              "<div>abc</div><button>First Button</button><button>Second Button</button><button>Third Button</button>")
 
             (swap! state update :values conj "def")
-            (th/assert-equal (-> js/document.body .-firstChild .-innerHTML)
-                             "<div>abc</div><div>def</div><button>First Button</button><button>Second Button</button><button>Third Button</button>")
-
-            (swap! state update :values conj "ghi")
-            (th/assert-equal (-> js/document.body .-firstChild .-innerHTML)
-                             "<div>abc</div><div>def</div><div>ghi</div><button>First Button</button><button>Second Button</button><button>Third Button</button>")
-
-            (reset! state {:values ["abc"]})
-            (th/assert-equal (-> js/document.body .-firstChild .-innerHTML)
-                             "<div>abc</div><button>First Button</button><button>Second Button</button><button>Third Button</button>")))))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (-> container .-firstChild .-innerHTML)
+                                          "<div>abc</div><div>def</div><button>First Button</button><button>Second Button</button><button>Third Button</button>")
+                         (swap! state update :values conj "ghi")
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (-> container .-firstChild .-innerHTML)
+                                          "<div>abc</div><div>def</div><div>ghi</div><button>First Button</button><button>Second Button</button><button>Third Button</button>")
+                         (reset! state {:values ["abc"]})
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (-> container .-firstChild .-innerHTML)
+                                          "<div>abc</div><button>First Button</button><button>Second Button</button><button>Third Button</button>"))))))))))
 
 (describe "Children as props (via arguments)"
   (fn []
     (it "should handle various child types passed as props"
       (fn []
-        (letfn [(wrapper [child]
-                  [:div "prefix-" child "-suffix"])]
-          ;; VNode
-          (r/render [wrapper [:p "vnode"]] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>prefix-<p>vnode</p>-suffix</div>")
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (letfn [(wrapper [child]
+                    [:div "prefix-" child "-suffix"])]
+            ;; VNode
+            (r/render [wrapper [:p "vnode"]] container)
+            (th/assert-equal (.-innerHTML container) "<div>prefix-<p>vnode</p>-suffix</div>")
 
-          ;; string
-          (r/render [wrapper "string"] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>prefix-string-suffix</div>")
+            ;; string
+            (r/render [wrapper "string"] container)
+            (th/assert-equal (.-innerHTML container) "<div>prefix-string-suffix</div>")
 
-          ;; number
-          (r/render [wrapper 123] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>prefix-123-suffix</div>")
+            ;; number
+            (r/render [wrapper 123] container)
+            (th/assert-equal (.-innerHTML container) "<div>prefix-123-suffix</div>")
 
-          ;; nil
-          (r/render [wrapper nil] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>prefix--suffix</div>")
+            ;; nil
+            (r/render [wrapper nil] container)
+            (th/assert-equal (.-innerHTML container) "<div>prefix--suffix</div>")
 
-          ;; boolean
-          (r/render [wrapper true] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>prefix--suffix</div>")
-          (r/render [wrapper false] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>prefix--suffix</div>"))))
+            ;; boolean
+            (r/render [wrapper true] container)
+            (th/assert-equal (.-innerHTML container) "<div>prefix--suffix</div>")
+            (r/render [wrapper false] container)
+            (th/assert-equal (.-innerHTML container) "<div>prefix--suffix</div>")))))
 
     (it "should handle multiple children passed as props"
       (fn []
-        (letfn [(wrapper [& children]
-                  (into [:div "wrapper-"] children))]
-          (r/render [wrapper [:p "one"] [:p "two"]] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>wrapper-<p>one</p><p>two</p></div>"))))
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (letfn [(wrapper [& children]
+                    (into [:div "wrapper-"] children))]
+            (r/render [wrapper [:p "one"] [:p "two"]] container)
+            (th/assert-equal (.-innerHTML container) "<div>wrapper-<p>one</p><p>two</p></div>")))))
 
     (it "should handle children passed as a list"
       (fn []
-        (letfn [(wrapper [children]
-                  [:ul (for [c children] [:li c])])]
-          (r/render [wrapper ["a" "b" "c"]] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<ul><li>a</li><li>b</li><li>c</li></ul>"))))
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (letfn [(wrapper [children]
+                    [:ul (for [c children]
+                           (with-meta [:li c] {:key c}))])]
+            (r/render [wrapper ["a" "b" "c"]] container)
+            (th/assert-equal (.-innerHTML container) "<ul><li>a</li><li>b</li><li>c</li></ul>")))))
 
     (it "should ignore extra arguments if not used"
       (fn []
-        (letfn [(explicit-child-component []
-                  [:div "explicit"])]
-          (r/render [explicit-child-component "ignored"] js/document.body)
-          (th/assert-equal (.-innerHTML js/document.body) "<div>explicit</div>"))))))
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (letfn [(explicit-child-component []
+                    [:div "explicit"])]
+            (r/render [explicit-child-component "ignored"] container)
+            (th/assert-equal (.-innerHTML container) "<div>explicit</div>")))))))
 
 (describe "Component initialization"
   (fn []
     (it "should not crash when setting state in constructor"
         (fn []
-          (let [state-in-constructor (atom nil)]
+          (let [state-in-constructor (atom nil)
+                container (.createElement js/document "div")]
+            (.appendChild js/document.body container)
             (letfn [(foo []
                       (let [local-state (r/atom {:preact "awesome"})]
                         (reset! state-in-constructor @local-state)
                         (fn []
                           [:div (js/JSON.stringify (clj->js @local-state))])))]
-              (r/render [foo] js/document.body)
+              (r/render [foo] container)
               (th/assert-equal @state-in-constructor {:preact "awesome"})))))
 
     (it "should initialize props but not state in Component constructor"
         (fn []
-          (let [captured-initial-state (atom nil)]
+          (let [captured-initial-state (atom nil)
+                container (.createElement js/document "div")]
+            (.appendChild js/document.body container)
             (letfn [(foo [_props]
                       (let [local-state (r/atom nil)]
                         (reset! captured-initial-state @local-state)
                         (fn [props]
                           [:div (js/JSON.stringify (clj->js props))])))]
-              (r/render [foo {:bar "baz"}] js/document.body)
+              (r/render [foo {:bar "baz"}] container)
               (th/assert-equal @captured-initial-state nil)
-              (th/assert-equal (.-innerHTML js/document.body) "<div>{\"bar\":\"baz\"}</div>")))))))
+              (th/assert-equal (.-innerHTML container) "<div>{\"bar\":\"baz\"}</div>")))))))
