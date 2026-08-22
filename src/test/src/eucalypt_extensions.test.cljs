@@ -7,6 +7,7 @@
 ;;; - Direct DOM property inspection and access
 ;;; - Components returning raw sequences without a wrapping fragment
 ;;; - Passing style as a raw CSS string instead of a map
+;;; - Ref cleanup functions (React 19 style) returned from ref callbacks
 
 (ns eucalypt-extensions.test
   (:require ["vitest" :refer [describe it afterEach]]
@@ -16,6 +17,25 @@
 (afterEach
  (fn []
    (set! (.-innerHTML js/document.body) "")))
+
+(def ref-events (r/atom []))
+(def show-ref? (r/atom true))
+
+(defn tracking-ref [el]
+  (swap! ref-events conj (if el
+                           {:kind :mount
+                            :tag (.-tagName el)}
+                           {:kind :nil}))
+  (when el
+    (fn []
+      (swap! ref-events conj {:kind :cleanup}))))
+
+(defn ref-cleanup-component []
+  [:div
+   (when @show-ref?
+     [:span {:id "ref-target"
+             :ref tracking-ref}
+      "Hello ref"])])
 
 (describe "Eucalypt Extensions"
   (fn []
@@ -58,4 +78,26 @@
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
           (r/render [:div {:style "top: 5px; position: relative;"}] container)
-          (th/assert-equal (.. container -firstChild -style -cssText) "top: 5px; position: relative;"))))))
+          (th/assert-equal (.. container -firstChild -style -cssText) "top: 5px; position: relative;"))))
+
+    (it "should run ref cleanup function instead of calling ref with nil on unmount"
+      (fn []
+        (reset! ref-events [])
+        (reset! show-ref? true)
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [ref-cleanup-component] container)
+
+          (th/assert-equal (mapv #(get % :kind) @ref-events) [:mount])
+
+          (reset! show-ref? false)
+          (th/assert-equal (mapv #(get % :kind) @ref-events) [:mount :cleanup])
+          (th/assert-equal (nil? (some #(= (get % :kind) :nil) @ref-events)) true)
+
+          (reset! show-ref? true)
+          (th/assert-equal (mapv #(get % :kind) @ref-events) [:mount :cleanup :mount])
+
+          (reset! show-ref? false)
+          (th/assert-equal (mapv #(get % :kind) @ref-events)
+                           [:mount :cleanup :mount :cleanup])
+          (th/assert-equal (nil? (some #(= (get % :kind) :nil) @ref-events)) true))))))

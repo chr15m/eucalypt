@@ -85,7 +85,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/reentrant_render.test.cljs` (moved remaining failing test to behavioural differences list)
 - [x] `src/test/src/nested_fors.test.cljs`
 - [x] `src/test/src/style_attribute.test.cljs`
-- [ ] `src/test/src/ref_cleanup.test.cljs`
+- [x] `src/test/src/ref_cleanup.test.cljs` (moved to `eucalypt_extensions.test.cljs`)
 - [ ] `src/test/src/render_diff_fundamentals.test.cljs`
 - [ ] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
