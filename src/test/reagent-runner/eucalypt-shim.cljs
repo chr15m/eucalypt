@@ -1,6 +1,7 @@
 (ns eucalypt
   (:require [reagent.core]
-            [reagent.dom]))
+            [reagent.dom]
+            [reagent.ratom]))
 
 ;; Map eucalypt API to reagent API by aliasing the functions
 (defn atom [& args]
@@ -11,3 +12,6 @@
 
 (defn cursor [& args]
   (apply reagent.core/cursor args))
+
+(defn reaction [& args]
+  (apply reagent.ratom/make-reaction args))
