@@ -93,6 +93,9 @@ Eucalypt provides backwards-compatible extensions beyond standard React/Reagent:
 
 - **Custom DOM event handlers**: You can attach arbitrary event listeners using `on-<event>` (e.g. `:on-other-click`, `:on-custom-event`) or camelCase equivalents without requiring React synthetic event whitelist support. This makes integrating with Web Components and custom DOM events straightforward.
 - **Custom attribute pass-through**: Non-standard and custom HTML attributes (e.g. `:click "value"`) are set directly on DOM elements rather than filtered out.
+- **Direct sequence returns**: Component functions can return raw lazy sequences or collections directly without requiring a wrapping fragment (`[:<>]`).
+- **CSS string styles**: The `:style` attribute accepts raw CSS strings (e.g. `:style "top: 5px; position: relative;"`) as well as standard style maps.
+- **Ref cleanup functions**: A `:ref` callback can return a cleanup function (React 19 style) that is invoked when the DOM element unmounts.
 
 ## Bugs
 
