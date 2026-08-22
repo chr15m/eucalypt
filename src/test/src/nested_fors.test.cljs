@@ -16,37 +16,40 @@
    "🌳" [nil nil nil nil nil nil nil nil nil nil nil nil]})
 
 (defn component-row [row-vec middle]
-  (map-indexed
-    (fn [col-idx slot]
-      (let [dist (js/Math.abs (- col-idx middle))
-            y-offset (* dist dist 0.2)
-            style {:transform (str "translateY(" y-offset "em)")}]
-        (if slot
-          [:span
-           {:class "emoji filled" :style style :key col-idx}
-           "🪙"]
-          [:span
-           {:class "emoji" :style style :key col-idx}
-           "⚪"])))
-    row-vec))
+  (into [:<>]
+        (map-indexed
+          (fn [col-idx slot]
+            (let [dist (js/Math.abs (- col-idx middle))
+                  y-offset (* dist dist 0.2)
+                  style {:transform (str "translateY(" y-offset "em)")}]
+              (if slot
+                [:span
+                 {:class "emoji filled" :style style :key col-idx}
+                 "🪙"]
+                [:span
+                 {:class "emoji" :style style :key col-idx}
+                 "⚪"])))
+          row-vec)))
 
 (defn emoji-test []
-  (for [emoji (keys slots)]
-    ^{:key emoji}
-    [:section {:class "slide big"}
-     [:div {:class "slots"}
-      (let [slots-vec (get slots emoji)
-            slots-per-row 5
-            rows (partition-all slots-per-row slots-vec)]
-        (map-indexed
-          (fn [row-idx row]
-            [:div {:class "slot-row" :key row-idx}
-             (let [row-vec (vec row)
-                   n (count row-vec)
-                   middle (/ (dec n) 2.0)]
-               [component-row row-vec middle])])
-          rows))]
-     [:span {:class "emoji"} emoji]]))
+  (into [:<>]
+        (for [emoji (keys slots)]
+          (with-meta
+            [:section {:class "slide big"}
+             [:div {:class "slots"}
+              (let [slots-vec (get slots emoji)
+                    slots-per-row 5
+                    rows (partition-all slots-per-row slots-vec)]
+                (map-indexed
+                  (fn [row-idx row]
+                    [:div {:class "slot-row" :key row-idx}
+                     (let [row-vec (vec row)
+                           n (count row-vec)
+                           middle (/ (dec n) 2.0)]
+                       [component-row row-vec middle])])
+                  rows))]
+             [:span {:class "emoji"} emoji]]
+            {:key emoji}))))
 
 (describe
   "For loops"

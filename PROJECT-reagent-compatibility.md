@@ -84,7 +84,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/event_handler_registration.test.cljs` — Uses `(aget el "onclick")` property checks. Potential fix: Replace DOM property checks with behavioral event testing (`th/fire-event` + `wait-for-render`).
 - [x] `src/test/src/reentrant_render.test.cljs` (moved remaining failing test to behavioural differences list)
 - [ ] `src/test/src/keyed_list_reordering.test.cljs`
-- [ ] `src/test/src/nested_fors.test.cljs`
+- [x] `src/test/src/nested_fors.test.cljs`
 - [ ] `src/test/src/ref_cleanup.test.cljs`
 - [ ] `src/test/src/render_diff_fundamentals.test.cljs`
 - [ ] `src/test/src/component_reconciliation.test.cljs`
