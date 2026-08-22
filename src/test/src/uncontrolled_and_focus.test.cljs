@@ -65,11 +65,11 @@
 
 (defn conditional-list [{:keys [show-0? show-1? show-2? show-3?]}]
   [:div
-   (when show-0? [:p 0])
-   (when show-1? [:p 1])
-   [:input {:id "focusable"}]
-   (when show-2? [:p 2])
-   (when show-3? [:p 3])])
+   (when show-0? (with-meta [:p 0] {:key "p0"}))
+   (when show-1? (with-meta [:p 1] {:key "p1"}))
+   (with-meta [:input {:id "focusable"}] {:key "focusable"})
+   (when show-2? (with-meta [:p 2] {:key "p2"}))
+   (when show-3? (with-meta [:p 3] {:key "p3"}))])
 
 (def fragment-focus-state (r/atom {:active? false}))
 
@@ -115,9 +115,9 @@
 
 (defn focus-app [{:keys [show-first? show-last?]}]
   [:div
-   (when show-first? [:p "first"])
-   [:input {:id "focusable"}]
-   (when show-last? [:p "last"])])
+   (when show-first? (with-meta [:p "first"] {:key "first"}))
+   (with-meta [:input {:id "focusable"}] {:key "focusable"})
+   (when show-last? (with-meta [:p "last"] {:key "last"}))])
 
 (describe "Focus and Selection Management"
   (fn []

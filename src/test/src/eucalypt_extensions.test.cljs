@@ -117,4 +117,26 @@
             (-> (th/wait-for-render)
                 (.then (fn []
                          (th/assert-equal (identical? (-> container .-firstChild .-firstChild) b-el) true)
-                         (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true))))))))))
+                         (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true)))))))
+
+    (it "should maintain focus on unkeyed inputs when unkeyed siblings are moved or toggled"
+      (fn []
+        (let [focus-app (fn [{:keys [show-first? show-last?]}]
+                          [:div
+                           (when show-first? [:p "first"])
+                           [:input {:id "focusable"}]
+                           (when show-last? [:p "last"])])
+              container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [focus-app {:show-first? true :show-last? true}] container)
+          (let [input (.querySelector container "#focusable")]
+            (set! (.-value input) "a word")
+            (.focus input)
+            (.setSelectionRange input 2 5)
+            (th/assert-equal js/document.activeElement input)
+
+            ;; Move from middle to beginning by removing unkeyed first sibling
+            (r/render [focus-app {:show-first? false :show-last? true}] container)
+            (th/assert-equal js/document.activeElement input "move from middle to beginning")
+            (th/assert-equal (.-selectionStart input) 2)
+            (th/assert-equal (.-selectionEnd input) 5))))))))
