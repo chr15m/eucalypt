@@ -68,5 +68,6 @@
         failed (:failed results)]
     (js/console.log "\n---")
     (js/console.log (str "Tests: " passed " passed, " failed " failed, " total " total"))
-    (when (> failed 0)
-      (js/process.exit 1))))
+    (if (> failed 0)
+      (js/process.exit 1)
+      (js/process.exit 0))))
