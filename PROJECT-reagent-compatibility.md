@@ -97,8 +97,8 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 
 This section documents verified behavioral differences between React/Reagent 1.0 (the canonical ground truth) and Eucalypt as an actionable checklist. These will be revisited to decide resolution (most likely updating Eucalypt to match Reagent behavior):
 
-- [ ] **Root Hierarchy Change / Element vs Fragment Unmounting (`reentrant_render.test.cljs` test 5)**:
-  - **Test**: `should keep child state when switching fragment and non-fragment roots`
+- [ ] **Root Hierarchy Change / Element vs Fragment Unmounting (`eucalypt_extensions.test.cljs`)**:
+  - **Test**: `should keep child state when switching fragment and non-fragment roots` (moved to `src/test/src/eucalypt_extensions.test.cljs`)
   - **Scenario**: A component switches its top-level return value between a Fragment `[:<> [:p ...] [child-counter] [switch]]` and a DOM element `[:div [:p ...] [child-counter] [switch]]`.
   - **React/Reagent Behavior**: React treats the difference in parent DOM container / node type at the root as a tree unmount, destroying all child component state and remounting `child-counter` with initial state (`0`).
   - **Eucalypt Behavior**: Eucalypt's keyed component cache preserves the child component's internal state atom even across parent node hierarchy restructuring, keeping the count (`1`).

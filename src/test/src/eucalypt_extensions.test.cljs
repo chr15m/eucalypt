@@ -37,6 +37,44 @@
              :ref tracking-ref}
       "Hello ref"])])
 
+(defn- child-counter [label]
+  (let [clicks (r/atom 0)]
+    (fn []
+      [:div {:class (str "child child-" label)}
+       [:span {:class (str "count-" label)} @clicks]
+       [:button {:class (str "inc-" label)
+                 :on-click #(swap! clicks inc)}
+        (str "Increment " label)]])))
+
+(defn- parent-with-toggle [label]
+  (let [toggled? (r/atom false)]
+    (fn []
+      [:section {:class (str "parent parent-" label)}
+       [:h2 (str label ": " (if @toggled? "on" "off"))]
+       [child-counter label]
+       [:button {:class (str "toggle-" label)
+                 :on-click #(swap! toggled? not)}
+        (str "Toggle " label)]])))
+
+(defn- fragment-parent [label]
+  (let [use-fragment? (r/atom true)]
+    (fn []
+      (let [mode-label (if @use-fragment? "Fragment layout" "Element layout")
+            counter (with-meta [child-counter label]
+                      {:key (str label "-counter")})
+            switch [:button {:class (str "switch-" label)
+                             :on-click #(swap! use-fragment? not)}
+                    (str "Switch layout for " label)]]
+        (if @use-fragment?
+          [:<>
+           [:p {:class (str "mode-" label)} mode-label]
+           counter
+           switch]
+          [:div {:class (str "div-container-" label)}
+           [:p {:class (str "mode-" label)} mode-label]
+           counter
+           switch])))))
+
 (describe "Eucalypt Extensions"
   (fn []
     (it "should support custom DOM event handlers and non-standard attributes"
@@ -117,7 +155,7 @@
             (-> (th/wait-for-render)
                 (.then (fn []
                          (th/assert-equal (identical? (-> container .-firstChild .-firstChild) b-el) true)
-                         (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true)))))))
+                         (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true))))))))
 
     (it "should maintain focus on unkeyed inputs when unkeyed siblings are moved or toggled"
       (fn []
@@ -139,4 +177,37 @@
             (r/render [focus-app {:show-first? false :show-last? true}] container)
             (th/assert-equal js/document.activeElement input "move from middle to beginning")
             (th/assert-equal (.-selectionStart input) 2)
-            (th/assert-equal (.-selectionEnd input) 5))))))))
+            (th/assert-equal (.-selectionEnd input) 5)))))
+
+    (it "should keep child state when switching fragment and non-fragment roots"
+      (fn []
+        (let [container-a (.createElement js/document "div")
+              container-b (.createElement js/document "div")]
+          (.appendChild js/document.body container-a)
+          (.appendChild js/document.body container-b)
+
+          (r/render [fragment-parent "Alpha"] container-a)
+          (r/render [parent-with-toggle "Beta"] container-b)
+
+          (th/assert-equal (.-textContent (.querySelector container-a ".count-Alpha")) "0")
+          (th/assert-equal (.-textContent (.querySelector container-b ".count-Beta")) "0")
+          (th/assert-equal (.-textContent (.querySelector container-a ".mode-Alpha")) "Fragment layout")
+
+          (.click (.querySelector container-a ".inc-Alpha"))
+          (.click (.querySelector container-b ".inc-Beta"))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (.-textContent (.querySelector container-a ".count-Alpha")) "1")
+                       (th/assert-equal (.-textContent (.querySelector container-b ".count-Beta")) "1")
+                       (.click (.querySelector container-a ".switch-Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent (.querySelector container-a ".mode-Alpha")) "Element layout")
+                       (th/assert-equal (.-textContent (.querySelector container-a ".count-Alpha")) "1")
+                       (th/assert-equal (.-textContent (.querySelector container-b ".count-Beta")) "1")
+                       (.click (.querySelector container-a ".switch-Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (.-textContent (.querySelector container-a ".mode-Alpha")) "Fragment layout")
+                       (th/assert-equal (.-textContent (.querySelector container-a ".count-Alpha")) "1")
+                       (th/assert-equal (.-textContent (.querySelector container-b ".count-Beta")) "1")))))))))

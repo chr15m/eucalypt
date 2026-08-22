@@ -71,25 +71,6 @@
                  :on-click #(swap! heavy-shared-state update :value inc)}
         (str "Bump shared for " label)]])))
 
-(defn fragment-parent [label]
-  (let [use-fragment? (r/atom true)]
-    (fn []
-      (let [mode-label (if @use-fragment? "Fragment layout" "Element layout")
-            counter (with-meta [child-counter label]
-                      {:key (str label "-counter")})
-            switch [:button {:class (str "switch-" label)
-                             :on-click #(swap! use-fragment? not)}
-                    (str "Switch layout for " label)]]
-        (if @use-fragment?
-          [:<>
-           [:p {:class (str "mode-" label)} mode-label]
-           counter
-           switch]
-          [:div {:class (str "div-container-" label)}
-           [:p {:class (str "mode-" label)} mode-label]
-           counter
-           switch])))))
-
 (defn- count-text [container label]
   (.-textContent (.querySelector container (str ".count-" label))))
 
@@ -107,12 +88,6 @@
 
 (defn- derived-text [container label]
   (.-textContent (.querySelector container (str ".derived-state-" label))))
-
-(defn- switch-btn [container label]
-  (.querySelector container (str ".switch-" label)))
-
-(defn- mode-text [container label]
-  (.-textContent (.querySelector container (str ".mode-" label))))
 
 (describe "Re-entrant rendering"
   (fn []
@@ -283,38 +258,5 @@
               (.then (fn []
                        (th/assert-equal (derived-text container-a "Alpha") "Derived: 2")
                        (th/assert-equal (derived-text container-b "Beta") "Derived: 2")
-                       (th/assert-equal (count-text container-a "Alpha") "1")
-                       (th/assert-equal (count-text container-b "Beta") "1")))))))
-
-    (it "should keep child state when switching fragment and non-fragment roots"
-      (fn []
-        (let [container-a (.createElement js/document "div")
-              container-b (.createElement js/document "div")]
-          (.appendChild js/document.body container-a)
-          (.appendChild js/document.body container-b)
-
-          (r/render [fragment-parent "Alpha"] container-a)
-          (r/render [parent-with-toggle "Beta"] container-b)
-
-          (th/assert-equal (count-text container-a "Alpha") "0")
-          (th/assert-equal (count-text container-b "Beta") "0")
-          (th/assert-equal (mode-text container-a "Alpha") "Fragment layout")
-
-          (.click (inc-btn container-a "Alpha"))
-          (.click (inc-btn container-b "Beta"))
-          (-> (th/wait-for-render)
-              (.then (fn []
-                       (th/assert-equal (count-text container-a "Alpha") "1")
-                       (th/assert-equal (count-text container-b "Beta") "1")
-                       (.click (switch-btn container-a "Alpha"))
-                       (th/wait-for-render)))
-              (.then (fn []
-                       (th/assert-equal (mode-text container-a "Alpha") "Element layout")
-                       (th/assert-equal (count-text container-a "Alpha") "1")
-                       (th/assert-equal (count-text container-b "Beta") "1")
-                       (.click (switch-btn container-a "Alpha"))
-                       (th/wait-for-render)))
-              (.then (fn []
-                       (th/assert-equal (mode-text container-a "Alpha") "Fragment layout")
                        (th/assert-equal (count-text container-a "Alpha") "1")
                        (th/assert-equal (count-text container-b "Beta") "1")))))))))
