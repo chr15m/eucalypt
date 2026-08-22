@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      squint-cljs:
+        specifier: 0.14.208
+        version: 0.14.208
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^3.2.4
@@ -26,9 +30,6 @@ importers:
       scittle:
         specifier: ^0.8.32
         version: 0.8.32
-      squint-cljs:
-        specifier: 0.14.207
-        version: 0.14.207
       vite:
         specifier: 7.1.2
         version: 7.1.2(@types/node@20.19.23)(terser@5.44.0)
@@ -798,8 +799,8 @@ packages:
   spawn-command@0.0.2:
     resolution: {integrity: sha512-zC8zGoGkmc8J9ndvml8Xksr1Amk9qBujgbF0JAIWO7kXr43w0h/0GJNM/Vustixu+YE8N/MTrQ7N31FvHUACxQ==}
 
-  squint-cljs@0.14.207:
-    resolution: {integrity: sha512-7NqM+QXtLJAIzCwawwKHUEFACrLMfmVr9PlpZSzH/yBScQn5AZ7qv+XTOuR9accegPlK/fam88zNcPwI76JwQA==}
+  squint-cljs@0.14.208:
+    resolution: {integrity: sha512-B5Sorb04wwA0bM32V8rgO3VhJL8icIKHt30Md41Ei3mim5mejd4HE6zX9o+uOxk9fqEiTJEoOgvPL0vF6WymrA==}
     hasBin: true
 
   stackback@0.0.2:
@@ -1680,7 +1681,7 @@ snapshots:
 
   spawn-command@0.0.2: {}
 
-  squint-cljs@0.14.207:
+  squint-cljs@0.14.208:
     dependencies:
       chokidar: 4.0.3
 
