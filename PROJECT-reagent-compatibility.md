@@ -34,7 +34,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
   - [x] `pnpm test:reagent-all` (Installed missing `react`, `react-dom`, `scittle` devDeps; 23 files passed completely, 27 had failures, 4 timed out).
 
 ### Phase 3: Reagent Runner Test Alignment
-- [ ] Fix timeout/hanging tests under Reagent runner (`reentrant_render`). (Note: `multiple_select` and `radio_buttons` fixed!).
+- [ ] Fix timeout/hanging tests under Reagent runner (`reentrant_render`). (Note: `multiple_select`, `radio_buttons`, and `reentrant_render` fixed!).
 - [ ] Category 1: Update synchronous DOM assertions to async `(th/wait-for-render)` for Reagent compatibility.
 - [ ] Category 2: Standardize event dispatching using `th/fire-event`.
 - [ ] Category 3: Fix EDN / string representation differences under Scittle/ClojureScript.
@@ -82,16 +82,27 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 
 - [x] `src/test/src/camel_case_events.test.cljs` — Uses `(aget el "on...")` DOM property checks and unsupported `:onFocusIn`/`:onFocusOut` props. Potential fix: Refactor DOM property checks to behavioral event tests.
 - [x] `src/test/src/event_handler_registration.test.cljs` — Uses `(aget el "onclick")` property checks. Potential fix: Replace DOM property checks with behavioral event testing (`th/fire-event` + `wait-for-render`).
+- [x] `src/test/src/reentrant_render.test.cljs` (moved remaining failing test to behavioural differences list)
 - [ ] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/nested_fors.test.cljs`
 - [ ] `src/test/src/ref_cleanup.test.cljs`
 - [ ] `src/test/src/render_diff_fundamentals.test.cljs`
 - [ ] `src/test/src/component_reconciliation.test.cljs`
-- [ ] `src/test/src/reentrant_render.test.cljs`
 - [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
 - [ ] `src/test/src/style_attribute.test.cljs`
 
 ---
+
+## Tests Failing Due to Behavioral Differences Between React/Reagent and Eucalypt
+
+This section documents verified behavioral differences between React/Reagent 1.0 (the canonical ground truth) and Eucalypt as an actionable checklist. These will be revisited to decide resolution (most likely updating Eucalypt to match Reagent behavior):
+
+- [ ] **Root Hierarchy Change / Element vs Fragment Unmounting (`reentrant_render.test.cljs` test 5)**:
+  - **Test**: `should keep child state when switching fragment and non-fragment roots`
+  - **Scenario**: A component switches its top-level return value between a Fragment `[:<> [:p ...] [child-counter] [switch]]` and a DOM element `[:div [:p ...] [child-counter] [switch]]`.
+  - **React/Reagent Behavior**: React treats the difference in parent DOM container / node type at the root as a tree unmount, destroying all child component state and remounting `child-counter` with initial state (`0`).
+  - **Eucalypt Behavior**: Eucalypt's keyed component cache preserves the child component's internal state atom even across parent node hierarchy restructuring, keeping the count (`1`).
+  - **Resolution needed**: Align Eucalypt's tree unmounting/reconciliation with React when root container node types change, then align the test assertion accordingly.
 
 ## Log & Observations
 
