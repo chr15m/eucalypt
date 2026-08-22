@@ -41,18 +41,14 @@
 
             ;; After clicking set, color should be red
             (.click set-btn)
-            (th/assert-equal (.. test-element -style -color) "red")
-
-            ;; After clicking clear, color should be empty again
-            (.click clear-btn)
-            (th/assert-equal (.. test-element -style -color) "")))))
-
-    (it "should apply style as String"
-      (fn []
-        (let [container (.createElement js/document "div")]
-          (.appendChild js/document.body container)
-          (r/render [:div {:style "top: 5px; position: relative;"}] container)
-          (th/assert-equal (.. container -firstChild -style -cssText) "top: 5px; position: relative;"))))
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (.. test-element -style -color) "red")
+                         ;; After clicking clear, color should be empty again
+                         (.click clear-btn)
+                         (th/wait-for-render)))
+                (.then (fn []
+                         (th/assert-equal (.. test-element -style -color) ""))))))))
 
     (it "should support opacity 0"
       (fn []

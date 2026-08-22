@@ -6,6 +6,7 @@
 ;;; - Setting arbitrary non-standard HTML attributes directly on elements
 ;;; - Direct DOM property inspection and access
 ;;; - Components returning raw sequences without a wrapping fragment
+;;; - Passing style as a raw CSS string instead of a map
 
 (ns eucalypt-extensions.test
   (:require ["vitest" :refer [describe it afterEach]]
@@ -50,4 +51,11 @@
             (r/render [raw-seq-comp] container)
             (let [spans (.querySelectorAll container "span")]
               (th/assert-equal (.-length spans) 3)
-              (th/assert-equal (.-textContent container) "ABC"))))))))
+              (th/assert-equal (.-textContent container) "ABC"))))))
+
+    (it "should apply style as String"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div {:style "top: 5px; position: relative;"}] container)
+          (th/assert-equal (.. container -firstChild -style -cssText) "top: 5px; position: relative;"))))))
