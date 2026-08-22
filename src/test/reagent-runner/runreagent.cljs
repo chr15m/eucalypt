@@ -60,7 +60,14 @@
                                               "[vitest :refer [$1]]")))
 
   ;; Run the test file
-  (js/scittle.core.eval_string test-script)
+  (try
+    (js/scittle.core.eval_string test-script)
+    (catch :default e
+      (js/console.error e)
+      (js/process.exit 1)))
 
   ;; Await the sequential test promise chain, then print summary
-  (js/scittle.core.eval_string "(.then vitest/test-promise (fn [] (vitest/print-summary)))"))
+  (js/scittle.core.eval_string
+   "(.then vitest/test-promise
+      (fn [] (vitest/print-summary))
+      (fn [e] (js/console.error e) (js/process.exit 1)))"))

@@ -12,7 +12,7 @@
     "dev": "pnpm demo:dev",
     "size": "pnpm dist:build | grep -v squint; gzip -c eucalypt.mjs > eucalypt.mjs.gz; ls -alh eucalypt.mjs.gz; rm eucalypt.mjs.gz",
     "test": "pnpm clean; pnpm test:compile && vitest run --config src/test/vitest.config.js",
-    "test:reagent-all": "for f in src/test/src/*.test.cljs; do echo \"=== $f ===\"; timeout 10s npx nbb src/test/reagent-runner/runreagent.cljs \"$f\" 2>&1 | grep \"Tests:\" || echo \"TIMEOUT or ERROR\"; done",
+    "test:reagent-all": "failures=0; for f in src/test/src/*.test.cljs; do if [ \"$f\" != \"src/test/src/eucalypt_extensions.test.cljs\" ]; then echo \"=== $f ===\"; if ! timeout 10s npx nbb src/test/reagent-runner/runreagent.cljs \"$f\"; then failures=$((failures + 1)); fi; fi; done; if [ $failures -ne 0 ]; then echo \"\n❌ $failures test file(s) failed with real Reagent\"; exit 1; fi",
     "test:reagent": "npx nbb src/test/reagent-runner/runreagent.cljs",
     "test:ci": "pnpm test:compile && vitest run --reporter=default --reporter=json --outputFile=./test-results.json --config src/test/vitest.config.js",
     "coverage": "pnpm test:compile && vitest run --coverage --config src/test/vitest.config.js",
