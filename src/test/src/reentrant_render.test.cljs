@@ -127,43 +127,62 @@
 
           (r/render [parent-with-toggle "Alpha"] container-a)
           (th/assert-equal (count-text container-a "Alpha") "0")
-          (.click (inc-btn container-a "Alpha"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (.click (toggle-btn container-a "Alpha"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-
-          (r/render [parent-with-toggle "Beta"] container-b)
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "0")
-
-          (.click (inc-btn container-b "Beta"))
-          (th/assert-equal (count-text container-b "Beta") "1")
-          (.click (toggle-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
 
           (.click (inc-btn container-a "Alpha"))
-          (th/assert-equal (count-text container-a "Alpha") "2")
-          (.click (toggle-btn container-a "Alpha"))
-          (th/assert-equal (count-text container-a "Alpha") "2")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (r/render [parent-with-toggle "Gamma"] container-c)
-          (th/assert-equal (count-text container-a "Alpha") "2")
-          (th/assert-equal (count-text container-b "Beta") "1")
-          (th/assert-equal (count-text container-c "Gamma") "0")
-
-          (.click (inc-btn container-c "Gamma"))
-          (th/assert-equal (count-text container-c "Gamma") "1")
-          (.click (toggle-btn container-c "Gamma"))
-          (th/assert-equal (count-text container-a "Alpha") "2")
-          (th/assert-equal (count-text container-b "Beta") "1")
-          (th/assert-equal (count-text container-c "Gamma") "1")
-
-          (.click (inc-btn container-b "Beta"))
-          (th/assert-equal (count-text container-b "Beta") "2")
-          (.click (toggle-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "2")
-          (th/assert-equal (count-text container-c "Gamma") "1"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (.click (toggle-btn container-a "Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (r/render [parent-with-toggle "Beta"] container-b)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "0")
+                       (.click (inc-btn container-b "Beta"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (.click (toggle-btn container-b "Beta"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (.click (inc-btn container-a "Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "2")
+                       (.click (toggle-btn container-a "Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "2")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (r/render [parent-with-toggle "Gamma"] container-c)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "2")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (th/assert-equal (count-text container-c "Gamma") "0")
+                       (.click (inc-btn container-c "Gamma"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-c "Gamma") "1")
+                       (.click (toggle-btn container-c "Gamma"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "2")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (th/assert-equal (count-text container-c "Gamma") "1")
+                       (.click (inc-btn container-b "Beta"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-b "Beta") "2")
+                       (.click (toggle-btn container-b "Beta"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "2")
+                       (th/assert-equal (count-text container-c "Gamma") "1")))))))
 
     (it "should preserve state when roots trigger cross renders via shared atoms"
       (fn []
@@ -183,20 +202,24 @@
 
           (.click (inc-btn container-a "Alpha"))
           (.click (inc-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (.click (toggle-btn container-a "Alpha"))
-          (th/assert-equal (shared-text container-a "Alpha") "Shared: on")
-          (th/assert-equal (shared-text container-b "Beta") "Shared: on")
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (.click (toggle-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-          (th/assert-equal (shared-text container-a "Alpha") "Shared: on")
-          (th/assert-equal (shared-text container-b "Beta") "Shared: on"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (.click (toggle-btn container-a "Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (shared-text container-a "Alpha") "Shared: on")
+                       (th/assert-equal (shared-text container-b "Beta") "Shared: on")
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (.click (toggle-btn container-b "Beta"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (th/assert-equal (shared-text container-a "Alpha") "Shared: on")
+                       (th/assert-equal (shared-text container-b "Beta") "Shared: on")))))))
 
     (it "should keep other roots intact when one root is unmounted and remounted"
       (fn []
@@ -210,15 +233,19 @@
 
           (.click (inc-btn container-a "Alpha"))
           (.click (inc-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (r/render [:p {:class "placeholder"} "Placeholder"] container-b)
-          (th/assert-equal (count-text container-a "Alpha") "1")
-
-          (r/render [parent-with-toggle "Beta"] container-b)
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "0"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (r/render [:p {:class "placeholder"} "Placeholder"] container-b)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (r/render [parent-with-toggle "Beta"] container-b)
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "0")))))))
 
     (it "should handle heavy watcher traffic without disturbing local state"
       (fn []
@@ -236,22 +263,28 @@
 
           (.click (inc-btn container-a "Alpha"))
           (.click (inc-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (.click (bump-btn container-a "Alpha"))
-          (th/assert-equal (derived-text container-a "Alpha") "Derived: 1")
-          (th/assert-equal (derived-text container-b "Beta") "Derived: 1")
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (.click (toggle-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (.click (bump-btn container-b "Beta"))
-          (th/assert-equal (derived-text container-a "Alpha") "Derived: 2")
-          (th/assert-equal (derived-text container-b "Beta") "Derived: 2")
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1"))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (.click (bump-btn container-a "Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (derived-text container-a "Alpha") "Derived: 1")
+                       (th/assert-equal (derived-text container-b "Beta") "Derived: 1")
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (.click (toggle-btn container-b "Beta"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (.click (bump-btn container-b "Beta"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (derived-text container-a "Alpha") "Derived: 2")
+                       (th/assert-equal (derived-text container-b "Beta") "Derived: 2")
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")))))))
 
     (it "should keep child state when switching fragment and non-fragment roots"
       (fn []
@@ -269,15 +302,19 @@
 
           (.click (inc-btn container-a "Alpha"))
           (.click (inc-btn container-b "Beta"))
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (.click (switch-btn container-a "Alpha"))
-          (th/assert-equal (mode-text container-a "Alpha") "Element layout")
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1")
-
-          (.click (switch-btn container-a "Alpha"))
-          (th/assert-equal (mode-text container-a "Alpha") "Fragment layout")
-          (th/assert-equal (count-text container-a "Alpha") "1")
-          (th/assert-equal (count-text container-b "Beta") "1"))))))
+          (-> (th/wait-for-render)
+              (.then (fn []
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (.click (switch-btn container-a "Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (mode-text container-a "Alpha") "Element layout")
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")
+                       (.click (switch-btn container-a "Alpha"))
+                       (th/wait-for-render)))
+              (.then (fn []
+                       (th/assert-equal (mode-text container-a "Alpha") "Fragment layout")
+                       (th/assert-equal (count-text container-a "Alpha") "1")
+                       (th/assert-equal (count-text container-b "Beta") "1")))))))))
