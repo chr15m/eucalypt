@@ -86,7 +86,7 @@ Before resuming Reagent runner work, we established a clean baseline on `main` a
 - [x] `src/test/src/nested_fors.test.cljs`
 - [x] `src/test/src/style_attribute.test.cljs`
 - [x] `src/test/src/ref_cleanup.test.cljs` (moved to `eucalypt_extensions.test.cljs`)
-- [ ] `src/test/src/render_diff_fundamentals.test.cljs`
+- [x] `src/test/src/render_diff_fundamentals.test.cljs`
 - [ ] `src/test/src/keyed_list_reordering.test.cljs`
 - [ ] `src/test/src/uncontrolled_and_focus.test.cljs`
 - [ ] `src/test/src/component_reconciliation.test.cljs`
@@ -104,6 +104,12 @@ This section documents verified behavioral differences between React/Reagent 1.0
   - **Eucalypt Behavior**: Eucalypt's keyed component cache preserves the child component's internal state atom even across parent node hierarchy restructuring, keeping the count (`1`).
   - **Resolution needed**: Align Eucalypt's tree unmounting/reconciliation with React when root container node types change, then align the test assertion accordingly.
 
+- [ ] **Unkeyed Sibling Reordering and DOM Node Identity**:
+  - **Scenario**: When reordering unkeyed sibling elements with different tags (e.g. `[:div [:a "a"] [:b "b"]]` -> `[:div [:b "b"] [:a "a"]]`).
+  - **React/Reagent Behavior**: Reconciles unkeyed children purely by index position; since tag at index 0 changes from `A` to `B`, it destroys and recreates the DOM nodes rather than moving them.
+  - **Eucalypt Behavior**: Heuristically searches unkeyed siblings by tag name and reorders existing DOM nodes, preserving DOM node instances.
+  - **Resolution needed**: Keep unkeyed node preservation as an extension test in `eucalypt_extensions.test.cljs`; decide later whether to retain this optimization or match React's strict positional reconciliation.
+
 - [ ] **DOM Attribute Emission for `:key` in Props Map**:
   - **Scenario**: In Hiccup, `:key` can be specified either via metadata `(with-meta [:span ...] {:key "foo"})` or in the attributes/props map `[:span {:key "foo"} ...]`.
   - **React/Reagent Behavior**: `:key` (along with `:ref`) is a reserved reconciler prop and is never emitted to the DOM as an HTML attribute (`key="foo"`).
@@ -112,6 +118,8 @@ This section documents verified behavioral differences between React/Reagent 1.0
 
 ## Log & Observations
 
+- **2026-08-22**:
+  - Updated `src/test/src/render_diff_fundamentals.test.cljs` to use `(th/wait-for-render)` promise chains and keyed child reordering. Moved unkeyed child pair DOM identity check to `src/test/src/eucalypt_extensions.test.cljs`. Verified 100% pass rate (6/6 tests) in both Eucalypt and Reagent runner. Marked `render_diff_fundamentals.test.cljs` as complete.
 - **2026-08-14**:
   - Updated `src/test/src/event_handler_registration.test.cljs` to use standard `:on-mouse-down`, `th/fire-event`, and `(th/wait-for-render)` promise chains. Extracted Eucalypt-specific custom event/attribute assertions into `src/test/src/eucalypt_extensions.test.cljs`. Verified 100% pass rate in both Eucalypt and Reagent runner. Marked `event_handler_registration.test.cljs` as complete.
   - Updated `src/test/src/camel_case_events.test.cljs` to test `:onFocus` and `:onBlur` instead of unsupported `:onFocusIn` and `:onFocusOut`, and removed unused `focusin`/`focusout` mappings in `helpers.cljs`. Verified 100% pass rate in both Eucalypt and Reagent runner. Marked `camel_case_events.test.cljs` as complete.

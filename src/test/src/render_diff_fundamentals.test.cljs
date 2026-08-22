@@ -19,21 +19,27 @@
               (.then (fn []
                        (th/assert-equal (.-innerHTML container) "<div>Good</div>")))))))
 
-    (it "should reorder child pairs"
+    (it "should reorder keyed child pairs"
       (fn []
         (let [container (.createElement js/document "div")]
           (.appendChild js/document.body container)
-          (r/render [:div [:a "a"] [:b "b"]] container)
+          (r/render [:div
+                     (with-meta [:a "a"] {:key "a"})
+                     (with-meta [:b "b"] {:key "b"})]
+                    container)
 
           (let [a-el (-> container .-firstChild .-firstChild)
                 b-el (-> container .-firstChild .-lastChild)]
             (th/assert-equal (.-nodeName a-el) "A")
             (th/assert-equal (.-nodeName b-el) "B")
 
-            (r/render [:div [:b "b"] [:a "a"]] container)
+            (r/render [:div
+                       (with-meta [:b "b"] {:key "b"})
+                       (with-meta [:a "a"] {:key "a"})]
+                      container)
             (-> (th/wait-for-render)
                 (.then (fn []
-                         ;; After re-render, the DOM nodes should be the same instances, just reordered.
+                         ;; After re-render, keyed DOM nodes should be the same instances, just reordered.
                          (th/assert-equal (identical? (-> container .-firstChild .-firstChild) b-el) true)
                          (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true))))))))
 

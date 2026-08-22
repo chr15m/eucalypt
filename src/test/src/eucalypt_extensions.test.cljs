@@ -100,4 +100,21 @@
           (reset! show-ref? false)
           (th/assert-equal (mapv #(get % :kind) @ref-events)
                            [:mount :cleanup :mount :cleanup])
-          (th/assert-equal (nil? (some #(= (get % :kind) :nil) @ref-events)) true))))))
+          (th/assert-equal (nil? (some #(= (get % :kind) :nil) @ref-events)) true))))
+
+    (it "should reorder unkeyed child pairs preserving DOM node identity"
+      (fn []
+        (let [container (.createElement js/document "div")]
+          (.appendChild js/document.body container)
+          (r/render [:div [:a "a"] [:b "b"]] container)
+
+          (let [a-el (-> container .-firstChild .-firstChild)
+                b-el (-> container .-firstChild .-lastChild)]
+            (th/assert-equal (.-nodeName a-el) "A")
+            (th/assert-equal (.-nodeName b-el) "B")
+
+            (r/render [:div [:b "b"] [:a "a"]] container)
+            (-> (th/wait-for-render)
+                (.then (fn []
+                         (th/assert-equal (identical? (-> container .-firstChild .-firstChild) b-el) true)
+                         (th/assert-equal (identical? (-> container .-firstChild .-lastChild) a-el) true))))))))))
