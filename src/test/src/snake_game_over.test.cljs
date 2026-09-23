@@ -1,5 +1,5 @@
 (ns snake-game-over.test
-  (:require ["vitest" :refer [describe it]]
+  (:require ["vitest" :refer [describe it afterEach]]
             [eucalypt :as r]
             [helpers :as th]))
 
@@ -42,7 +42,34 @@
                  ate? (assoc st :snake new-snake :food (random-food))
                  :else (assoc st :snake new-snake)))))))
 
-(defonce snake-interval (js/setInterval move-snake 20))
+(def snake-interval (atom nil))
+
+(defn start-snake-interval []
+  (when-not @snake-interval
+    (reset! snake-interval (js/setInterval move-snake 20))))
+
+(defn stop-snake-interval []
+  (when-let [id @snake-interval]
+    (js/clearInterval id)
+    (reset! snake-interval nil)))
+
+(defn wait-for-game-over []
+  (if-not (:alive? @snake-state)
+    (do
+      (stop-snake-interval)
+      (js/Promise.resolve))
+    (js/Promise.
+     (fn [resolve]
+       (add-watch snake-state :game-over-watcher
+                  (fn [_ _ _ new-state]
+                    (when-not (:alive? new-state)
+                      (remove-watch snake-state :game-over-watcher)
+                      (stop-snake-interval)
+                      (resolve))))))))
+
+(afterEach
+ (fn []
+   (stop-snake-interval)))
 
 (defonce keydown-listener
   (.addEventListener js/window "keydown"
@@ -87,6 +114,7 @@
     (it "should show Game Over when the snake hits the wall"
       (fn []
         (reset-snake-state)
+        (start-snake-interval)
         (let [initial-child-count (atom nil)]
           (r/render [game-board] container)
           (-> (sleep 1)
@@ -103,7 +131,7 @@
                          (th/assert-not-nil svg)
                          (th/assert-equal (:alive? @snake-state) true)
                          (th/assert-equal (.-textContent svg) ""))))
-              (.then (fn [] (sleep 350)))
+              (.then (fn [] (wait-for-game-over)))
               (.then (fn []
                        (let [svg (.querySelector container "svg")]
                          (th/assert-not-nil svg)
